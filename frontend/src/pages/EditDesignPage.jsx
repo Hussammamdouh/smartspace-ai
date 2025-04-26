@@ -1,16 +1,16 @@
-// src/pages/EditDesignPage.jsx
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Loader from "../components/Loader";
+import toast from "react-hot-toast";
 
 const EditDesignPage = () => {
   const [furniture, setFurniture] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("Sofa");
-  const [canvasImage, setCanvasImage] = useState("/images/empty-room.jpg"); // Placeholder for room
+  const [canvasImage, setCanvasImage] = useState("/images/empty-room.jpg");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-
   const categories = ["Sofas", "Beds", "Chairs", "Tables", "Lamp"];
 
   useEffect(() => {
@@ -19,7 +19,7 @@ const EditDesignPage = () => {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/inventory`);
         setFurniture(res.data.data);
       } catch (err) {
-        console.error("Failed to fetch inventory");
+        toast.error("Failed to fetch inventory.");
       }
     };
     fetchInventory();
@@ -32,7 +32,7 @@ const EditDesignPage = () => {
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/ai/generate-image`, { prompt });
       setCanvasImage(res.data.imageUrl);
     } catch (err) {
-      alert("Failed to generate edited image.");
+      toast.error("Failed to generate edited image.");
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,11 @@ const EditDesignPage = () => {
           alt="Room Canvas"
           className="max-h-[80vh] w-auto rounded-lg shadow-lg object-contain"
         />
-        {loading && <p className="mt-2 text-[#A58077] animate-pulse">Generating...</p>}
+        {loading && (
+          <div className="mt-4">
+            <Loader size="lg" />
+          </div>
+        )}
       </main>
 
       {/* Properties Sidebar */}

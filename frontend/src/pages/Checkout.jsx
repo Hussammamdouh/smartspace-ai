@@ -1,123 +1,124 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { CartContext } from "../contexts/CartContext";
 import { toast } from "react-toastify";
 
-const PaymentPage = () => {
+const CheckoutPage = () => {
+  const { cart, clearCart } = useContext(CartContext);
   const navigate = useNavigate();
-  const [cardInfo, setCardInfo] = useState({
-    name: "",
-    number: "",
-    expiry: "",
-    cvv: "",
+  const [address, setAddress] = useState({
+    fullName: "",
+    addressLine: "",
+    city: "",
+    postalCode: "",
+    country: "",
   });
-  const [focusField, setFocusField] = useState("");
+
+  const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const shippingCost = subtotal > 300 ? 0 : 30;
+  const total = subtotal + shippingCost;
 
   const handleChange = (e) => {
-    setCardInfo({ ...cardInfo, [e.target.name]: e.target.value });
+    setAddress({ ...address, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!cardInfo.name || !cardInfo.number || !cardInfo.expiry || !cardInfo.cvv) {
-      toast.error("Please fill all payment fields.");
+    if (!address.fullName || !address.addressLine || !address.city || !address.postalCode || !address.country) {
+      toast.error("Please fill in all shipping fields.");
       return;
     }
 
-    toast.success("Payment Successful!");
-    setTimeout(() => navigate("/thankyou"), 1000); // Redirect after success
+    toast.success("Order Placed Successfully!");
+    clearCart();
+    setTimeout(() => navigate("/thankyou"), 1000);
   };
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] p-8 flex flex-col md:flex-row items-center justify-center gap-16">
-      {/* Card Form */}
+    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] p-8 flex flex-col lg:flex-row gap-16 items-start justify-center">
+      {/* Shipping Form */}
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
-        <h2 className="text-3xl font-bold mb-4">Virtual Payment</h2>
+        <h2 className="text-3xl font-bold mb-6">Shipping Information</h2>
 
-        <div>
-          <label className="block mb-1">Cardholder Name</label>
+        <div className="space-y-4">
           <input
-            name="name"
-            value={cardInfo.name}
+            name="fullName"
+            placeholder="Full Name"
+            value={address.fullName}
             onChange={handleChange}
-            onFocus={() => setFocusField("name")}
-            className="w-full px-4 py-3 rounded bg-[#E5CBBE] text-[#181818] focus:outline-none"
-            placeholder="Your Name"
+            className="w-full px-4 py-3 rounded-lg bg-[#E5CBBE] text-[#181818] focus:outline-none"
           />
-        </div>
-
-        <div>
-          <label className="block mb-1">Card Number</label>
           <input
-            name="number"
-            value={cardInfo.number}
+            name="addressLine"
+            placeholder="Address Line"
+            value={address.addressLine}
             onChange={handleChange}
-            onFocus={() => setFocusField("number")}
-            className="w-full px-4 py-3 rounded bg-[#E5CBBE] text-[#181818] focus:outline-none"
-            placeholder="1234 5678 9012 3456"
-            maxLength={19}
+            className="w-full px-4 py-3 rounded-lg bg-[#E5CBBE] text-[#181818] focus:outline-none"
           />
-        </div>
-
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="block mb-1">Expiry Date</label>
-            <input
-              name="expiry"
-              value={cardInfo.expiry}
-              onChange={handleChange}
-              onFocus={() => setFocusField("expiry")}
-              className="w-full px-4 py-3 rounded bg-[#E5CBBE] text-[#181818] focus:outline-none"
-              placeholder="MM/YY"
-              maxLength={5}
-            />
-          </div>
-
-          <div className="flex-1">
-            <label className="block mb-1">CVV</label>
-            <input
-              name="cvv"
-              value={cardInfo.cvv}
-              onChange={handleChange}
-              onFocus={() => setFocusField("cvv")}
-              className="w-full px-4 py-3 rounded bg-[#E5CBBE] text-[#181818] focus:outline-none"
-              placeholder="123"
-              maxLength={3}
-            />
-          </div>
+          <input
+            name="city"
+            placeholder="City"
+            value={address.city}
+            onChange={handleChange}
+            className="w-full px-4 py-3 rounded-lg bg-[#E5CBBE] text-[#181818] focus:outline-none"
+          />
+          <input
+            name="postalCode"
+            placeholder="Postal Code"
+            value={address.postalCode}
+            onChange={handleChange}
+            className="w-full px-4 py-3 rounded-lg bg-[#E5CBBE] text-[#181818] focus:outline-none"
+          />
+          <input
+            name="country"
+            placeholder="Country"
+            value={address.country}
+            onChange={handleChange}
+            className="w-full px-4 py-3 rounded-lg bg-[#E5CBBE] text-[#181818] focus:outline-none"
+          />
         </div>
 
         <button
           type="submit"
-          className="w-full h-14 bg-[#A58077] text-white rounded-lg text-lg font-semibold hover:bg-[#E5CBBE] hover:text-[#181818] transition-all"
+          className="w-full h-14 bg-[#A58077] text-white rounded-lg text-lg font-semibold hover:bg-[#E5CBBE] hover:text-[#181818] transition-all mt-6"
         >
-          Pay Now
+          Confirm Checkout
         </button>
       </form>
 
-      {/* Card Preview */}
-      <div className="relative w-[320px] h-[200px] bg-gradient-to-br from-[#A58077] to-[#E5CBBE] text-[#181818] rounded-xl p-6 shadow-xl">
-        <div className="text-sm mb-2">Card Preview</div>
-        <div className="text-xl tracking-widest font-bold mb-4">
-          {cardInfo.number || "**** **** **** ****"}
+      {/* Order Summary */}
+      <div className="w-full max-w-md bg-[#171717] rounded-xl p-6 shadow-lg">
+        <h2 className="text-2xl font-bold mb-6">Order Summary</h2>
+
+        <div className="space-y-4 text-md">
+          {cart.map((item) => (
+            <div className="flex justify-between" key={item._id}>
+              <span>{item.name} (x{item.quantity})</span>
+              <span>${item.price * item.quantity}</span>
+            </div>
+          ))}
+
+          <hr className="border-[#A58077] my-2" />
+
+          <div className="flex justify-between">
+            <span>Subtotal:</span>
+            <span>${subtotal}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Shipping:</span>
+            <span>{shippingCost === 0 ? "Free" : `$${shippingCost}`}</span>
+          </div>
+
+          <div className="flex justify-between font-bold text-lg mt-4">
+            <span>Total:</span>
+            <span>${total}</span>
+          </div>
         </div>
-        <div className="flex justify-between text-sm">
-          <div>
-            <div className="uppercase text-xs">Cardholder</div>
-            <div>{cardInfo.name || "Your Name"}</div>
-          </div>
-          <div>
-            <div className="uppercase text-xs">Expiry</div>
-            <div>{cardInfo.expiry || "MM/YY"}</div>
-          </div>
-        </div>
-        {focusField === "cvv" && (
-          <div className="absolute top-0 right-0 bg-black text-white px-3 py-1 text-sm rounded-bl-xl">
-            CVV: {cardInfo.cvv || "***"}
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-export default PaymentPage;
+export default CheckoutPage;

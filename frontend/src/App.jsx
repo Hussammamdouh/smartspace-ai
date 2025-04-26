@@ -5,56 +5,71 @@ import Footer from "./components/Footer";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RedirectIfLoggedIn from "./components/RedirectIfLoggedIn";
+import ProtectAdminRoute from "./components/ProtectAdminRoute";
 import ErrorBoundary from "./components/ErrorBoundry";
+import NotFoundPage from "./pages/error";
+import ThankYouPage from "./pages/ThankYouPage";
+
+// Pages
 import ProductsPage from "./pages/Products";
 import SingleProductPage from "./pages/Product";
 import CartPage from "./pages/Cart";
-import PaymentPage from "./pages/Checkout";
 import Profile from "./pages/Profile";
-import GeminiImageGenerator from "./pages/GeminiChat";
-import UnifiedChat from "./pages/Chatpage";
+import UnifiedChat from "./pages/ChatPage";
+import PaymentPage from "./pages/Payment";
+import AdminLayout from "./admin/AdminLayout";
+import Dashboard from "./admin/pages/Dashboard";
+import ProductsManagement from "./admin/pages/ProductsManagement";
+import UsersManagement from "./admin/pages/UsersManagement";
 
-// Lazy load heavy components
+// Lazy loaded pages
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 const App = () => {
   return (
     <ErrorBoundary>
       <Router>
-        <ToastContainer position="top-right" autoClose={3000} limit={3} />
+        <ToastContainer position="top-right" autoClose={3000} limit={3} theme="dark" />
         <Navbar />
-        <Suspense fallback={<div className="text-center p-5">Loading...</div>}>
+
+        <Suspense fallback={<div className="text-center p-5 text-[#A58077] animate-pulse">Loading...</div>}>
           <Routes>
+            {/* Public Pages */}
             <Route path="/" element={<Home />} />
-            <Route
-              path="/login"
-              element={
-                <RedirectIfLoggedIn>
-                  <Login />
-                </RedirectIfLoggedIn>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <RedirectIfLoggedIn>
-                  <Register />
-                </RedirectIfLoggedIn>
-              }
-            />
+            <Route path="/login" element={<RedirectIfLoggedIn><Login /></RedirectIfLoggedIn>} />
+            <Route path="/register" element={<RedirectIfLoggedIn><Register /></RedirectIfLoggedIn>} />
+
+            {/* Core Pages */}
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/Products" element={<ProductsPage/>} />
-            <Route path="/Product/:id" element={<SingleProductPage/>} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/product/:id" element={<SingleProductPage />} />
             <Route path="/cart" element={<CartPage />} />
-            <Route path="/chatbot" element={<GeminiImageGenerator/>} />
-            <Route path="/checkout" element={<PaymentPage/>} />
-            <Route path="/profile" element={<Profile/>} />
-            <Route path="/ai" element={<UnifiedChat/>}/>
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/chatbot" element={<UnifiedChat />} />
+            <Route path="/ai" element={<UnifiedChat />} />
+
+            {/* Payment and Orders */}
+            <Route path="/checkout" element={<PaymentPage />} />
+            <Route path="/thankyou" element={<ThankYouPage />} />
+
+            {/* Admin Pages */}
+            <Route path="/admin" element={
+              <ProtectAdminRoute>
+                <AdminLayout />
+              </ProtectAdminRoute>
+            }>
+              <Route index element={<Dashboard />} />
+              <Route path="products" element={<ProductsManagement />} />
+              <Route path="users" element={<UsersManagement />} />
+            </Route>
+
+            {/* 404 Not Found */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
+
         <Footer />
       </Router>
     </ErrorBoundary>

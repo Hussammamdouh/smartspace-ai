@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const UnifiedChat = () => {
   const [model, setModel] = useState("gpt-3.5-turbo");
@@ -37,10 +38,7 @@ const UnifiedChat = () => {
 
       setMessages((prev) => [...prev, responseMsg]);
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Something went wrong. Please try again." },
-      ]);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -90,6 +88,13 @@ const UnifiedChat = () => {
               )}
             </div>
           ))}
+
+          {loading && (
+            <div className="p-3 rounded-lg max-w-[80%] bg-[#E5CBBE] text-[#181818] animate-pulse">
+              Thinking...
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
 

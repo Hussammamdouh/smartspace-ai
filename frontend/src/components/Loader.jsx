@@ -1,28 +1,14 @@
 import React from "react";
 
-const Loader = ({ size = 50, color = "#E5CBBE", centered = false }) => {
-  const loaderStyles = {
-    width: `${size}px`,
-    height: `${size}px`,
-    borderTopColor: color,
-    borderRightColor: "transparent",
-    borderBottomColor: color,
-    borderLeftColor: color,
-  };
+export default function Loader({ size = "md" }) {
+  const sizeClass =
+    size === "sm" ? "h-4 w-4" : size === "lg" ? "h-12 w-12" : "h-6 w-6";
 
   return (
-    <div
-      className={`${
-        centered ? "flex items-center justify-center min-h-screen" : ""
-      }`}
-    >
+    <div className="flex justify-center items-center">
       <div
-        className="animate-spin rounded-full border-t-4 border-opacity-50"
-        style={loaderStyles}
-        aria-label="Loading..."
-      ></div>
+        className={`animate-spin rounded-full border-4 border-t-transparent border-gray-400 dark:border-gray-600 ${sizeClass}`}
+      />
     </div>
   );
-};
-
-export default Loader;
+}

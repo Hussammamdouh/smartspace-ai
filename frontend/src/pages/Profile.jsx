@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import Loader from "../components/Loader";
+import SkeletonCard from "../components/SkeletonCard";
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -40,8 +40,15 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader size={60} />
+      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] p-8">
+        <div className="max-w-4xl mx-auto bg-[#2C2C2C] p-8 rounded-lg shadow-md space-y-6">
+          <SkeletonCard className="h-10 w-48" />
+          <SkeletonCard className="h-6 w-32" />
+          <SkeletonCard className="h-4 w-full" />
+          <SkeletonCard className="h-20 w-full" />
+          <SkeletonCard className="h-20 w-full" />
+          <SkeletonCard className="h-20 w-full" />
+        </div>
       </div>
     );
   }

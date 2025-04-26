@@ -1,54 +1,48 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaGoogle, FaApple, FaFacebookF } from "react-icons/fa";
+import toast from "react-hot-toast";
+import PropTypes from "prop-types";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
-    firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: ""
+    firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "", role: "customer"
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const navigate = useNavigate();
-  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const handleInputChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-  
+
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match!");
+      toast.error("Passwords do not match!");
       return;
     }
-  
+
     setLoading(true);
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, formData);
-      alert("Account created successfully!");
-      navigate("/login"); // ✅ after success
+      await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, formData);
+      toast.success("Account created successfully!");
+      navigate("/login");
     } catch (err) {
-      setError(err.response?.data?.message || "An error occurred while registering.");
+      toast.error(err.response?.data?.message || "An error occurred while registering.");
     } finally {
       setLoading(false);
     }
-  };  
+  };
 
   return (
     <div className="min-h-screen bg-[#181818] flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background image overlay */}
       <div className="absolute inset-0 bg-[url('/path-to-image.jpg')] bg-cover opacity-20 z-0" />
 
-      {/* Form Container */}
       <div className="z-10 w-full max-w-lg bg-[#E5CBBE] bg-opacity-90 rounded-xl shadow-2xl p-8 md:p-10 animate-fade-in">
         <h1 className="text-3xl md:text-4xl font-bold text-[#181818] text-center mb-6">Create your account</h1>
-
-        {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm font-medium">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -120,6 +114,14 @@ const Input = ({ label, name, type = "text", value, onChange }) => (
   </div>
 );
 
+Input.propTypes = {
+  label: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  type: PropTypes.string,
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
 const PasswordInput = ({ label, name, value, show, toggleVisibility, onChange }) => (
   <div className="relative">
     <label className="block text-[#616161] text-sm font-medium mb-1">{label}</label>
@@ -142,10 +144,23 @@ const PasswordInput = ({ label, name, value, show, toggleVisibility, onChange })
   </div>
 );
 
+PasswordInput.propTypes = {
+  label: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  show: PropTypes.bool.isRequired,
+  toggleVisibility: PropTypes.func.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
 const SocialButton = ({ Icon }) => (
   <button className="w-10 h-10 bg-[#181818] text-white flex items-center justify-center rounded-full hover:bg-[#A58077] transition-all duration-200 transform hover:scale-105">
     <Icon size={18} />
   </button>
 );
+
+SocialButton.propTypes = {
+  Icon: PropTypes.elementType.isRequired,
+};
 
 export default SignUp;

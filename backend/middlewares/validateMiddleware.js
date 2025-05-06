@@ -1,4 +1,3 @@
-// middlewares/validateMiddleware.js
 const Joi = require('joi');
 
 exports.validate = (schema) => {

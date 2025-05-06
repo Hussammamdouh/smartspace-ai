@@ -15,8 +15,20 @@ exports.handleUnifiedChat = async (req, res, next) => {
       if (!lastPrompt || typeof lastPrompt !== "string") {
         return res.status(400).json({ error: "Invalid or missing prompt." });
       }
-      const imageUrl = await generateImageWithDalle(lastPrompt);
-      return res.status(200).json({ role: "assistant", type: "image", content: imageUrl });
+
+      const { imageUrl, designId, prompt, usedItems } = await generateImageWithDalle(
+        lastPrompt,
+        req.user._id
+      );
+
+      return res.status(200).json({
+        role: "assistant",
+        type: "image",
+        content: imageUrl,
+        designId,
+        prompt,
+        usedItems,
+      });
     } else {
       return res.status(400).json({ error: "Invalid model selection." });
     }

@@ -42,15 +42,21 @@ exports.getInventoryItem = async (req, res, next) => {
 
 exports.addInventoryItem = async (req, res, next) => {
   try {
-    const { name, type, price, description } = req.body;
-    const filePath = req.file ? req.file.path : null;
+    const { name, type, price, stock } = req.body;
+    const filePath = req.file ? req.file.path : product.filePath;
+
+    if (!name || !type || !price || !stock || !filePath) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     const item = await inventoryService.createItem({
       name,
       type,
       price,
-      description,
+      stock,
       filePath,
     });
+
     res.status(201).json(item);
   } catch (error) {
     next(error);
@@ -59,12 +65,23 @@ exports.addInventoryItem = async (req, res, next) => {
 
 exports.updateInventoryItem = async (req, res, next) => {
   try {
-    const item = await inventoryService.updateItem(req.params.id, req.body);
-    res.status(200).json(item);
+    const updates = {
+      ...req.body,
+    };
+    if (req.file) {
+      updates.filePath = req.file.path;
+    }
+    const updatedItem = await inventoryService.updateItem(req.params.id, updates);
+    if (!updatedItem) {
+      return res.status(404).json({ message: "Product not found or update failed" });
+    }
+    res.status(200).json({ message: "Product updated successfully", data: updatedItem });
   } catch (error) {
     next(error);
   }
 };
+
+
 
 exports.deleteInventoryItem = async (req, res, next) => {
   try {

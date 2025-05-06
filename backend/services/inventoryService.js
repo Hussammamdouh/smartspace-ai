@@ -2,10 +2,14 @@ const InventoryItem = require('../models/inventoryItem');
 const paginate = require('../utils/paginate');
 
 exports.getAllItems = async (filters, page = 1, limit = 10) => {
-  const queryObj = { isDeleted: false }; // 🔁 filter soft deleted
+  const queryObj = { isDeleted: false }; // filter soft-deleted items
 
-  if (filters.type) queryObj.type = filters.type;
-  if (filters.available !== undefined) queryObj.available = filters.available;
+  if (filters.type && filters.type.trim() !== "") {
+    queryObj.type = filters.type;
+  }
+  if (filters.available !== undefined) {
+    queryObj.available = filters.available;
+  }
   if (filters.minPrice || filters.maxPrice) {
     queryObj.price = {};
     if (filters.minPrice) queryObj.price.$gte = filters.minPrice;
@@ -15,6 +19,7 @@ exports.getAllItems = async (filters, page = 1, limit = 10) => {
   const { query, meta } = paginate(InventoryItem.find(queryObj), page, limit);
   const items = await query.exec();
   const totalItems = await InventoryItem.countDocuments(queryObj);
+
   return {
     data: items,
     meta: {
@@ -24,6 +29,7 @@ exports.getAllItems = async (filters, page = 1, limit = 10) => {
     },
   };
 };
+
 
 exports.createItem = async (data) => {
   return await InventoryItem.create(data);

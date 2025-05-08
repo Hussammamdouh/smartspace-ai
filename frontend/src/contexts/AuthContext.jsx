@@ -1,6 +1,16 @@
-import React, { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useContext } from "react";
+import PropTypes from 'prop-types';
 
 export const AuthContext = createContext();
+
+// Custom hook to use the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,13 +21,13 @@ export const AuthProvider = ({ children }) => {
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser.data); // Access the `data` field safely
+        setUser(parsedUser);
       } catch (error) {
         console.error("Failed to parse user data from localStorage:", error);
-        localStorage.removeItem("user"); // Clean up corrupted data
+        localStorage.removeItem("user");
       }
     }
-    setLoading(false); // Finish loading
+    setLoading(false);
   }, []);
 
   const logout = () => {
@@ -40,4 +50,8 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired
 };

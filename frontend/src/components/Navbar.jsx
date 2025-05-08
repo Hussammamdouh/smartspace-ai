@@ -53,18 +53,39 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 bg-[#181818] dark:bg-[#E5CBBE] text-[#E5CBBE] dark:text-[#181818] shadow-sm backdrop-blur transition-colors">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link to="/" className="text-2xl font-bold hover:text-[#A58077] transition">SmartSpace AI</Link>
+        <Link
+          to="/"
+          className="text-2xl font-bold hover:text-[#A58077] transition"
+        >
+          SmartSpace AI
+        </Link>
         {/* Desktop Navigation */}
         <div className="hidden md:flex space-x-6">
-          <Link to="/" className={navLinkClass}>Home</Link>
-          <Link to="/products" className={navLinkClass}>Products</Link>
-          <Link to="/cart" className={navLinkClass}>Cart</Link>
-          <Link to="/chatbot" className={navLinkClass}>AI</Link>
+          <Link to="/" className={navLinkClass}>
+            Home
+          </Link>
+          <Link to="/products" className={navLinkClass}>
+            Products
+          </Link>
+          <Link to="/cart" className={navLinkClass}>
+            Cart
+          </Link>
+          <Link to="/chatbot" className={navLinkClass}>
+            AI
+          </Link>
+          {currentUser?.role === "admin" && (
+            <Link to="/admin" className={navLinkClass}>
+              Admin Panel
+            </Link>
+          )}
         </div>
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4 relative">
-          <button onClick={toggleDarkMode} className="text-xl hover:text-[#A58077] transition">
+          <button
+            onClick={toggleDarkMode}
+            className="text-xl hover:text-[#A58077] transition"
+          >
             {darkMode ? <FiSun /> : <FiMoon />}
           </button>
 
@@ -77,7 +98,11 @@ const Navbar = () => {
                 aria-expanded={dropdownOpen}
               >
                 <Avatar name={currentUser.name} size={36} />
-                <FiChevronDown className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+                <FiChevronDown
+                  className={`transition-transform ${
+                    dropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
               </button>
 
               {dropdownOpen && (
@@ -87,7 +112,12 @@ const Navbar = () => {
                     <p className="text-sm text-gray-500">{currentUser.email}</p>
                   </div>
                   <hr className="my-1 border-gray-200" />
-                  <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100 text-sm">Profile</Link>
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 hover:bg-gray-100 text-sm"
+                  >
+                    Profile
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
@@ -109,10 +139,16 @@ const Navbar = () => {
 
         {/* Mobile Toggle */}
         <div className="md:hidden flex items-center gap-3">
-          <button onClick={toggleDarkMode} className="text-xl hover:text-[#A58077] transition">
+          <button
+            onClick={toggleDarkMode}
+            className="text-xl hover:text-[#A58077] transition"
+          >
             {darkMode ? <FiSun /> : <FiMoon />}
           </button>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-2xl">
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="text-2xl"
+          >
             {mobileOpen ? <FiX /> : <FiMenu />}
           </button>
         </div>
@@ -121,10 +157,34 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden px-4 pb-6 pt-2 space-y-4 bg-[#181818] dark:bg-[#E5CBBE] text-[#E5CBBE] dark:text-[#181818] border-t border-[#A09C9C] transition-all animate-fade-in">
-          <Link to="/" onClick={() => setMobileOpen(false)} className={navLinkClass}>Home</Link>
-          <Link to="/products" onClick={() => setMobileOpen(false)} className={navLinkClass}>Products</Link>
-          <Link to="/cart" onClick={() => setMobileOpen(false)} className={navLinkClass}>Cart</Link>
-          <Link to="/chatbot" onClick={() => setMobileOpen(false)} className={navLinkClass}>AI</Link>
+          <Link
+            to="/"
+            onClick={() => setMobileOpen(false)}
+            className={navLinkClass}
+          >
+            Home
+          </Link>
+          <Link
+            to="/products"
+            onClick={() => setMobileOpen(false)}
+            className={navLinkClass}
+          >
+            Products
+          </Link>
+          <Link
+            to="/cart"
+            onClick={() => setMobileOpen(false)}
+            className={navLinkClass}
+          >
+            Cart
+          </Link>
+          <Link
+            to="/chatbot"
+            onClick={() => setMobileOpen(false)}
+            className={navLinkClass}
+          >
+            AI
+          </Link>
 
           <hr className="border-[#A09C9C]" />
 
@@ -138,7 +198,10 @@ const Navbar = () => {
                 </div>
               </div>
               <button
-                onClick={() => { handleLogout(); setMobileOpen(false); }}
+                onClick={() => {
+                  handleLogout();
+                  setMobileOpen(false);
+                }}
                 className="w-full text-sm border border-[#E5CBBE] px-4 py-2 rounded hover:text-[#A58077] hover:border-[#A58077] hover:bg-[#E5CBBE] transition"
               >
                 Logout

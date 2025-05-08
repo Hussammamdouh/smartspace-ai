@@ -8,7 +8,7 @@ const xss = require('xss-clean');
 const connectDB = require('./config/db');
 const swaggerSpec = require('./config/swagger');
 const swaggerUi = require('swagger-ui-express');
-const errorHandler = require('./middlewares/errorHandler');
+const { errorHandler } = require('./middlewares/errorHandler');
 
 const authRoutes = require('./routes/authRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
@@ -59,7 +59,6 @@ app.use('/api/orders', orderRoutes);
 app.use("/api/chatbot", unifiedChatRoutes);
 app.use('/api/gemini', geminiRoutes); 
 app.use("/api/replicate", replicateRoutes);
-
 
 // ✅ Error Handler
 app.use(errorHandler);

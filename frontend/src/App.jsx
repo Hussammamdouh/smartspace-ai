@@ -5,10 +5,11 @@ import Footer from "./components/Footer";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RedirectIfLoggedIn from "./components/RedirectIfLoggedIn";
-import ProtectAdminRoute from "./components/ProtectAdminRoute";
+import ProtectAdminRoute from "./services/ProtectAdminRoute";
+import AdminRoute from "./components/AdminRoute";
 import ErrorBoundary from "./components/ErrorBoundry";
 import NotFoundPage from "./pages/error";
-import ThankYouPage from "./pages/ThankYouPage";
+import ThankYouPage from "./pages/ThankYou";
 
 // Pages
 import ProductsPage from "./pages/Products";
@@ -31,15 +32,40 @@ const App = () => {
   return (
     <ErrorBoundary>
       <Router>
-        <ToastContainer position="top-right" autoClose={3000} limit={3} theme="dark" />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          limit={3}
+          theme="dark"
+        />
         <Navbar />
 
-        <Suspense fallback={<div className="text-center p-5 text-[#A58077] animate-pulse">Loading...</div>}>
+        <Suspense
+          fallback={
+            <div className="text-center p-5 text-[#A58077] animate-pulse">
+              Loading...
+            </div>
+          }
+        >
           <Routes>
             {/* Public Pages */}
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<RedirectIfLoggedIn><Login /></RedirectIfLoggedIn>} />
-            <Route path="/register" element={<RedirectIfLoggedIn><Register /></RedirectIfLoggedIn>} />
+            <Route
+              path="/login"
+              element={
+                <RedirectIfLoggedIn>
+                  <Login />
+                </RedirectIfLoggedIn>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <RedirectIfLoggedIn>
+                  <Register />
+                </RedirectIfLoggedIn>
+              }
+            />
 
             {/* Core Pages */}
             <Route path="/dashboard" element={<Dashboard />} />
@@ -55,14 +81,12 @@ const App = () => {
             <Route path="/thankyou" element={<ThankYouPage />} />
 
             {/* Admin Pages */}
-            <Route path="/admin" element={
-              <ProtectAdminRoute>
-                <AdminLayout />
-              </ProtectAdminRoute>
-            }>
-              <Route index element={<Dashboard />} />
-              <Route path="products" element={<ProductsManagement />} />
-              <Route path="users" element={<UsersManagement />} />
+            <Route path="/admin" element={<AdminRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="products" element={<ProductsManagement />} />
+                <Route path="users" element={<UsersManagement />} />
+              </Route>
             </Route>
 
             {/* 404 Not Found */}

@@ -4,11 +4,17 @@ import Topbar from "./components/Topbar";
 
 const AdminLayout = () => {
   return (
-    <div className="min-h-screen flex bg-[#181818] text-[#E5CBBE]">
+    <div className="flex min-h-screen bg-[#181818] text-[#E5CBBE]">
+      {/* Sidebar */}
       <Sidebar />
+
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
+        {/* Topbar */}
         <Topbar />
-        <main className="flex-1 p-6 overflow-y-auto">
+
+        {/* Page Content */}
+        <main className="flex-1 p-6">
           <Outlet />
         </main>
       </div>

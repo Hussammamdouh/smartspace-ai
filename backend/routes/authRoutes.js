@@ -1,7 +1,18 @@
 const express = require('express');
-const { registerUser, loginUser, refreshAccessToken  } = require('../controllers/authController');
+const { protect } = require('../middlewares/auth');
+const {
+  register,
+  login,
+  logout,
+  getMe,
+  updatePassword,
+  forgotPassword,
+  resetPassword,
+  refreshToken
+} = require('../controllers/authController');
 const {validate} = require('../middlewares/validateMiddleware');
 const { registerSchema, loginSchema } = require('../utils/validationSchemas');
+
 const router = express.Router();
 
 /**
@@ -40,7 +51,7 @@ const router = express.Router();
  *       400:
  *         description: User already exists
  */
-router.post('/register', validate(registerSchema), registerUser);
+router.post('/register', validate(registerSchema), register);
 
 /**
  * @swagger
@@ -68,7 +79,16 @@ router.post('/register', validate(registerSchema), registerUser);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', validate(loginSchema), loginUser);
-router.post('/refresh-token', refreshAccessToken);
+router.post('/login', validate(loginSchema), login);
+// Public routes
+router.post('/refresh-token', refreshToken);
+
+// Protected routes
+router.use(protect); // All routes after this middleware require authentication
+router.get('/logout', logout);
+router.get('/me', getMe);
+router.patch('/updatePassword', updatePassword);
+router.post('/forgotPassword', forgotPassword);
+router.patch('/resetPassword/:token', resetPassword);
 
 module.exports = router;

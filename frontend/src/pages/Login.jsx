@@ -1,9 +1,16 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { FaEye, FaEyeSlash, FaGoogle, FaApple, FaFacebookF } from "react-icons/fa";
+import {
+  FaEye,
+  FaEyeSlash,
+  FaGoogle,
+  FaApple,
+  FaFacebookF,
+} from "react-icons/fa";
 import toast from "react-hot-toast";
 import PropTypes from "prop-types";
+import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -14,32 +21,41 @@ const Login = () => {
   const handleInputChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
-        formData
-      );
+  try {
+    const { data } = await axios.post(
+      `${import.meta.env.VITE_API_URL}/auth/login`,  // This is correct since VITE_API_URL already includes /api
+      formData
+    );
 
-      if (!data?.token) throw new Error("Token not provided by server");
+    if (!data?.token) throw new Error("Token not provided by server");
 
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem("user", JSON.stringify(data));
-      toast.success("Login successful!");
+    const decodedToken = jwtDecode(data.token);
+
+    localStorage.setItem("authToken", data.token);
+    localStorage.setItem("user", JSON.stringify(decodedToken));
+    toast.success("Login successful!");
+    
+    if (decodedToken.role === "admin") {
+      navigate("/admin");
+    } else {
       navigate("/");
-    } catch (err) {
-      if (err.response?.status === 401) {
-        toast.error("Invalid email or password.");
-      } else {
-        toast.error(err.response?.data?.message || "Error logging in. Please try again.");
-      }
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    if (err.response?.status === 401) {
+      toast.error("Invalid email or password.");
+    } else {
+      toast.error(
+        err.response?.data?.message || "Error logging in. Please try again."
+      );
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#181818] flex items-center justify-center relative px-4 overflow-hidden">
@@ -52,7 +68,10 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-[#616161] text-sm font-medium mb-1">
+            <label
+              htmlFor="email"
+              className="block text-[#616161] text-sm font-medium mb-1"
+            >
               Email
             </label>
             <input
@@ -68,7 +87,10 @@ const Login = () => {
           </div>
 
           <div className="relative">
-            <label htmlFor="password" className="block text-[#616161] text-sm font-medium mb-1">
+            <label
+              htmlFor="password"
+              className="block text-[#616161] text-sm font-medium mb-1"
+            >
               Password
             </label>
             <input
@@ -113,7 +135,7 @@ const Login = () => {
           </div>
 
           <div className="mt-6 text-center text-sm text-[#616161]">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <button
               onClick={() => navigate("/register")}
               className="text-[#181818] font-medium underline hover:text-[#A58077] transition"

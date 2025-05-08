@@ -7,7 +7,13 @@ import PropTypes from "prop-types";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
-    firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "", role: "customer"
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    passwordConfirm: "",
+    role: "user"
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -20,18 +26,31 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.passwordConfirm) {
       toast.error("Passwords do not match!");
       return;
     }
 
     setLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, formData);
-      toast.success("Account created successfully!");
-      navigate("/login");
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, {
+        ...formData,
+        passwordConfirm: formData.passwordConfirm
+      });
+      
+      if (response.data.status === 'success') {
+        // Store tokens in localStorage or secure storage
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+        
+        toast.success("Account created successfully!");
+        navigate("/login");
+      } else {
+        toast.error(response.data.message || "An error occurred while registering.");
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || "An error occurred while registering.");
+      const errorMessage = err.response?.data?.message || "An error occurred while registering.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -63,8 +82,8 @@ const SignUp = () => {
           />
           <PasswordInput
             label="Confirm Password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
+            name="passwordConfirm"
+            value={formData.passwordConfirm}
             show={showConfirmPassword}
             toggleVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
             onChange={handleInputChange}

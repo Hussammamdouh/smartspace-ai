@@ -1,121 +1,127 @@
-import { useState, useRef, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { useAuth } from "../contexts/AuthContext";
+import { FaPaperPlane, FaSpinner } from "react-icons/fa";
+import axiosInstance from "../utils/axiosInstance";
 
-const UnifiedChat = () => {
-  const [model, setModel] = useState("gpt-3.5-turbo");
+const ChatPage = () => {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const bottomRef = useRef(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const messagesEndRef = useRef(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const scrollToBottom = () => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const newMsg = { role: "user", content: input };
-    const updatedMessages = [...messages, newMsg];
-    setMessages(updatedMessages);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/chatbot/unified`, {
-        messages: updatedMessages,
-        model: model === "dalle" ? "image" : "chat",
-      });
-
-      const responseMsg =
-        data.type === "image"
-          ? { role: "assistant", content: "", image: data.content }
-          : { role: "assistant", content: data.content };
-
-      setMessages((prev) => [...prev, responseMsg]);
-    } catch (err) {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim()) {
+      setError("Message cannot be empty");
+      return;
+    }
+
+    if (newMessage.length > 500) {
+      setError("Message is too long (max 500 characters)");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await axiosInstance.post("/api/chat", {
+        message: newMessage,
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: newMessage },
+        { role: "assistant", content: response.data.message },
+      ]);
+
+      setNewMessage("");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send message");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">SmartSpace AI Chat</h1>
-          <div className="flex items-center gap-2">
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="bg-[#E5CBBE] text-[#181818] font-semibold px-4 py-2 rounded-md"
-            >
-              <option value="gpt-3.5-turbo">ChatGPT</option>
-              <option value="dalle">Image Generator</option>
-            </select>
-            <button
-              onClick={() => navigate("/edit-design")}
-              className="bg-[#A58077] text-white px-4 py-2 rounded hover:opacity-80 transition"
-            >
-              Edit Design
-            </button>
+    <div className="min-h-screen bg-[#181818] text-white p-4">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8 text-center">AI Interior Design Assistant</h1>
+        
+        <div className="bg-[#2C2C2C] rounded-lg p-4 h-[600px] flex flex-col">
+          <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    msg.role === "user"
+                      ? "bg-[#A58077] text-white"
+                      : "bg-[#3C3C3C] text-white"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-[#3C3C3C] rounded-lg p-3">
+                  <FaSpinner className="animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        </div>
 
-        <div className="bg-[#2c2c2c] p-4 rounded-lg h-[70vh] overflow-y-auto space-y-4">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-3 rounded-lg max-w-[80%] whitespace-pre-wrap break-words ${
-                msg.role === "user"
-                  ? "bg-[#A58077] text-white ml-auto"
-                  : "bg-[#E5CBBE] text-[#181818] mr-auto"
-              }`}
-            >
-              {msg.image ? (
-                <img src={msg.image} alt="Generated" className="rounded-lg w-full" />
-              ) : (
-                msg.content
-              )}
-            </div>
-          ))}
-
-          {loading && (
-            <div className="p-3 rounded-lg max-w-[80%] bg-[#E5CBBE] text-[#181818] animate-pulse">
-              Thinking...
-            </div>
+          {error && (
+            <div className="text-red-500 text-sm mb-2 text-center">{error}</div>
           )}
 
-          <div ref={bottomRef} />
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Ask about interior design..."
+              className="flex-1 bg-[#3C3C3C] text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#A58077]"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="bg-[#A58077] text-white rounded-lg px-4 py-2 hover:bg-[#8B6B63] transition disabled:opacity-50"
+            >
+              {isLoading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+            </button>
+          </form>
         </div>
-
-        <form onSubmit={sendMessage} className="flex gap-4">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 p-3 rounded-lg bg-[#E5CBBE] text-[#181818] focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="bg-[#A58077] text-white px-6 py-3 rounded-lg hover:opacity-80"
-            disabled={loading}
-          >
-            {loading ? "..." : "Send"}
-          </button>
-        </form>
       </div>
     </div>
   );
 };
 
-export default UnifiedChat;
+export default ChatPage;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -26,16 +27,50 @@ const PaymentPage = () => {
     setCardInfo({ ...cardInfo, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleCreateOrder = async () => {
+    const cart = JSON.parse(localStorage.getItem("cart"));
+    const token = localStorage.getItem("authToken");
+
+    if (!cart || cart.length === 0) {
+      throw new Error("Cart is empty.");
+    }
+
+    const orderData = {
+      products: cart.map((item) => ({
+        productId: item._id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      total: cart.reduce((acc, item) => acc + item.price * item.quantity, 0),
+      paymentMethod: "card",
+    };
+
+    await axios.post(`${import.meta.env.VITE_API_URL}/orders`, orderData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    console.log("Order created successfully");
+    localStorage.removeItem("cart"); // Clear cart after successful order
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const { name, number, expiry, cvv } = cardInfo;
+
     if (!name || !number || !expiry || !cvv) {
       toast.error("Please fill all payment fields.");
       return;
     }
 
-    toast.success("Payment Successful!");
-    setTimeout(() => navigate("/thankyou"), 1000);
+    try {
+      await handleCreateOrder();
+      toast.success("Payment Successful!");
+      setTimeout(() => navigate("/thankyou"), 1000);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to create order. Please try again.");
+    }
   };
 
   return (
@@ -123,7 +158,6 @@ const PaymentPage = () => {
           </div>
         </div>
 
-        {/* CVV visible only if focused */}
         {focusField === "cvv" && (
           <div className="absolute top-0 right-0 m-2 px-3 py-1 bg-black text-white text-xs rounded-bl-lg">
             CVV: {cardInfo.cvv || "***"}

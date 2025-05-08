@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const Joi = require('joi');
 
 exports.generateTokens = (user) => {
   const accessToken = jwt.sign(
@@ -72,3 +73,15 @@ exports.refreshAccessToken = async (refreshToken) => {
     { expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m' }
   );
 };
+
+const loginSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.email': 'Please provide a valid email address',
+    'any.required': 'Email is required',
+    'string.empty': 'Email is required'
+  }),
+  password: Joi.string().required().messages({
+    'any.required': 'Password is required',
+    'string.empty': 'Password is required'
+  })
+}).options({ abortEarly: false, stripUnknown: true });

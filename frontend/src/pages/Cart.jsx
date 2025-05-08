@@ -1,13 +1,15 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { CartContext } from "../contexts/CartContext";
 import { FaPlus, FaMinus, FaTrash } from "react-icons/fa";
 import { FiCreditCard } from "react-icons/fi";
 import { MdOutlinePayments } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const CartPage = () => {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useContext(CartContext);
   const navigate = useNavigate();
+  const [moreProducts, setMoreProducts] = useState([]);
 
   const decreaseQuantity = (product) => {
     if (product.quantity === 1) {
@@ -18,8 +20,26 @@ const CartPage = () => {
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const discount = 30; 
+  const discount = 30;
   const total = subtotal - discount;
+
+  useEffect(() => {
+    const fetchMore = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/inventory`, {
+          params: { limit: 4 },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setMoreProducts(data.data || []);
+      } catch (err) {
+        console.error("Failed to load more products");
+      }
+    };
+    fetchMore();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#181818] text-[#E5CBBE] p-8 space-y-20">
@@ -49,16 +69,16 @@ const CartPage = () => {
               >
                 {/* Image */}
                 <img
-                  src={item.filePath}
+                  src={item.image}
                   alt={item.name}
-                  className="w-32 h-32 rounded-lg object-cover"
+                  className="w-32 h-32 rounded-lg object-contain bg-[#2c2c2c]"
                 />
 
                 {/* Info */}
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between items-center">
                     <h3 className="text-xl font-bold">{item.name}</h3>
-                    <span className="text-lg font-bold">${item.price}</span>
+                    <span className="text-lg font-bold">${item.price.toFixed(2)}</span>
                   </div>
                   <p className="text-sm text-[#A58077]">
                     {item.description?.slice(0, 90)}...
@@ -100,7 +120,7 @@ const CartPage = () => {
             {cart.map((item) => (
               <div key={item._id} className="flex justify-between">
                 <span>{item.name}</span>
-                <span>${item.price * item.quantity}</span>
+                <span>${(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
             <hr className="border-[#A58077]" />
@@ -110,11 +130,11 @@ const CartPage = () => {
             </div>
             <div className="flex justify-between">
               <span>Sale:</span>
-              <span>${discount}</span>
+              <span>${discount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg mt-4">
               <span>Total:</span>
-              <span>${total}</span>
+              <span>${total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -151,19 +171,20 @@ const CartPage = () => {
         <h2 className="text-2xl font-bold mb-8">Add more...</h2>
 
         <div className="flex overflow-x-auto gap-6 scrollbar-thin scrollbar-thumb-[#A58077] scrollbar-track-[#181818]">
-          {[...Array(4)].map((_, index) => (
+          {moreProducts.map((product) => (
             <div
-              key={index}
+              key={product._id}
               className="min-w-[200px] bg-[#2c2c2c] rounded-lg overflow-hidden shadow hover:scale-105 transition cursor-pointer"
+              onClick={() => navigate(`/product/${product._id}`)}
             >
               <img
-                src={`/images/addmore${index + 1}.jpg`}
-                alt="More Product"
-                className="w-full h-40 object-cover"
+                src={product.image}
+                alt={product.name}
+                className="w-full h-40 object-contain bg-[#2c2c2c]"
               />
               <div className="p-4">
-                <h3 className="text-lg font-bold text-[#E5CBBE]">Sofa Theme</h3>
-                <p className="text-sm text-[#A58077] mt-1">$78</p>
+                <h3 className="text-lg font-bold text-[#E5CBBE]">{product.name}</h3>
+                <p className="text-sm text-[#A58077] mt-1">${product.price.toFixed(2)}</p>
               </div>
             </div>
           ))}

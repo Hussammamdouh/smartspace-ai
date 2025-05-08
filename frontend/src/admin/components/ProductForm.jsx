@@ -1,5 +1,3 @@
-// admin/components/ProductForm.jsx
-
 import PropTypes from "prop-types";
 
 const ProductForm = ({ product, onChange, onSubmit, isEditing }) => {
@@ -63,11 +61,9 @@ const ProductForm = ({ product, onChange, onSubmit, isEditing }) => {
       <div>
         <label className="block text-sm mb-1">Image URL</label>
         <input
-          type="text"
-          name="filePath"
-          value={product.filePath || ""}
+          type="file"
+          name="file"
           onChange={onChange}
-          required
           className="w-full p-3 rounded bg-[#E5CBBE] text-[#181818]"
         />
       </div>

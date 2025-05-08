@@ -2,22 +2,38 @@ const inventoryService = require("../services/inventoryService");
 const InventoryItem = require('../models/inventoryItem');
 const mongoose = require("mongoose");
 
-exports.getInventory = async (req, res, next) => {
+exports.getInventory = async (req, res) => {
   try {
-    const { page = 1, limit = 10, type, minPrice, maxPrice, available } = req.query;
+    const { category, style, color, maxPrice = 5000, page = 1, limit = 9 } = req.query;
 
-    const filters = {
-      type,
-      minPrice: minPrice ? Number(minPrice) : undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      available: available !== undefined ? available === "true" : undefined,
+    const filter = {
+      isDeleted: false,
+      available: true,
+      price: { $lte: Number(maxPrice) },
     };
 
-    const result = await inventoryService.getAllItems(filters, page, limit);
+    if (category) filter.category = category.toLowerCase();
+    if (style) filter.style = style.toLowerCase();
+    if (color) filter.color = color.toLowerCase();
 
-    res.status(200).json(result);
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [items, total] = await Promise.all([
+      InventoryItem.find(filter).skip(skip).limit(Number(limit)),
+      InventoryItem.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      data: items,
+      meta: {
+        total,
+        page: Number(page),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
-    next(error);
+    console.error("Inventory fetch error:", error);
+    res.status(500).json({ message: "Failed to load products" });
   }
 };
 

@@ -28,6 +28,43 @@ const GeneratedDesignSchema = new mongoose.Schema({
     enum: ['pending', 'success', 'failed'],
     default: 'success',
   },
+  // Edit history support
+  originalDesign: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'GeneratedDesign',
+  },
+  editHistory: [{
+    action: {
+      type: String,
+      enum: ['add', 'remove', 'modify'],
+    },
+    furnitureItems: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'InventoryItem',
+    }],
+    prompt: String,
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
+  editPreferences: {
+    furniturePreferences: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'InventoryItem',
+    }],
+    stylePreferences: {
+      type: Object,
+    },
+    colorPreferences: {
+      type: Object,
+    },
+    notes: String,
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -35,5 +72,7 @@ const GeneratedDesignSchema = new mongoose.Schema({
 });
 
 GeneratedDesignSchema.index({ user: 1, preference: 1 });
+GeneratedDesignSchema.index({ user: 1, originalDesign: 1 });
+GeneratedDesignSchema.index({ user: 1, createdAt: -1 });
 
 module.exports = mongoose.models.GeneratedDesign || mongoose.model('GeneratedDesign', GeneratedDesignSchema);

@@ -14,6 +14,26 @@ exports.getDesigns = async (req, res, next) => {
   }
 };
 
+exports.getDesign = async (req, res, next) => {
+  try {
+    const design = await GeneratedDesign.findById(req.params.id)
+      .populate('preference')
+      .populate('relatedProducts');
+    
+    if (!design) {
+      return res.status(404).json({ message: 'Design not found' });
+    }
+    
+    if (design.user.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ message: 'Unauthorized to access this design' });
+    }
+    
+    res.status(200).json({ design });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.createDesign = async (req, res, next) => {
   try {
     const data = {

@@ -1,6 +1,7 @@
 const { OpenAI } = require("openai");
 const InventoryItem = require("../models/InventoryItem");
 const GeneratedDesign = require("../models/GeneratedDesign");
+const DesignPreference = require("../models/DesignPreference");
 const { extractPromptContext } = require("../utils/promptParser");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -48,12 +49,22 @@ exports.generateImageWithDalle = async (userPrompt, userId) => {
 
   const imageUrl = response.data[0].url;
 
+  // Create a design preference for this image generation
+  const designPreference = await DesignPreference.create({
+    user: userId,
+    roomType: context.category || 'living room',
+    style: context.style || 'modern',
+    colorPalette: context.color ? [context.color] : [],
+    additionalNotes: userPrompt
+  });
+
   const design = await GeneratedDesign.create({
     user: userId,
-    prompt: augmentedPrompt,
-    relatedProducts: items.map(i => i._id),
+    preference: designPreference._id,
     imageUrl,
-    source: "dalle",
+    relatedProducts: items.map(i => i._id),
+    modelUsed: 'DALL·E 3',
+    status: 'success',
   });
 
   return {

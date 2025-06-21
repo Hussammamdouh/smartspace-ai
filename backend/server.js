@@ -18,6 +18,8 @@ const orderRoutes = require('./routes/orderRoutes');
 const unifiedChatRoutes  = require("./routes/openaiRoutes");
 const geminiRoutes = require("./routes/geminiRoutes");
 const replicateRoutes = require("./routes/replicateRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const editDesignRoutes = require("./routes/editDesignRoutes");
 
 const logger = require('./utils/logger');
 const app = express();
@@ -47,8 +49,29 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// ✅ Swagger API Docs
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// ✅ Swagger API Docs with custom options
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'AI Interior Design API Documentation',
+  customfavIcon: '/favicon.ico',
+  swaggerOptions: {
+    docExpansion: 'list',
+    filter: true,
+    showRequestHeaders: true,
+    tryItOutEnabled: true
+  }
+}));
+
+// ✅ Health Check Endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'AI Interior Design API is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
 // ✅ API Routes
 app.use('/api/auth', authRoutes);
@@ -59,10 +82,24 @@ app.use('/api/orders', orderRoutes);
 app.use("/api/chatbot", unifiedChatRoutes);
 app.use('/api/gemini', geminiRoutes); 
 app.use("/api/replicate", replicateRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/edit-design", editDesignRoutes);
 
 // ✅ Error Handler
 app.use(errorHandler);
 
 // ✅ Server Init
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => logger.info(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  logger.info(`🚀 Server running on port ${PORT}`);
+  logger.info(`📚 API Documentation available at: http://localhost:${PORT}/api-docs`);
+  logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  
+  // Auto-open Swagger docs in development
+  if (process.env.NODE_ENV === 'development') {
+    const open = require('open');
+    setTimeout(() => {
+      open(`http://localhost:${PORT}/api-docs`);
+    }, 1000);
+  }
+});

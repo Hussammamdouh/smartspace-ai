@@ -1,6 +1,7 @@
 const designService = require('../services/designService');
 const DesignPreference = require('../models/DesignPreference');
 const GeneratedDesign = require('../models/GeneratedDesign');
+const Design = require('../models/Design');
 
 exports.getDesigns = async (req, res, next) => {
   try {
@@ -29,7 +30,7 @@ exports.createDesign = async (req, res, next) => {
 exports.deleteDesign = async (req, res, next) => {
   try {
     const design = await Design.findById(req.params.id);
-if (!design || design.userId.toString() !== req.user._id.toString()) {
+if (!design || design.userId.toString() !== req.user.id.toString()) {
   return res.status(403).json({ message: 'Unauthorized to delete this design' });
 }
 await Design.findByIdAndDelete(req.params.id);
@@ -44,7 +45,7 @@ exports.savePreferences = async (req, res, next) => {
     const { roomType, style, colorPalette, budget, dimensions, additionalNotes } = req.body;
 
     const preference = await DesignPreference.create({
-      user: req.user._id,
+      user: req.user.id,
       roomType,
       style,
       colorPalette,
@@ -62,7 +63,7 @@ exports.savePreferences = async (req, res, next) => {
 exports.generateDesign = async (req, res, next) => {
   try {
     const { preferenceId } = req.body;
-    const design = await designService.generateImageDesign(preferenceId, req.user._id);
+    const design = await designService.generateImageDesign(preferenceId, req.user.id);
     res.status(201).json({ success: true, design });
   } catch (err) {
     next(err);
@@ -71,7 +72,7 @@ exports.generateDesign = async (req, res, next) => {
 
 exports.getGeneratedDesigns = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { page = 1, limit = 10, style, roomType, startDate, endDate } = req.query;
 
     const query = { user: userId };

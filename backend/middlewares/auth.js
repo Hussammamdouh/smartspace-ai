@@ -38,7 +38,7 @@ const protect = async (req, res, next) => {
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
     // 3) Check if user still exists
-    const currentUser = await User.findById(decoded.id);
+    const currentUser = await User.findById(decoded.id).select('-password');
     if (!currentUser) {
       return next(new APIError('The user belonging to this token no longer exists.', 401));
     }
@@ -48,15 +48,26 @@ const protect = async (req, res, next) => {
       return next(new APIError('User recently changed password. Please log in again.', 401));
     }
 
+    // 5) Check if user is active
+    if (!currentUser.active) {
+      return next(new APIError('Your account has been deactivated. Please contact support.', 401));
+    }
+
     // Grant access to protected route
     req.user = currentUser;
     next();
   } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return next(new APIError('Your token has expired. Please log in again.', 401));
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return next(new APIError('Invalid token. Please log in again.', 401));
+    }
     next(new APIError('Authentication failed. Please log in again.', 401));
   }
 };
 
-// Restrict to certain roles
+// Restrict to certain roles (alias for authorize)
 const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -64,6 +75,11 @@ const restrictTo = (...roles) => {
     }
     next();
   };
+};
+
+// Role-based access control (alias for restrictTo)
+const authorize = (...roles) => {
+  return restrictTo(...roles);
 };
 
 // Password validation middleware
@@ -97,6 +113,7 @@ const validatePassword = (password) => {
 module.exports = {
   protect,
   restrictTo,
+  authorize,
   loginLimiter,
   registerLimiter,
   validatePassword

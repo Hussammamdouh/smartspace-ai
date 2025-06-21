@@ -51,7 +51,7 @@ exports.generateImageWithDalle = async (userPrompt, userId) => {
   const design = await GeneratedDesign.create({
     user: userId,
     prompt: augmentedPrompt,
-    items: items.map(i => i._id),
+    relatedProducts: items.map(i => i._id),
     imageUrl,
     source: "dalle",
   });

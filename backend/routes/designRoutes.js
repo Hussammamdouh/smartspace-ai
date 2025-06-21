@@ -88,7 +88,7 @@
 const express = require('express');
 const router = express.Router();
 const designController = require('../controllers/designController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect, authorize } = require('../middlewares/auth');
 const {validate} = require('../middlewares/validateMiddleware');
 const { designSchema } = require('../utils/validationSchemas');
 

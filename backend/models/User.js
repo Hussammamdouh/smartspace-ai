@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema({
   country: { type: String },
   language: { type: String },
   timezone: { type: String },
+  emailHistory: [{
+    email: String,
+    changedAt: Date
+  }],
   isDeleted: { type: Boolean, default: false }, // 🔁 Soft delete
   passwordChangedAt: Date,
   passwordResetToken: String,

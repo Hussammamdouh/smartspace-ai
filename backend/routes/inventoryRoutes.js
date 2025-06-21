@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventoryController');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect } = require('../middlewares/auth');
 const upload = require('../middlewares/uploadMiddleware');
 
 // POST (create)

@@ -1,5 +1,5 @@
 const inventoryService = require("../services/inventoryService");
-const InventoryItem = require('../models/inventoryItem');
+const InventoryItem = require('../models/InventoryItem');
 const mongoose = require("mongoose");
 
 exports.getInventory = async (req, res) => {
@@ -59,7 +59,7 @@ exports.getInventoryItem = async (req, res, next) => {
 exports.addInventoryItem = async (req, res, next) => {
   try {
     const { name, type, price, stock } = req.body;
-    const filePath = req.file ? req.file.path : product.filePath;
+    const filePath = req.file ? req.file.path : null;
 
     if (!name || !type || !price || !stock || !filePath) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -96,8 +96,6 @@ exports.updateInventoryItem = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 exports.deleteInventoryItem = async (req, res, next) => {
   try {

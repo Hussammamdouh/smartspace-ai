@@ -5,7 +5,7 @@ const Order = require('../models/Order');   // If orders are stored separately
 // Fetch user profile
 exports.getUserProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -28,6 +28,11 @@ exports.updateUserProfile = async (req, res, next) => {
       language,
       timeZone,
     } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     
     if (email && email !== user.email) {
       user.emailHistory.push({ email: user.email, changedAt: new Date() });
@@ -53,7 +58,7 @@ exports.updateUserProfile = async (req, res, next) => {
 // Fetch user designs
 exports.getUserDesigns = async (req, res, next) => {
   try {
-    const designs = await Design.find({ userId: req.user._id });
+    const designs = await Design.find({ userId: req.user.id });
     res.status(200).json({ success: true, data: designs });
   } catch (error) {
     next(error);
@@ -63,7 +68,7 @@ exports.getUserDesigns = async (req, res, next) => {
 // Fetch user purchase history
 exports.getUserPurchases = async (req, res, next) => {
   try {
-    const purchases = await Order.find({ userId: req.user._id });
+    const purchases = await Order.find({ userId: req.user.id });
     res.status(200).json({ success: true, data: purchases });
   } catch (error) {
     next(error);
@@ -76,7 +81,7 @@ exports.uploadAvatar = async (req, res, next) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user.id);
     user.avatar = req.file.path; // Save file path
     await user.save();
 

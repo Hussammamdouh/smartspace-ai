@@ -18,7 +18,7 @@ exports.handleUnifiedChat = async (req, res, next) => {
 
       const { imageUrl, designId, prompt, usedItems } = await generateImageWithDalle(
         lastPrompt,
-        req.user._id
+        req.user.id
       );
 
       return res.status(200).json({

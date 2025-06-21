@@ -7,7 +7,7 @@ const {
   uploadAvatar,
 } = require('../controllers/userController');
 const upload = require("../middlewares/uploadMiddleware");
-const { protect } = require('../middlewares/authMiddleware');
+const { protect } = require('../middlewares/auth');
 const {validate} = require('../middlewares/validateMiddleware');
 const { updateProfileSchema } = require('../utils/validationSchemas');
 

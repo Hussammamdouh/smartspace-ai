@@ -1,4 +1,4 @@
-const InventoryItem = require('../models/inventoryItem');
+const InventoryItem = require('../models/InventoryItem');
 const paginate = require('../utils/paginate');
 
 exports.getAllItems = async (filters, page = 1, limit = 10) => {

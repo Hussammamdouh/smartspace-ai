@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect, verifyToken } = require('../middlewares/authMiddleware');
+const { protect } = require('../middlewares/auth');
 const { createOrder, getOrders } = require('../controllers/orderController');
 const { validateQuery } = require('../middlewares/validateMiddleware');
 const { orderFilterSchema } = require('../utils/validationSchemas');

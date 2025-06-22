@@ -1,10 +1,11 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
-  }
+  },
+  timeout: 10000, // 10 second timeout
 });
 
 // Request interceptor
@@ -41,7 +42,7 @@ axiosInstance.interceptors.response.use(
 
         // Try to refresh the token
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/auth/refresh-token`,
+          `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/refresh-token`,
           { refreshToken }
         );
         
@@ -60,7 +61,11 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem('authToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        
+        // Only redirect if we're not already on login page
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       }
     }

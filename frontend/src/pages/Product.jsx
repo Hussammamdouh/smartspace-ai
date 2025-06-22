@@ -1,6 +1,6 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../utils/axiosInstance";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import Loader from "../components/Loader";
 import { useCart } from "../contexts/CartContext";
@@ -22,31 +22,16 @@ const SingleProductPage = () => {
     const fetchProductAndRelated = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("authToken");
-
-        const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL}/inventory/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const { data } = await axiosInstance.get(`/inventory/${id}`);
         const currentProduct = data.data || data;
         setProduct(currentProduct);
 
-        const relatedRes = await axios.get(
-          `${import.meta.env.VITE_API_URL}/inventory`,
-          {
+        const relatedRes = await axiosInstance.get('/inventory', {
             params: {
               category: currentProduct.category,
               limit: 6,
             },
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        });
 
         setRelatedProducts(
           (relatedRes.data.data || []).filter(
@@ -87,7 +72,7 @@ const SingleProductPage = () => {
     try {
       await addToCart(product);
       toast.success('Added to cart successfully!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to add to cart');
     } finally {
       setAddingToCart(false);

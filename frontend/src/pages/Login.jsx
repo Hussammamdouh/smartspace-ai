@@ -1,5 +1,5 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useContext } from "react";
+import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import {
   FaEye,
@@ -10,52 +10,82 @@ import {
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import PropTypes from "prop-types";
-import { jwtDecode } from "jwt-decode";
+import { AuthContext } from "../contexts/AuthContext";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
   const handleInputChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-
-  try {
-    const { data } = await axios.post(
-      `${import.meta.env.VITE_API_URL}/auth/login`,  // This is correct since VITE_API_URL already includes /api
-      formData
-    );
-
-    if (!data?.token) throw new Error("Token not provided by server");
-
-    const decodedToken = jwtDecode(data.token);
-
-    localStorage.setItem("authToken", data.token);
-    localStorage.setItem("user", JSON.stringify(decodedToken));
-    toast.success("Login successful!");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    if (decodedToken.role === "admin") {
-      navigate("/admin");
-    } else {
-      navigate("/");
+    // Client-side validation
+    if (!formData.email || !formData.password) {
+      toast.error("Please fill in all fields");
+      return;
     }
-  } catch (err) {
-    if (err.response?.status === 401) {
-      toast.error("Invalid email or password.");
-    } else {
-      toast.error(
-        err.response?.data?.message || "Error logging in. Please try again."
-      );
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address");
+      return;
     }
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+
+    try {
+      const response = await axiosInstance.post('/auth/login', formData);
+
+      if (response.data.status === 'success') {
+        // Use the login method from AuthContext
+        await login(
+          response.data.data.user,
+          response.data.token,
+          response.data.refreshToken
+        );
+
+        toast.success("Login successful! Welcome back!");
+    
+        // Navigate based on user role
+        if (response.data.data.user.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
+      } else {
+        toast.error(response.data.message || "Login failed. Please try again.");
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      
+      // Handle specific error cases
+      if (err.response?.status === 400) {
+        const errorMessage = err.response.data.message || "Invalid login data";
+        toast.error(errorMessage);
+      } else if (err.response?.status === 401) {
+        toast.error("Invalid email or password. Please check your credentials.");
+      } else if (err.response?.status === 423) {
+        toast.error("Account is locked. Please try again later.");
+      } else if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
+        toast.error("Network error. Please check your connection and try again.");
+      } else {
+        toast.error("An unexpected error occurred. Please try again later.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
+  };
 
   return (
     <div className="min-h-screen bg-[#181818] flex items-center justify-center relative px-4 overflow-hidden">
@@ -63,7 +93,7 @@ const handleSubmit = async (e) => {
 
       <div className="z-10 w-full max-w-lg bg-[#E5CBBE] bg-opacity-90 rounded-xl shadow-2xl p-8 md:p-10 animate-fade-in">
         <h1 className="text-3xl md:text-4xl font-bold text-[#181818] text-center mb-6">
-          Login to SmartSpace AI
+          Login to AI Interior Design
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -79,7 +109,8 @@ const handleSubmit = async (e) => {
               type="email"
               name="email"
               autoFocus
-              className="w-full px-4 py-3 bg-[#E5CBBE] border border-[#A09C9C] rounded focus:outline-none focus:ring-2 focus:ring-[#A58077] text-[#181818] transition"
+              placeholder="Enter your email address"
+              className="w-full px-4 py-3 bg-[#E5CBBE] border border-[#A09C9C] rounded focus:outline-none focus:ring-2 focus:ring-[#A58077] text-[#181818] transition-all duration-200 placeholder-[#A09C9C]"
               value={formData.email}
               onChange={handleInputChange}
               required
@@ -97,7 +128,8 @@ const handleSubmit = async (e) => {
               id="password"
               type={showPassword ? "text" : "password"}
               name="password"
-              className="w-full px-4 py-3 pr-12 bg-[#E5CBBE] border border-[#A09C9C] rounded focus:outline-none focus:ring-2 focus:ring-[#A58077] text-[#181818] transition"
+              placeholder="Enter your password"
+              className="w-full px-4 py-3 pr-12 bg-[#E5CBBE] border border-[#A09C9C] rounded focus:outline-none focus:ring-2 focus:ring-[#A58077] text-[#181818] transition-all duration-200 placeholder-[#A09C9C]"
               value={formData.password}
               onChange={handleInputChange}
               required
@@ -112,10 +144,20 @@ const handleSubmit = async (e) => {
             </button>
           </div>
 
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-sm text-[#616161] hover:text-[#181818] underline transition-colors"
+            >
+              Forgot your password?
+            </button>
+          </div>
+
           <button
             type="submit"
-            className={`w-full h-14 rounded-lg text-lg font-semibold text-white transition ${
-              loading ? "bg-[#A09C9C]" : "bg-[#181818] hover:bg-[#3a3a3a]"
+            className={`w-full h-14 rounded-lg text-lg font-semibold text-white transition-all duration-200 ${
+              loading ? "bg-[#A09C9C] cursor-not-allowed" : "bg-[#181818] hover:bg-[#3a3a3a]"
             }`}
             disabled={loading}
           >
@@ -135,7 +177,7 @@ const handleSubmit = async (e) => {
           </div>
 
           <div className="mt-6 text-center text-sm text-[#616161]">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <button
               onClick={() => navigate("/register")}
               className="text-[#181818] font-medium underline hover:text-[#A58077] transition"
@@ -151,7 +193,8 @@ const handleSubmit = async (e) => {
 
 const SocialButton = ({ Icon }) => (
   <button
-    className="w-10 h-10 bg-[#181818] text-white flex items-center justify-center rounded-full hover:bg-[#A58077] transition transform hover:scale-105"
+    type="button"
+    className="w-10 h-10 bg-[#181818] text-white flex items-center justify-center rounded-full hover:bg-[#A58077] transition-all duration-200 transform hover:scale-105"
     aria-label="Login with social"
   >
     <Icon size={18} />

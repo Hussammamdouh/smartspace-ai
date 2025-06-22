@@ -16,7 +16,7 @@ const OrderDetails = () => {
       try {
         const { data } = await axiosInstance.get(`/orders/${id}`);
         setOrder(data.data);
-      } catch (error) {
+      } catch {
         toast.error('Failed to load order details');
         navigate('/profile');
       } finally {
@@ -118,18 +118,18 @@ const OrderDetails = () => {
             <div className="bg-[#2C2C2C] rounded-lg p-6 shadow-lg">
               <h2 className="text-2xl font-bold mb-6">Order Items</h2>
               <div className="space-y-4">
-                {order.items.map((item) => (
+                {order.products.map((item, index) => (
                   <div
-                    key={item._id}
+                    key={index}
                     className="flex items-center gap-4 p-4 border border-[#A58077] rounded-lg"
                   >
                     <img
-                      src={item.product.image}
-                      alt={item.product.name}
+                      src={item.productId?.image || '/placeholder-image.jpg'}
+                      alt={item.name}
                       className="w-20 h-20 object-contain bg-[#181818] rounded"
                     />
                     <div className="flex-grow">
-                      <h3 className="font-semibold">{item.product.name}</h3>
+                      <h3 className="font-semibold">{item.name}</h3>
                       <p className="text-sm text-[#A58077]">
                         Quantity: {item.quantity}
                       </p>
@@ -150,6 +150,7 @@ const OrderDetails = () => {
 
           {/* Shipping Information */}
           <div className="space-y-8">
+            {order.shippingAddress && (
             <div className="bg-[#2C2C2C] rounded-lg p-6 shadow-lg">
               <h2 className="text-2xl font-bold mb-6">Shipping Information</h2>
               <div className="space-y-4">
@@ -161,12 +162,15 @@ const OrderDetails = () => {
                   <span className="text-sm text-[#A58077]">Address</span>
                   <p className="text-lg">{order.shippingAddress.address}</p>
                 </div>
+                  {order.shippingAddress.phone && (
                 <div>
                   <span className="text-sm text-[#A58077]">Phone</span>
                   <p className="text-lg">{order.shippingAddress.phone}</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Payment Information */}
             <div className="bg-[#2C2C2C] rounded-lg p-6 shadow-lg">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaHeart } from "react-icons/fa";
 import axiosInstance from "../utils/axiosInstance";
 import Loader from "../components/Loader";
 import { toast } from "react-hot-toast";
@@ -26,13 +26,14 @@ const WishlistPage = () => {
       }
 
       try {
+        setLoading(true);
         const { data } = await axiosInstance.get('/inventory', {
           params: {
             ids: wishlist.join(',')
           }
         });
         setProducts(data.data || []);
-      } catch (error) {
+      } catch {
         toast.error('Failed to load wishlist items');
       } finally {
         setLoading(false);
@@ -49,6 +50,11 @@ const WishlistPage = () => {
     
     setWishlist(newWishlist);
     localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+    
+    // Update products list immediately
+    if (wishlist.includes(productId)) {
+      setProducts(prev => prev.filter(product => product._id !== productId));
+    }
   };
 
   if (loading) {
@@ -113,6 +119,11 @@ const WishlistPage = () => {
                   <p className="text-[#A58077] font-bold mt-2">
                     ${product.price?.toFixed(2)}
                   </p>
+                  {product.stock > 0 ? (
+                    <p className="text-green-400 text-sm mt-1">In Stock</p>
+                  ) : (
+                    <p className="text-red-400 text-sm mt-1">Out of Stock</p>
+                  )}
                 </div>
               </div>
             ))}

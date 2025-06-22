@@ -44,10 +44,6 @@ const ProductsPage = () => {
       setError("");
     } catch (error) {
       console.error(error);
-      if (error.response?.status === 401) {
-        navigate('/login');
-        return;
-      }
       setError("Failed to fetch products. Please try again later.");
       toast.error("Failed to fetch products");
     } finally {
@@ -89,14 +85,8 @@ const ProductsPage = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      if (selectedCategory && product.category !== selectedCategory) return false;
-      if (selectedStyle && product.style !== selectedStyle) return false;
-      if (selectedColor && product.color !== selectedColor) return false;
-      if (product.price > priceRange) return false;
-      return true;
-    });
-  }, [products, selectedCategory, selectedStyle, selectedColor, priceRange]);
+    return products;
+  }, [products]);
 
   const handleCardClick = (id) => navigate(`/product/${id}`);
 

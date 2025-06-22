@@ -2,25 +2,18 @@ import { useContext, useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiMenu, FiX, FiSun, FiMoon, FiChevronDown } from "react-icons/fi";
 import { AuthContext } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
+import { useCart } from "../contexts/CartContext";
 import Avatar from "./Avatar";
 
 const Navbar = () => {
-  const { user, logout } = useContext(AuthContext);
-  const [currentUser, setCurrentUser] = useState(user || null);
+  const { user, logout, isAuthenticated } = useContext(AuthContext);
+  const { isDarkMode, toggleTheme } = useTheme();
+  const { getCartCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef();
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) setCurrentUser(JSON.parse(storedUser));
-
-    const storedTheme = localStorage.getItem("theme");
-    setDarkMode(storedTheme === "dark");
-    document.documentElement.classList.toggle("dark", storedTheme === "dark");
-  }, [user]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -32,19 +25,10 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const toggleDarkMode = () => {
-    const newTheme = darkMode ? "light" : "dark";
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-    setDarkMode(!darkMode);
-  };
-
   const handleLogout = () => {
     logout();
-    localStorage.removeItem("user");
-    setCurrentUser(null);
     setDropdownOpen(false);
-    navigate("/login");
+    navigate("/");
   };
 
   const navLinkClass = "text-lg font-medium hover:text-[#A58077] transition";
@@ -57,7 +41,7 @@ const Navbar = () => {
           to="/"
           className="text-2xl font-bold hover:text-[#A58077] transition"
         >
-          SmartSpace AI
+          AI Interior Design
         </Link>
         {/* Desktop Navigation */}
         <div className="hidden md:flex space-x-6">
@@ -67,13 +51,23 @@ const Navbar = () => {
           <Link to="/products" className={navLinkClass}>
             Products
           </Link>
-          <Link to="/cart" className={navLinkClass}>
+          <Link to="/cart" className={`${navLinkClass} relative`}>
             Cart
+            {getCartCount() > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {getCartCount()}
+              </span>
+            )}
           </Link>
           <Link to="/chatbot" className={navLinkClass}>
-            AI
+            AI Chat
           </Link>
-          {currentUser?.role === "admin" && (
+          {isAuthenticated && (
+            <Link to="/dashboard" className={navLinkClass}>
+              Dashboard
+            </Link>
+          )}
+          {user?.role === "admin" && (
             <Link to="/admin" className={navLinkClass}>
               Admin Panel
             </Link>
@@ -83,13 +77,13 @@ const Navbar = () => {
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4 relative">
           <button
-            onClick={toggleDarkMode}
+            onClick={toggleTheme}
             className="text-xl hover:text-[#A58077] transition"
           >
-            {darkMode ? <FiSun /> : <FiMoon />}
+            {isDarkMode ? <FiSun /> : <FiMoon />}
           </button>
 
-          {currentUser ? (
+          {isAuthenticated ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -97,7 +91,7 @@ const Navbar = () => {
                 aria-haspopup="true"
                 aria-expanded={dropdownOpen}
               >
-                <Avatar name={currentUser.name} size={36} />
+                <Avatar name={user.name} size={36} />
                 <FiChevronDown
                   className={`transition-transform ${
                     dropdownOpen ? "rotate-180" : ""
@@ -108,15 +102,23 @@ const Navbar = () => {
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white text-[#181818] rounded-xl shadow-xl py-2 transition-all origin-top-right scale-100 animate-fade-in z-50">
                   <div className="px-4 py-2">
-                    <p className="font-semibold">{currentUser.name}</p>
-                    <p className="text-sm text-gray-500">{currentUser.email}</p>
+                    <p className="font-semibold">{user.name}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
                   </div>
                   <hr className="my-1 border-gray-200" />
                   <Link
                     to="/profile"
                     className="block px-4 py-2 hover:bg-gray-100 text-sm"
+                    onClick={() => setDropdownOpen(false)}
                   >
                     Profile
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    className="block px-4 py-2 hover:bg-gray-100 text-sm"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Dashboard
                   </Link>
                   <button
                     onClick={handleLogout}
@@ -140,10 +142,10 @@ const Navbar = () => {
         {/* Mobile Toggle */}
         <div className="md:hidden flex items-center gap-3">
           <button
-            onClick={toggleDarkMode}
+            onClick={toggleTheme}
             className="text-xl hover:text-[#A58077] transition"
           >
-            {darkMode ? <FiSun /> : <FiMoon />}
+            {isDarkMode ? <FiSun /> : <FiMoon />}
           </button>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -174,27 +176,41 @@ const Navbar = () => {
           <Link
             to="/cart"
             onClick={() => setMobileOpen(false)}
-            className={navLinkClass}
+            className={`${navLinkClass} relative`}
           >
             Cart
+            {getCartCount() > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {getCartCount()}
+              </span>
+            )}
           </Link>
           <Link
             to="/chatbot"
             onClick={() => setMobileOpen(false)}
             className={navLinkClass}
           >
-            AI
+            AI Chat
           </Link>
+          {isAuthenticated && (
+            <Link
+              to="/dashboard"
+              onClick={() => setMobileOpen(false)}
+              className={navLinkClass}
+            >
+              Dashboard
+            </Link>
+          )}
 
           <hr className="border-[#A09C9C]" />
 
-          {currentUser ? (
+          {isAuthenticated ? (
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <Avatar name={currentUser.name} size={36} />
+                <Avatar name={user.name} size={36} />
                 <div>
-                  <p className="font-semibold">{currentUser.name}</p>
-                  <p className="text-sm text-gray-400">{currentUser.email}</p>
+                  <p className="font-semibold">{user.name}</p>
+                  <p className="text-sm text-gray-400">{user.email}</p>
                 </div>
               </div>
               <button

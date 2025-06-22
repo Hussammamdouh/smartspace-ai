@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import Lottie from "lottie-react";
-import successAnimation from "../assets/animations/success-animation.json"; // 🛑 You need a success lottie JSON!
+import { FaCheckCircle } from "react-icons/fa";
 
 const ThankYouPage = () => {
   const navigate = useNavigate();
@@ -8,9 +7,9 @@ const ThankYouPage = () => {
   return (
     <div className="min-h-screen bg-[#181818] text-[#E5CBBE] flex flex-col items-center justify-center px-6 text-center">
       
-      {/* Lottie Success Animation */}
-      <div className="w-60 h-60 mb-8">
-        <Lottie animationData={successAnimation} loop={false} />
+      {/* Success Icon */}
+      <div className="w-60 h-60 mb-8 flex items-center justify-center">
+        <FaCheckCircle className="text-green-400 text-8xl animate-pulse" />
       </div>
 
       <h1 className="text-5xl font-bold mb-4">Thank You!</h1>

@@ -17,8 +17,6 @@ const upload = require('../middlewares/uploadMiddleware');
  *   get:
  *     summary: Get all inventory items with filtering and pagination
  *     tags: [Inventory]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: category
@@ -44,6 +42,10 @@ const upload = require('../middlewares/uploadMiddleware');
  *         name: limit
  *         schema: { type: integer, default: 9 }
  *         description: Number of items per page
+ *       - in: query
+ *         name: ids
+ *         schema: { type: string }
+ *         description: Comma-separated list of product IDs
  *     responses:
  *       200:
  *         description: List of inventory items
@@ -62,12 +64,6 @@ const upload = require('../middlewares/uploadMiddleware');
  *                     total: { type: number }
  *                     page: { type: number }
  *                     totalPages: { type: number }
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
 
 /**
@@ -76,8 +72,6 @@ const upload = require('../middlewares/uploadMiddleware');
  *   get:
  *     summary: Get a specific inventory item by ID
  *     tags: [Inventory]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -98,8 +92,6 @@ const upload = require('../middlewares/uploadMiddleware');
  *         description: Invalid ID format
  *       404:
  *         description: Item not found
- *       401:
- *         description: Unauthorized
  */
 
 /**
@@ -235,8 +227,8 @@ router.put("/:id", protect, upload.single("file"), inventoryController.updateInv
 // DELETE
 router.delete("/:id", protect, inventoryController.deleteInventoryItem);
 
-// GET
-router.get("/", protect, inventoryController.getInventory);
-router.get("/:id", protect, inventoryController.getInventoryItem);
+// GET (public - no authentication required)
+router.get("/", inventoryController.getInventory);
+router.get("/:id", inventoryController.getInventoryItem);
 
 module.exports = router;

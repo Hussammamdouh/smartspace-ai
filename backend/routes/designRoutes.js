@@ -1,5 +1,30 @@
 /**
  * @swagger
+ * /api/design/user-designs:
+ *   get:
+ *     summary: Get all designs for the logged-in user (dashboard)
+ *     tags: [Designs]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user designs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/GeneratedDesign'
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
  * /api/design/preferences:
  *   post:
  *     summary: Save user design preferences (chatbot result)
@@ -238,6 +263,7 @@ const { designSchema } = require('../utils/validationSchemas');
  *         description: Unauthorized
  */
 
+router.get('/user-designs', protect, designController.getUserDesigns);
 router.get('/', protect, designController.getDesigns);
 router.post('/', protect, validate(designSchema), designController.createDesign);
 router.get('/:id', protect, designController.getDesign);

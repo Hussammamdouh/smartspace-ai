@@ -7,7 +7,8 @@ const {
   startNewConversation,
   sendMessage,
   deleteConversation,
-  updateConversationTitle
+  updateConversationTitle,
+  getUserChats
 } = require('../controllers/chatController');
 
 /**
@@ -15,6 +16,31 @@ const {
  * tags:
  *   name: Chat
  *   description: Chat history and conversation management
+ */
+
+/**
+ * @swagger
+ * /api/chat/user-chats:
+ *   get:
+ *     summary: Get all chat conversations for the logged-in user (dashboard)
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user chat conversations
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ChatHistory'
+ *       401:
+ *         description: Unauthorized
  */
 
 /**
@@ -101,6 +127,7 @@ const {
  */
 
 // Chat history routes
+router.get('/user-chats', protect, getUserChats);
 router.get('/history', protect, getChatHistory);
 router.get('/conversation/:conversationId', protect, getChatConversation);
 router.post('/conversation', protect, startNewConversation);

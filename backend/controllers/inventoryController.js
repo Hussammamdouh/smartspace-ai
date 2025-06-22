@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 
 exports.getInventory = async (req, res) => {
   try {
-    const { category, style, color, maxPrice = 5000, page = 1, limit = 9 } = req.query;
+    const { category, style, color, maxPrice = 5000, page = 1, limit = 9, ids } = req.query;
 
     const filter = {
       isDeleted: false,
@@ -15,6 +15,15 @@ exports.getInventory = async (req, res) => {
     if (category) filter.category = category.toLowerCase();
     if (style) filter.style = style.toLowerCase();
     if (color) filter.color = color.toLowerCase();
+    
+    // Support for fetching by IDs (for wishlist)
+    if (ids) {
+      const idArray = ids.split(',').map(id => id.trim());
+      const validIds = idArray.filter(id => mongoose.Types.ObjectId.isValid(id));
+      if (validIds.length > 0) {
+        filter._id = { $in: validIds };
+      }
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
 

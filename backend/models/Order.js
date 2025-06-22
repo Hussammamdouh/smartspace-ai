@@ -26,7 +26,23 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      default: "Pending",
+      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+      default: "pending",
+    },
+    shippingAddress: {
+      name: String,
+      address: String,
+      city: String,
+      postalCode: String,
+      country: String,
+      phone: String,
+    },
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
+    paidAt: {
+      type: Date,
     }
   },
   { timestamps: true }

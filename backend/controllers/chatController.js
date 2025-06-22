@@ -2,6 +2,26 @@ const ChatHistory = require('../models/ChatHistory');
 const { chatWithGPT, generateImageWithDalle } = require('../services/openaiService');
 const { APIError } = require('../middlewares/errorHandler');
 
+// Get user chats for dashboard
+exports.getUserChats = async (req, res, next) => {
+  try {
+    const conversations = await ChatHistory.find({ 
+      user: req.user.id, 
+      isActive: true 
+    })
+    .sort({ updatedAt: -1 })
+    .limit(10) // Limit to recent 10 conversations for dashboard
+    .select('title createdAt updatedAt conversation');
+    
+    res.status(200).json({
+      status: 'success',
+      data: conversations
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get all chat conversations for a user
 exports.getChatHistory = async (req, res, next) => {
   try {

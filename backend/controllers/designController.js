@@ -3,6 +3,24 @@ const DesignPreference = require('../models/DesignPreference');
 const GeneratedDesign = require('../models/GeneratedDesign');
 const Design = require('../models/Design');
 
+// Get user designs for dashboard
+exports.getUserDesigns = async (req, res, next) => {
+  try {
+    const designs = await GeneratedDesign.find({ user: req.user.id })
+      .populate('preference')
+      .populate('relatedProducts')
+      .sort({ createdAt: -1 })
+      .limit(10); // Limit to recent 10 designs for dashboard
+    
+    res.status(200).json({
+      status: 'success',
+      data: designs
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getDesigns = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;

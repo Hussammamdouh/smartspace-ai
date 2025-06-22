@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Loader from "../../components/Loader";
-import { toast } from "react-toastify";
+import { toast } from "react-hot-toast";
 import { FiTrash2 } from "react-icons/fi";
 
 const AdminUsers = () => {

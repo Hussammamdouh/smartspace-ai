@@ -18,7 +18,7 @@ const ProductForm = ({ product, onChange, onSubmit, isEditing }) => {
           value={product.name || ""}
           onChange={onChange}
           required
-          className="w-full p-3 rounded bg-[#E5CBBE] text-[#181818]"
+          className="w-full p-3 rounded bg-[#2c2c2c] text-[#E5CBBE] border border-[#A58077] focus:outline-none focus:border-[#E5CBBE] transition-colors"
         />
       </div>
 
@@ -30,7 +30,9 @@ const ProductForm = ({ product, onChange, onSubmit, isEditing }) => {
           value={product.price || ""}
           onChange={onChange}
           required
-          className="w-full p-3 rounded bg-[#E5CBBE] text-[#181818]"
+          min="0"
+          step="0.01"
+          className="w-full p-3 rounded bg-[#2c2c2c] text-[#E5CBBE] border border-[#A58077] focus:outline-none focus:border-[#E5CBBE] transition-colors"
         />
       </div>
 
@@ -42,7 +44,7 @@ const ProductForm = ({ product, onChange, onSubmit, isEditing }) => {
           value={product.type || ""}
           onChange={onChange}
           required
-          className="w-full p-3 rounded bg-[#E5CBBE] text-[#181818]"
+          className="w-full p-3 rounded bg-[#2c2c2c] text-[#E5CBBE] border border-[#A58077] focus:outline-none focus:border-[#E5CBBE] transition-colors"
         />
       </div>
 
@@ -54,17 +56,19 @@ const ProductForm = ({ product, onChange, onSubmit, isEditing }) => {
           value={product.stock || ""}
           onChange={onChange}
           required
-          className="w-full p-3 rounded bg-[#E5CBBE] text-[#181818]"
+          min="0"
+          className="w-full p-3 rounded bg-[#2c2c2c] text-[#E5CBBE] border border-[#A58077] focus:outline-none focus:border-[#E5CBBE] transition-colors"
         />
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Image URL</label>
+        <label className="block text-sm mb-1">Product Image</label>
         <input
           type="file"
           name="file"
           onChange={onChange}
-          className="w-full p-3 rounded bg-[#E5CBBE] text-[#181818]"
+          accept="image/*"
+          className="w-full p-3 rounded bg-[#2c2c2c] text-[#E5CBBE] border border-[#A58077] focus:outline-none focus:border-[#E5CBBE] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#A58077] file:text-white hover:file:bg-[#E5CBBE] hover:file:text-[#181818] transition-colors"
         />
       </div>
 

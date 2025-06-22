@@ -111,53 +111,74 @@ const ProductsManagement = () => {
       />
 
       {/* Product Table */}
-      <div className="mt-12 overflow-x-auto">
+      <div className="mt-12">
         {loading ? (
-          <div>Loading products...</div>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#A58077]"></div>
+            <span className="ml-3">Loading products...</span>
+          </div>
         ) : (
-          <table className="w-full table-auto text-left mt-6">
-            <thead className="bg-[#A58077] text-white">
-              <tr>
-                <th className="py-2 px-4">Image</th>
-                <th className="py-2 px-4">Name</th>
-                <th className="py-2 px-4">Type</th>
-                <th className="py-2 px-4">Price</th>
-                <th className="py-2 px-4">Stock</th>
-                <th className="py-2 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((item) => (
-                <tr key={item._id} className="border-b border-gray-700">
-                  <td className="py-2 px-4">
-                    <img
-                      src={item.filePath}
-                      alt={item.name}
-                      className="w-12 h-12 rounded object-cover"
-                    />
-                  </td>
-                  <td className="py-2 px-4">{item.name}</td>
-                  <td className="py-2 px-4">{item.type}</td>
-                  <td className="py-2 px-4">${item.price}</td>
-                  <td className="py-2 px-4">{item.stock}</td>
-                  <td className="py-2 px-4 space-x-2">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="px-3 py-1 bg-[#E5CBBE] text-[#181818] rounded hover:bg-[#A58077] hover:text-white transition"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item._id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                    >
-                      Delete
-                    </button>
-                  </td>
+          <div className="overflow-x-auto bg-[#2c2c2c] rounded-xl shadow-lg">
+            <table className="w-full table-auto text-left">
+              <thead className="bg-[#A58077] text-white">
+                <tr>
+                  <th className="py-3 px-4 text-sm font-semibold">Image</th>
+                  <th className="py-3 px-4 text-sm font-semibold">Name</th>
+                  <th className="py-3 px-4 text-sm font-semibold">Type</th>
+                  <th className="py-3 px-4 text-sm font-semibold">Price</th>
+                  <th className="py-3 px-4 text-sm font-semibold">Stock</th>
+                  <th className="py-3 px-4 text-sm font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {products.map((item) => (
+                  <tr key={item._id} className="border-b border-gray-700 hover:bg-[#333] transition-colors">
+                    <td className="py-3 px-4">
+                      <img
+                        src={item.filePath}
+                        alt={item.name}
+                        className="w-12 h-12 rounded object-cover"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/48x48?text=No+Image';
+                        }}
+                      />
+                    </td>
+                    <td className="py-3 px-4 font-medium">{item.name}</td>
+                    <td className="py-3 px-4">{item.type}</td>
+                    <td className="py-3 px-4">${item.price}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        item.stock > 10 ? 'bg-green-500 text-white' : 
+                        item.stock > 0 ? 'bg-yellow-500 text-white' : 
+                        'bg-red-500 text-white'
+                      }`}>
+                        {item.stock}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 space-x-2">
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className="px-3 py-1 bg-[#E5CBBE] text-[#181818] rounded hover:bg-[#A58077] hover:text-white transition text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item._id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {products.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-xl text-[#A58077]">No products found</p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

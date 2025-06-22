@@ -8,6 +8,7 @@ import RedirectIfLoggedIn from "./components/RedirectIfLoggedIn";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import ErrorBoundary from "./components/ErrorBoundry";
+import BackendStatus from "./components/BackendStatus";
 import NotFoundPage from "./pages/error";
 import ThankYouPage from "./pages/ThankYou";
 import { Toaster } from "react-hot-toast";
@@ -27,6 +28,7 @@ import AdminLayout from "./admin/AdminLayout";
 import Dashboard from "./admin/pages/Dashboard";
 import ProductsManagement from "./admin/pages/ProductsManagement";
 import UsersManagement from "./admin/pages/UsersManagement";
+import OrdersManagement from "./admin/pages/OrdersManagement";
 
 // Lazy loaded pages
 const Home = lazy(() => import("./pages/Home"));
@@ -49,6 +51,7 @@ const AppContent = () => {
 
   return (
     <div style={{ backgroundColor: colors.background, color: colors.text, minHeight: '100vh' }}>
+      <BackendStatus />
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -134,6 +137,7 @@ const AppContent = () => {
               <Route index element={<Dashboard />} />
               <Route path="products" element={<ProductsManagement />} />
               <Route path="users" element={<UsersManagement />} />
+              <Route path="orders" element={<OrdersManagement />} />
             </Route>
           </Route>
 

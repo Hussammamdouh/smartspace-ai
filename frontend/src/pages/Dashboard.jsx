@@ -26,6 +26,13 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchUserStats = async () => {
+      // Only fetch stats if user is authenticated
+      if (!user) {
+        console.log('User not authenticated, skipping stats fetch');
+        setLoading(false);
+        return;
+      }
+
       try {
         // Fetch user statistics from backend
         const [ordersRes, designsRes, chatsRes] = await Promise.all([
@@ -48,7 +55,7 @@ function Dashboard() {
     };
 
     fetchUserStats();
-  }, []);
+  }, [user]);
 
   const handleLogout = () => {
     logout();

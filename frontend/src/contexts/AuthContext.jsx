@@ -21,24 +21,51 @@ export const AuthProvider = ({ children }) => {
   // Verify token and get user data on mount
   const verifyToken = async () => {
     const token = localStorage.getItem('authToken');
+    console.log('Checking for token:', token ? 'Token exists' : 'No token found');
+    
     if (!token) {
+      console.log('No token found, skipping verification');
       setLoading(false);
       return;
     }
 
     try {
+      console.log('Attempting to verify token...');
       const response = await axiosInstance.get('/auth/me');
+      console.log('Token verification successful:', response.data);
+      
       if (response.data.status === 'success') {
         setUser(response.data.data.user);
         localStorage.setItem('user', JSON.stringify(response.data.data.user));
       }
     } catch (error) {
       console.error('Token verification failed:', error);
-      // Clear invalid tokens
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      setUser(null);
+      console.error('Error details:', {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        config: error.config
+      });
+      
+      // Check if it's a network error (backend not running)
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        console.log('Backend server appears to be offline');
+        // Don't clear tokens if it's just a network issue
+        // User can still use the app with cached data
+        const cachedUser = localStorage.getItem('user');
+        if (cachedUser) {
+          try {
+            setUser(JSON.parse(cachedUser));
+          } catch (e) {
+            console.error('Failed to parse cached user:', e);
+          }
+        }
+      } else {
+        // Clear invalid tokens for other errors
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@ const designService = require('../services/designService');
 const DesignPreference = require('../models/DesignPreference');
 const GeneratedDesign = require('../models/GeneratedDesign');
 const Design = require('../models/Design');
+const { APIError } = require('../middlewares/errorHandler');
 
 // Get user designs for dashboard
 exports.getUserDesigns = async (req, res, next) => {
@@ -39,11 +40,11 @@ exports.getDesign = async (req, res, next) => {
       .populate('relatedProducts');
     
     if (!design) {
-      return res.status(404).json({ message: 'Design not found' });
+      return next(new APIError('Design not found', 404));
     }
     
     if (design.user.toString() !== req.user.id.toString()) {
-      return res.status(403).json({ message: 'Unauthorized to access this design' });
+      return next(new APIError('Unauthorized to access this design', 403));
     }
     
     res.status(200).json({ design });
@@ -69,7 +70,7 @@ exports.deleteDesign = async (req, res, next) => {
   try {
     const design = await Design.findById(req.params.id);
 if (!design || design.userId.toString() !== req.user.id.toString()) {
-  return res.status(403).json({ message: 'Unauthorized to delete this design' });
+  return next(new APIError('Unauthorized to delete this design', 403));
 }
 await Design.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Design deleted' });

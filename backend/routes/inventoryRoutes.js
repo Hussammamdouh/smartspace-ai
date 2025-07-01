@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventoryController');
-const { protect } = require('../middlewares/auth');
+const { protect, restrictTo } = require('../middlewares/auth');
 const upload = require('../middlewares/uploadMiddleware');
+const { validate, validateQuery } = require('../middlewares/validateMiddleware');
+const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validationSchemas');
 
 /**
  * @swagger
@@ -92,6 +94,34 @@ const upload = require('../middlewares/uploadMiddleware');
  *         description: Invalid ID format
  *       404:
  *         description: Item not found
+ */
+
+/**
+ * @swagger
+ * /api/inventory/test-upload:
+ *   post:
+ *     summary: Test file upload functionality
+ *     tags: [Inventory]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file to upload
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *       400:
+ *         description: No file uploaded or invalid file
+ *       500:
+ *         description: Upload failed
  */
 
 /**
@@ -218,17 +248,46 @@ const upload = require('../middlewares/uploadMiddleware');
  *         description: Item not found
  */
 
-// POST (create)
-router.post("/", protect, upload.single("file"), inventoryController.addInventoryItem);
-
-// PUT (update)
-router.put("/:id", protect, upload.single("file"), inventoryController.updateInventoryItem);
-
-// DELETE
-router.delete("/:id", protect, inventoryController.deleteInventoryItem);
-
-// GET (public - no authentication required)
-router.get("/", inventoryController.getInventory);
+// Public routes (no authentication required)
+router.get("/", validateQuery(inventoryFilterSchema), inventoryController.getInventory);
 router.get("/:id", inventoryController.getInventoryItem);
+
+// Test upload route (public)
+router.post('/test-upload', upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No file uploaded'
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'File uploaded successfully',
+      data: {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Upload failed',
+      error: error.message
+    });
+  }
+});
+
+// Protected routes (admin only)
+router.use(protect);
+router.use(restrictTo('admin'));
+
+router.post("/", upload.single("file"), validate(inventoryItemSchema), inventoryController.addInventoryItem);
+router.put("/:id", upload.single("file"), inventoryController.updateInventoryItem);
+router.delete("/:id", inventoryController.deleteInventoryItem);
 
 module.exports = router;

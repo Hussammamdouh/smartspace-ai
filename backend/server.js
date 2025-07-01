@@ -9,6 +9,7 @@ const connectDB = require('./config/db');
 const swaggerSpec = require('./config/swagger');
 const swaggerUi = require('swagger-ui-express');
 const { errorHandler } = require('./middlewares/errorHandler');
+const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/authRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
@@ -28,8 +29,14 @@ const app = express();
 connectDB();
 
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)
+    : ["http://localhost:5173", "http://localhost:3000", "http://localhost:8080"],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours
 };
 app.use(cors(corsOptions));
 
@@ -47,6 +54,13 @@ const limiter = rateLimit({
   max: 100,
   message: 'Too many requests from this IP, please try again after 15 minutes.',
 });
+
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many requests from this IP, please try again after 15 minutes.',
+});
+
 app.use(limiter);
 
 // ✅ Swagger API Docs with custom options
@@ -62,16 +76,73 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   }
 }));
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Health check endpoint
+ *     tags: [System]
+ *     description: Check the health status of the API and its dependencies
+ *     responses:
+ *       200:
+ *         description: API is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthCheckResponse'
+ *       503:
+ *         description: API is unhealthy (missing environment variables)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthCheckResponse'
+ *       500:
+ *         description: Health check failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // ✅ Health Check Endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'AI Interior Design API is running',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check database connection
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    
+    // Check environment variables
+    const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    const healthStatus = {
+      status: 'success',
+      message: 'AI Interior Design API is running',
+      timestamp: new Date().toISOString(),
+      version: '2.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      services: {
+        database: dbStatus,
+        email: process.env.EMAIL_USER ? 'configured' : 'not configured',
+        openai: process.env.OPENAI_API_KEY ? 'configured' : 'not configured',
+        gemini: process.env.GEMINI_API_KEY ? 'configured' : 'not configured'
+      },
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      missingEnvVars: missingEnvVars.length > 0 ? missingEnvVars : null
+    };
+
+    const statusCode = missingEnvVars.length > 0 ? 503 : 200;
+    res.status(statusCode).json(healthStatus);
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Health check failed',
+      error: error.message
+    });
+  }
 });
+
+// ✅ Serve static files (uploaded images)
+app.use('/uploads', express.static('uploads'));
 
 // ✅ API Routes
 app.use('/api/auth', authRoutes);

@@ -21,5 +21,11 @@ const InventoryItemSchema = mongoose.Schema(
 );
 
 InventoryItemSchema.index({ category: 1, available: 1 });
+InventoryItemSchema.index({ style: 1 });
+InventoryItemSchema.index({ color: 1 });
+InventoryItemSchema.index({ price: 1 });
+InventoryItemSchema.index({ isDeleted: 1 });
+InventoryItemSchema.index({ available: 1, isDeleted: 1 });
+InventoryItemSchema.index({ category: 1, style: 1, available: 1 });
 
 module.exports = mongoose.models.InventoryItem || mongoose.model("InventoryItem", InventoryItemSchema);

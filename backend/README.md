@@ -1,36 +1,46 @@
 # AI Interior Design Backend API
 
-A comprehensive backend API for an AI-powered interior design application with chat history, design editing, and multiple AI service integrations.
+A comprehensive Node.js/Express backend API for the AI Interior Design application, featuring user authentication, design generation, inventory management, and email verification.
 
 ## 🚀 Features
 
-- **User Authentication & Authorization** - JWT-based auth with role-based access
-- **AI-Powered Design Generation** - Multiple AI services (OpenAI, Gemini, Replicate)
-- **Chat History Management** - Persistent conversation storage with images
-- **Design Editing System** - Add/remove furniture from generated designs
-- **Inventory Management** - Product catalog with filtering and search
-- **Order Management** - Complete e-commerce functionality
-- **Real-time Image Generation** - DALL-E 3, Gemini, and Replicate integration
-- **Comprehensive API Documentation** - Auto-generated Swagger docs
+- **User Authentication & Authorization**
+  - JWT-based authentication with refresh tokens
+  - Email verification system
+  - Password reset functionality
+  - Role-based access control (User/Admin)
 
-## 🛠️ Tech Stack
+- **AI-Powered Design Generation**
+  - OpenAI DALL-E 3 integration
+  - Google Gemini integration
+  - Replicate AI integration
+  - Design preference management
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: MongoDB with Mongoose
-- **Authentication**: JWT
-- **File Upload**: Multer
-- **Validation**: Joi
-- **Documentation**: Swagger/OpenAPI 3.0
-- **Security**: Helmet, Rate Limiting, XSS Protection
+- **Inventory Management**
+  - Product catalog with filtering and pagination
+  - Image upload functionality
+  - Stock management
+  - Category and style organization
+
+- **Order Management**
+  - Shopping cart functionality
+  - Order processing and tracking
+  - Payment integration support
+
+- **Security Features**
+  - Rate limiting
+  - Input validation and sanitization
+  - CORS protection
+  - Helmet security headers
+  - XSS protection
 
 ## 📋 Prerequisites
 
 - Node.js (v16 or higher)
-- MongoDB
-- Environment variables configured
+- MongoDB (v5 or higher)
+- npm or yarn
 
-## 🔧 Installation
+## 🛠️ Installation
 
 1. **Clone the repository**
    ```bash
@@ -43,214 +53,263 @@ A comprehensive backend API for an AI-powered interior design application with c
    npm install
    ```
 
-3. **Environment Setup**
+3. **Environment Configuration**
    Create a `.env` file in the root directory:
    ```env
+   # Server Configuration
    NODE_ENV=development
    PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/ai-interior-design
-   JWT_SECRET=your-super-secret-jwt-key
-   JWT_EXPIRE=30d
    
-   # OpenAI Configuration
-   OPENAI_API_KEY=your-openai-api-key
+   # Database
+   MONGO_URI=mongodb://localhost:27017/ai-interior-design
    
-   # Google Gemini Configuration
-   GEMINI_API_KEY=your-gemini-api-key
+   # JWT Secrets
+   JWT_SECRET=your-super-secret-jwt-key-here
+   JWT_REFRESH_SECRET=your-super-secret-refresh-key-here
    
-   # Replicate Configuration
-   REPLICATE_API_TOKEN=your-replicate-token
-   
-   # Email Configuration (optional)
-   EMAIL_HOST=smtp.gmail.com
-   EMAIL_PORT=587
+   # Email Configuration (Development)
+   EMAIL_SERVICE=Gmail
    EMAIL_USER=your-email@gmail.com
    EMAIL_PASS=your-app-password
+   EMAIL_FROM=your-email@gmail.com
+   
+   # Email Configuration (Production)
+   SMTP_HOST=smtp.your-provider.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your-smtp-username
+   SMTP_PASS=your-smtp-password
+   
+   # AI Services
+   OPENAI_API_KEY=your-openai-api-key
+   GEMINI_API_KEY=your-gemini-api-key
+   REPLICATE_API_TOKEN=your-replicate-token
+   
+   # Frontend URLs (for CORS)
+   FRONTEND_URL=http://localhost:5173
+   ADMIN_URL=http://localhost:3000
    ```
 
 4. **Start the server**
    ```bash
-   npm start
-   # or for development with auto-restart
+   # Development mode
    npm run dev
+   
+   # Production mode
+   npm start
    ```
 
 ## 📚 API Documentation
 
-Once the server is running, the complete API documentation is available at:
-- **Swagger UI**: `http://localhost:5000/api-docs`
-- **Health Check**: `http://localhost:5000/api/health`
+The API documentation is available at `/api-docs` when the server is running.
 
-The documentation includes:
-- All API endpoints with examples
-- Request/response schemas
-- Authentication requirements
-- Error codes and messages
-- Interactive testing interface
-
-## 🔐 Authentication
-
-The API uses JWT-based authentication. Include the token in the Authorization header:
+### Base URL
 ```
-Authorization: Bearer <your-jwt-token>
+http://localhost:5000/api
 ```
 
-## 📁 Project Structure
+### Authentication Endpoints
 
-```
-backend/
-├── config/                 # Configuration files
-│   ├── db.js              # Database connection
-│   └── swagger.js         # Swagger documentation config
-├── controllers/           # Route controllers
-│   ├── authController.js  # Authentication logic
-│   ├── chatController.js  # Chat history management
-│   ├── designController.js # Design generation
-│   ├── editDesignController.js # Design editing
-│   ├── inventoryController.js # Product management
-│   ├── orderController.js # Order processing
-│   └── userController.js  # User profile management
-├── middlewares/           # Custom middleware
-│   ├── auth.js           # Authentication middleware
-│   ├── errorHandler.js   # Error handling
-│   ├── uploadMiddleware.js # File upload handling
-│   └── validateMiddleware.js # Request validation
-├── models/               # Database models
-│   ├── ChatHistory.js    # Chat conversation model
-│   ├── Design.js         # Design preferences
-│   ├── GeneratedDesign.js # Generated designs
-│   ├── InventoryItem.js  # Product inventory
-│   ├── Order.js          # Order management
-│   └── User.js           # User model
-├── routes/               # API routes
-│   ├── authRoutes.js     # Authentication routes
-│   ├── chatRoutes.js     # Chat history routes
-│   ├── designRoutes.js   # Design generation routes
-│   ├── editDesignRoutes.js # Design editing routes
-│   ├── inventoryRoutes.js # Product routes
-│   ├── orderRoutes.js    # Order routes
-│   └── userRoutes.js     # User profile routes
-├── services/             # Business logic
-│   ├── designService.js  # Design generation logic
-│   ├── inventoryService.js # Product management
-│   ├── openaiService.js  # OpenAI integration
-│   └── orderService.js   # Order processing
-├── utils/                # Utility functions
-│   ├── logger.js         # Logging utility
-│   ├── paginate.js       # Pagination helper
-│   └── validationSchemas.js # Joi validation schemas
-├── uploads/              # File uploads directory
-├── logs/                 # Application logs
-├── server.js             # Main application file
-└── package.json          # Dependencies and scripts
-```
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/auth/register` | Register new user | No |
+| POST | `/auth/login` | User login | No |
+| POST | `/auth/refresh-token` | Refresh access token | No |
+| GET | `/auth/verify-email/:token` | Verify email address | No |
+| POST | `/auth/resend-verification` | Resend verification email | No |
+| GET | `/auth/me` | Get current user | Yes |
+| PATCH | `/auth/updatePassword` | Update password | Yes |
+| POST | `/auth/forgotPassword` | Request password reset | No |
+| PATCH | `/auth/resetPassword/:token` | Reset password | No |
+| GET | `/auth/logout` | Logout user | Yes |
 
-## 🔌 API Endpoints
+### Inventory Endpoints
 
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/password` - Update password
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/inventory` | Get all products | No |
+| GET | `/inventory/:id` | Get product by ID | No |
+| POST | `/inventory/test-upload` | Test file upload | No |
+| POST | `/inventory` | Add new product | Admin |
+| PUT | `/inventory/:id` | Update product | Admin |
+| DELETE | `/inventory/:id` | Delete product | Admin |
 
-### User Management
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update user profile
-- `GET /api/users/designs` - Get user designs
-- `GET /api/users/purchases` - Get user orders
+### Design Endpoints
 
-### Design Generation
-- `POST /api/design` - Generate new design
-- `GET /api/design` - Get user designs
-- `GET /api/design/:id` - Get specific design
-- `DELETE /api/design/:id` - Delete design
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/design` | Get user designs | Yes |
+| GET | `/design/:id` | Get design by ID | Yes |
+| POST | `/design` | Create new design | Yes |
+| DELETE | `/design/:id` | Delete design | Yes |
+| POST | `/design/preferences` | Save design preferences | Yes |
+| POST | `/design/generate` | Generate AI design | Yes |
 
-### Design Editing
-- `GET /api/edit-design/:id` - Get design for editing
-- `GET /api/edit-design/furniture` - Get available furniture
-- `POST /api/edit-design/:id/edit` - Edit design
-- `GET /api/edit-design/:id/history` - Get edit history
-- `POST /api/edit-design/:id/preferences` - Save edit preferences
-- `GET /api/edit-design/:id/export` - Export design
+### AI Service Endpoints
 
-### Chat History
-- `GET /api/chat/history` - Get chat conversations
-- `GET /api/chat/conversation/:id` - Get specific conversation
-- `POST /api/chat/conversation` - Start new conversation
-- `POST /api/chat/message` - Send message
-- `DELETE /api/chat/conversation/:id` - Delete conversation
-- `PUT /api/chat/conversation/:id/title` - Update conversation title
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/chatbot` | OpenAI chat completion | Yes |
+| POST | `/gemini` | Google Gemini chat | Yes |
+| POST | `/replicate` | Replicate AI generation | Yes |
 
-### Inventory Management
-- `GET /api/inventory` - Get products with filtering
-- `GET /api/inventory/:id` - Get specific product
-- `POST /api/inventory` - Add new product (Admin)
-- `PUT /api/inventory/:id` - Update product (Admin)
-- `DELETE /api/inventory/:id` - Delete product (Admin)
+## 🔧 Configuration
 
-### Orders
-- `POST /api/orders` - Create new order
-- `GET /api/orders` - Get user orders
+### Environment Variables
 
-### AI Services
-- `POST /api/chatbot/unified` - OpenAI chat and image generation
-- `POST /api/gemini/generate-image` - Gemini image generation
-- `POST /api/replicate/generate` - Replicate image generation
+#### Required Variables
+- `MONGO_URI`: MongoDB connection string
+- `JWT_SECRET`: Secret key for JWT signing
+- `JWT_REFRESH_SECRET`: Secret key for refresh tokens
 
-## 🔒 Security Features
+#### Optional Variables
+- `NODE_ENV`: Environment mode (development/production)
+- `PORT`: Server port (default: 5000)
+- `EMAIL_*`: Email configuration
+- `OPENAI_API_KEY`: OpenAI API key
+- `GEMINI_API_KEY`: Google Gemini API key
+- `REPLICATE_API_TOKEN`: Replicate API token
 
-- **JWT Authentication** - Secure token-based auth
-- **Rate Limiting** - Prevent abuse with request limits
-- **Input Validation** - Joi schema validation
-- **XSS Protection** - Cross-site scripting prevention
-- **MongoDB Sanitization** - NoSQL injection prevention
-- **Helmet** - Security headers
-- **CORS** - Cross-origin resource sharing
+### Database Configuration
 
-## 🧪 Testing
+The application uses MongoDB with Mongoose ODM. Key features:
+- Automatic connection management
+- Index optimization for performance
+- Soft delete functionality
+- Data validation and sanitization
 
-The API includes comprehensive error handling and validation. Test endpoints using:
+### File Upload Configuration
 
-1. **Swagger UI** - Interactive testing at `/api-docs`
-2. **Postman** - Import the collection
-3. **cURL** - Command line testing
-
-## 📊 Monitoring
-
-- **Health Check** - `/api/health` endpoint
-- **Logging** - Structured logging with different levels
-- **Error Tracking** - Centralized error handling
+- **Supported formats**: JPEG, PNG, WebP, GIF
+- **Maximum file size**: 5MB
+- **Storage location**: `uploads/` directory
+- **File naming**: Timestamp + sanitized original name
 
 ## 🚀 Deployment
 
-1. **Environment Setup**
+### Production Checklist
+
+1. **Environment Variables**
    - Set `NODE_ENV=production`
-   - Configure production MongoDB URI
-   - Set secure JWT secret
+   - Configure production database URL
+   - Set up production email service
+   - Configure CORS origins
 
-2. **Process Management**
-   ```bash
-   npm install -g pm2
-   pm2 start server.js --name "ai-interior-design"
-   ```
+2. **Security**
+   - Use strong JWT secrets
+   - Enable HTTPS
+   - Configure proper CORS settings
+   - Set up rate limiting
 
-3. **Reverse Proxy** (Nginx example)
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
-       
-       location / {
-           proxy_pass http://localhost:5000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
-   }
-   ```
+3. **Performance**
+   - Enable database indexes
+   - Configure proper logging
+   - Set up monitoring
+
+4. **File Storage**
+   - Consider using cloud storage (AWS S3, Google Cloud Storage)
+   - Configure proper file permissions
+   - Set up backup strategies
+
+### Docker Deployment
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+
+EXPOSE 5000
+
+CMD ["npm", "start"]
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed**
+   - Check MongoDB is running
+   - Verify `MONGO_URI` is correct
+   - Check network connectivity
+
+2. **Email Not Sending**
+   - Verify email credentials
+   - Check SMTP settings
+   - Ensure app passwords are used for Gmail
+
+3. **File Upload Issues**
+   - Check `uploads/` directory permissions
+   - Verify file size limits
+   - Check supported file formats
+
+4. **JWT Token Issues**
+   - Verify JWT secrets are set
+   - Check token expiration times
+   - Ensure proper token format
+
+### Logs
+
+Application logs are stored in:
+- `logs/combined.log`: All logs
+- `logs/error.log`: Error logs only
+
+### Health Check
+
+Use the health check endpoint to verify system status:
+```bash
+curl http://localhost:5000/api/health
+```
+
+## 📝 Development
+
+### Project Structure
+
+```
+backend/
+├── config/          # Configuration files
+├── controllers/     # Route controllers
+├── middlewares/     # Custom middlewares
+├── models/          # Database models
+├── routes/          # API routes
+├── services/        # Business logic
+├── utils/           # Utility functions
+├── uploads/         # File uploads
+├── logs/            # Application logs
+└── server.js        # Entry point
+```
+
+### Adding New Features
+
+1. **Create Model** (if needed)
+   - Add to `models/` directory
+   - Include proper validation and indexes
+
+2. **Create Controller**
+   - Add to `controllers/` directory
+   - Follow error handling patterns
+
+3. **Create Routes**
+   - Add to `routes/` directory
+   - Include proper validation and authentication
+
+4. **Update Documentation**
+   - Add Swagger documentation
+   - Update this README
+
+### Testing
+
+```bash
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+```
 
 ## 🤝 Contributing
 
@@ -262,11 +321,12 @@ The API includes comprehensive error handling and validation. Test endpoints usi
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the ISC License.
 
 ## 🆘 Support
 
 For support and questions:
 - Check the API documentation at `/api-docs`
-- Review the health check at `/api/health`
-- Check application logs in the `logs/` directory
+- Review the logs in `logs/` directory
+- Use the health check endpoint
+- Contact the development team

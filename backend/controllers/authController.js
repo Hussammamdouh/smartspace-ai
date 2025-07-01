@@ -5,6 +5,8 @@ const { APIError } = require('../middlewares/errorHandler');
 const User = require('../models/User');
 const { validatePassword } = require('../middlewares/auth');
 const { JsonWebTokenError } = require('jsonwebtoken');
+const { sendTemplateEmail } = require('../utils/emailService');
+const logger = require('../utils/logger');
 
 // Sign JWT token
 const signToken = (id) => {
@@ -65,6 +67,23 @@ exports.register = async (req, res, next) => {
       role: 'user' // Set default role
     });
 
+    // Generate email verification token
+    const verificationToken = user.createEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Send verification email
+    const verificationURL = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${verificationToken}`;
+    
+    try {
+      await sendTemplateEmail(user.email, 'welcome', {
+        name: user.name,
+        url: verificationURL
+      });
+    } catch (emailError) {
+      logger.error('Failed to send verification email:', emailError);
+      // Don't fail registration if email fails
+    }
+
     // Remove password from output
     user.password = undefined;
     user.passwordConfirm = undefined;
@@ -75,6 +94,7 @@ exports.register = async (req, res, next) => {
 
     res.status(201).json({
       status: 'success',
+      message: 'Registration successful. Please check your email to verify your account.',
       token,
       refreshToken,
       data: {
@@ -113,6 +133,11 @@ exports.login = async (req, res, next) => {
         await user.incrementLoginAttempts();
       }
       return next(new APIError('Incorrect email or password', 401));
+    }
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      return next(new APIError('Please verify your email address before logging in. Check your inbox for a verification link.', 401));
     }
 
     // Check if account is locked
@@ -196,17 +221,22 @@ exports.forgotPassword = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Send reset token to user's email
-    const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
-    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
-
-    // TODO: Send email with reset token
-    console.log('Reset URL:', resetURL);
-    console.log('Message:', message);
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Token sent to email!'
-    });
+    const resetURL = `${req.protocol}://${req.get('host')}/api/auth/resetPassword/${resetToken}`;
+    
+    try {
+      await sendTemplateEmail(user.email, 'passwordReset', {
+        name: user.name,
+        url: resetURL
+      });
+      
+      res.status(200).json({
+        status: 'success',
+        message: 'Password reset token sent to email!'
+      });
+    } catch (emailError) {
+      logger.error('Failed to send password reset email:', emailError);
+      return next(new APIError('Failed to send password reset email. Please try again.', 500));
+    }
   } catch (err) {
     next(err);
   }
@@ -247,6 +277,109 @@ exports.resetPassword = async (req, res, next) => {
     createSendToken(user, 200, res);
   } catch (err) {
     next(err);
+  }
+};
+
+/**
+ * @desc    Verify email address
+ * @route   GET /api/auth/verify-email/:token
+ * @access  Public
+ */
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return next(new APIError('Verification token is required', 400));
+    }
+
+    // Hash the token
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    // Find user with this token
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return next(new APIError('Invalid or expired verification token', 400));
+    }
+
+    // Update user
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    // Send confirmation email
+    try {
+      await sendTemplateEmail(user.email, 'emailVerified', {
+        name: user.name,
+        url: null
+      });
+    } catch (emailError) {
+      logger.error('Failed to send verification confirmation email:', emailError);
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Email verified successfully! You can now log in to your account.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Resend verification email
+ * @route   POST /api/auth/resend-verification
+ * @access  Public
+ */
+exports.resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return next(new APIError('Email is required', 400));
+    }
+
+    const user = await User.findByEmail(email);
+
+    if (!user) {
+      return next(new APIError('No user found with this email address', 404));
+    }
+
+    if (user.emailVerified) {
+      return next(new APIError('Email is already verified', 400));
+    }
+
+    // Generate new verification token
+    const verificationToken = user.createEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Send verification email
+    const verificationURL = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${verificationToken}`;
+    
+    try {
+      await sendTemplateEmail(user.email, 'welcome', {
+        name: user.name,
+        url: verificationURL
+      });
+      
+      res.status(200).json({
+        status: 'success',
+        message: 'Verification email sent successfully!'
+      });
+    } catch (emailError) {
+      logger.error('Failed to send verification email:', emailError);
+      return next(new APIError('Failed to send verification email. Please try again.', 500));
+    }
+  } catch (error) {
+    next(error);
   }
 };
 

@@ -1,6 +1,7 @@
 const inventoryService = require("../services/inventoryService");
 const InventoryItem = require('../models/InventoryItem');
 const mongoose = require("mongoose");
+const { APIError } = require('../middlewares/errorHandler');
 
 exports.getInventory = async (req, res) => {
   try {
@@ -41,8 +42,7 @@ exports.getInventory = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Inventory fetch error:", error);
-    res.status(500).json({ message: "Failed to load products" });
+    next(error);
   }
 };
 
@@ -51,12 +51,12 @@ exports.getInventoryItem = async (req, res, next) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid product ID" });
+      return next(new APIError("Invalid product ID", 400));
     }
 
     const item = await InventoryItem.findById(id);
     if (!item) {
-      return res.status(404).json({ message: "Product not found" });
+      return next(new APIError("Product not found", 404));
     }
 
     res.status(200).json({ data: item });
@@ -71,7 +71,7 @@ exports.addInventoryItem = async (req, res, next) => {
     const filePath = req.file ? req.file.path : null;
 
     if (!name || !type || !price || !stock || !filePath) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return next(new APIError("Missing required fields", 400));
     }
 
     const item = await inventoryService.createItem({
@@ -98,7 +98,7 @@ exports.updateInventoryItem = async (req, res, next) => {
     }
     const updatedItem = await inventoryService.updateItem(req.params.id, updates);
     if (!updatedItem) {
-      return res.status(404).json({ message: "Product not found or update failed" });
+      return next(new APIError("Product not found or update failed", 404));
     }
     res.status(200).json({ message: "Product updated successfully", data: updatedItem });
   } catch (error) {

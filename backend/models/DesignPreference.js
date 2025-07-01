@@ -33,4 +33,10 @@ const designPreferenceSchema = new mongoose.Schema({
   }
 });
 
+// Add indexes for better performance
+designPreferenceSchema.index({ user: 1 });
+designPreferenceSchema.index({ roomType: 1 });
+designPreferenceSchema.index({ style: 1 });
+designPreferenceSchema.index({ user: 1, createdAt: -1 });
+
 module.exports = mongoose.model("DesignPreference", designPreferenceSchema);

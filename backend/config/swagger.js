@@ -5,11 +5,15 @@ const options = {
     openapi: '3.0.0',
     info: {
       title: 'AI Interior Design API',
-      version: '1.0.0',
-      description: 'Complete API documentation for AI Interior Design application',
+      version: '2.0.0',
+      description: 'Complete API documentation for AI Interior Design application with email verification, file uploads, and AI-powered design generation',
       contact: {
         name: 'API Support',
         email: 'support@aiinteriordesign.com'
+      },
+      license: {
+        name: 'ISC',
+        url: 'https://opensource.org/licenses/ISC'
       }
     },
     servers: [
@@ -27,7 +31,8 @@ const options = {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          bearerFormat: 'JWT'
+          bearerFormat: 'JWT',
+          description: 'JWT token obtained from login endpoint'
         }
       },
       schemas: {
@@ -45,6 +50,7 @@ const options = {
             country: { type: 'string', example: 'Egypt' },
             language: { type: 'string', example: 'en' },
             timezone: { type: 'string', example: 'UTC+2' },
+            emailVerified: { type: 'boolean', default: false },
             emailHistory: {
               type: 'array',
               items: {
@@ -120,6 +126,19 @@ const options = {
               enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
               default: 'pending'
             },
+            shippingAddress: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                address: { type: 'string' },
+                city: { type: 'string' },
+                postalCode: { type: 'string' },
+                country: { type: 'string' },
+                phone: { type: 'string' }
+              }
+            },
+            isPaid: { type: 'boolean', default: false },
+            paidAt: { type: 'string', format: 'date-time' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' }
           }
@@ -220,6 +239,59 @@ const options = {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
+        // File Upload Response Schema
+        FileUploadResponse: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', example: 'success' },
+            message: { type: 'string', example: 'File uploaded successfully' },
+            data: {
+              type: 'object',
+              properties: {
+                filename: { type: 'string', example: '1745933207206-image.jpg' },
+                originalname: { type: 'string', example: 'image.jpg' },
+                mimetype: { type: 'string', example: 'image/jpeg' },
+                size: { type: 'number', example: 1024000 },
+                path: { type: 'string', example: 'uploads/1745933207206-image.jpg' }
+              }
+            }
+          }
+        },
+        // Health Check Response Schema
+        HealthCheckResponse: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', example: 'success' },
+            message: { type: 'string', example: 'AI Interior Design API is running' },
+            timestamp: { type: 'string', format: 'date-time' },
+            version: { type: 'string', example: '2.0.0' },
+            environment: { type: 'string', example: 'development' },
+            services: {
+              type: 'object',
+              properties: {
+                database: { type: 'string', example: 'connected' },
+                email: { type: 'string', example: 'configured' },
+                openai: { type: 'string', example: 'configured' },
+                gemini: { type: 'string', example: 'configured' }
+              }
+            },
+            uptime: { type: 'number', example: 3600 },
+            memory: {
+              type: 'object',
+              properties: {
+                rss: { type: 'number' },
+                heapTotal: { type: 'number' },
+                heapUsed: { type: 'number' },
+                external: { type: 'number' }
+              }
+            },
+            missingEnvVars: { 
+              type: 'array', 
+              items: { type: 'string' },
+              nullable: true
+            }
+          }
+        },
         // Error Response Schema
         Error: {
           type: 'object',
@@ -242,7 +314,7 @@ const options = {
     tags: [
       {
         name: 'Auth',
-        description: 'Authentication and authorization endpoints'
+        description: 'Authentication and authorization endpoints including email verification'
       },
       {
         name: 'User',
@@ -250,11 +322,11 @@ const options = {
       },
       {
         name: 'Inventory',
-        description: 'Product inventory management endpoints'
+        description: 'Product inventory management and file upload endpoints'
       },
       {
         name: 'Orders',
-        description: 'Order management endpoints'
+        description: 'Order management and processing endpoints'
       },
       {
         name: 'Designs',
@@ -271,6 +343,10 @@ const options = {
       {
         name: 'AI Services',
         description: 'AI-powered services (OpenAI, Gemini, Replicate)'
+      },
+      {
+        name: 'System',
+        description: 'System health and monitoring endpoints'
       }
     ]
   },

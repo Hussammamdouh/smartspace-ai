@@ -54,6 +54,12 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  emailVerificationToken: String,
+  emailVerificationExpires: Date,
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
   active: {
     type: Boolean,
     default: true,
@@ -129,6 +135,20 @@ userSchema.methods.createPasswordResetToken = function() {
   return resetToken;
 };
 
+// Instance method to create email verification token
+userSchema.methods.createEmailVerificationToken = function() {
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+  return verificationToken;
+};
+
 // Instance method to handle failed login attempts
 userSchema.methods.incrementLoginAttempts = async function() {
   if (this.lockUntil && this.lockUntil > Date.now()) {
@@ -160,6 +180,13 @@ userSchema.methods.resetLoginAttempts = async function() {
 userSchema.statics.findByEmail = function(email) {
   return this.findOne({ email: email.toLowerCase() });
 };
+
+// Add indexes for better performance
+userSchema.index({ email: 1 });
+userSchema.index({ emailVerified: 1 });
+userSchema.index({ active: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
 
 const User = mongoose.model('User', userSchema);
 

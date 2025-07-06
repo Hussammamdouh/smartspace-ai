@@ -8,7 +8,8 @@ const xss = require('xss-clean');
 const connectDB = require('./config/db');
 const swaggerSpec = require('./config/swagger');
 const swaggerUi = require('swagger-ui-express');
-const { errorHandler } = require('./middlewares/errorHandler');
+const { errorHandler, notFound } = require('./middlewares/errorHandler');
+const requestLogger = require('./middlewares/requestLogger');
 const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/authRoutes');
@@ -16,11 +17,14 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const designRoutes = require('./routes/designRoutes');
 const userRoutes = require('./routes/userRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
 const unifiedChatRoutes  = require("./routes/openaiRoutes");
 const geminiRoutes = require("./routes/geminiRoutes");
 const replicateRoutes = require("./routes/replicateRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const editDesignRoutes = require("./routes/editDesignRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const logger = require('./utils/logger');
 const app = express();
@@ -31,7 +35,7 @@ connectDB();
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)
-    : ["http://localhost:5173", "http://localhost:3000", "http://localhost:8080"],
+    : ["http://localhost:5173", "http://localhost:3000", "http://localhost:8080", "http://10.0.2.2:5000"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -43,10 +47,12 @@ app.use(cors(corsOptions));
 // ✅ Global Middlewares
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(helmet());
 app.use(mongoSanitize());
 app.use(xss());
+app.use(requestLogger);
 
 // ✅ Rate Limiting
 const limiter = rateLimit({
@@ -103,35 +109,29 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+const { performHealthCheck } = require('./utils/healthCheck');
+
 // ✅ Health Check Endpoint
 app.get('/api/health', async (req, res) => {
   try {
-    // Check database connection
-    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const healthStatus = await performHealthCheck();
     
-    // Check environment variables
-    const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
-    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-    
-    const healthStatus = {
-      status: 'success',
-      message: 'AI Interior Design API is running',
-      timestamp: new Date().toISOString(),
+    const statusCode = healthStatus.status === 'healthy' ? 200 : 503;
+    res.status(statusCode).json({
+      status: healthStatus.status === 'healthy' ? 'success' : 'degraded',
+      message: 'AI Interior Design API health check',
+      timestamp: healthStatus.checks.timestamp,
       version: '2.0.0',
       environment: process.env.NODE_ENV || 'development',
       services: {
-        database: dbStatus,
-        email: process.env.EMAIL_USER ? 'configured' : 'not configured',
-        openai: process.env.OPENAI_API_KEY ? 'configured' : 'not configured',
-        gemini: process.env.GEMINI_API_KEY ? 'configured' : 'not configured'
+        database: healthStatus.checks.database,
+        email: healthStatus.checks.email,
+        openai: healthStatus.checks.openai,
+        cloudinary: healthStatus.checks.cloudinary
       },
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      missingEnvVars: missingEnvVars.length > 0 ? missingEnvVars : null
-    };
-
-    const statusCode = missingEnvVars.length > 0 ? 503 : 200;
-    res.status(statusCode).json(healthStatus);
+      uptime: healthStatus.checks.uptime,
+      memory: healthStatus.checks.memory
+    });
   } catch (error) {
     res.status(500).json({
       status: 'error',
@@ -150,11 +150,17 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/design', designRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 app.use("/api/chatbot", unifiedChatRoutes);
 app.use('/api/gemini', geminiRoutes); 
 app.use("/api/replicate", replicateRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/edit-design", editDesignRoutes);
+app.use("/api/ai", aiRoutes);
+
+// ✅ 404 Handler - Must be before error handler
+app.use(notFound);
 
 // ✅ Error Handler
 app.use(errorHandler);

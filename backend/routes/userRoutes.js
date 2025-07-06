@@ -5,9 +5,12 @@ const {
   getUserDesigns,
   getUserPurchases,
   uploadAvatar,
+  getAllUsers,
+  getUserStats,
+  getDashboardStats,
 } = require('../controllers/userController');
-const upload = require("../middlewares/uploadMiddleware");
-const { protect } = require('../middlewares/auth');
+const { upload } = require("../middlewares/uploadMiddleware");
+const { protect, admin } = require('../middlewares/auth');
 const {validate} = require('../middlewares/validateMiddleware');
 const { updateProfileSchema } = require('../utils/validationSchemas');
 
@@ -32,5 +35,10 @@ router.get('/designs', protect, getUserDesigns);
 // Fetch user purchase history
 router.get('/purchases', protect, getUserPurchases);
 router.patch('/avatar', protect, upload.single('avatar'), uploadAvatar);
+
+// Admin routes
+router.get('/', protect, admin, getAllUsers);
+router.get('/stats', protect, admin, getUserStats);
+router.get('/dashboard', protect, admin, getDashboardStats);
 
 module.exports = router;

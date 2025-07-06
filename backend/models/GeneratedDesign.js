@@ -28,6 +28,38 @@ const GeneratedDesignSchema = new mongoose.Schema({
     enum: ['pending', 'success', 'failed'],
     default: 'success',
   },
+  // Cost estimation data
+  totalCost: {
+    type: Number,
+    default: 0,
+  },
+  furnitureCount: {
+    type: Number,
+    default: 0,
+  },
+  // Enhanced metadata
+  metadata: {
+    totalCost: Number,
+    furnitureCount: Number,
+    roomType: String,
+    style: String,
+    colorScheme: String,
+    originalPrompt: String,
+    enhancedPrompt: String,
+    generationTime: {
+      type: Date,
+      default: Date.now,
+    },
+    imageQuality: {
+      type: String,
+      enum: ['standard', 'hd'],
+      default: 'standard',
+    },
+    imageSize: {
+      type: String,
+      default: '1024x1024',
+    }
+  },
   // Edit history support
   originalDesign: {
     type: mongoose.Schema.Types.ObjectId,
@@ -43,6 +75,7 @@ const GeneratedDesignSchema = new mongoose.Schema({
       ref: 'InventoryItem',
     }],
     prompt: String,
+    costChange: Number,
     timestamp: {
       type: Date,
       default: Date.now,
@@ -65,14 +98,70 @@ const GeneratedDesignSchema = new mongoose.Schema({
       default: Date.now,
     },
   },
+  // Usage tracking
+  views: {
+    type: Number,
+    default: 0,
+  },
+  downloads: {
+    type: Number,
+    default: 0,
+  },
+  isPublic: {
+    type: Boolean,
+    default: false,
+  },
+  tags: [{
+    type: String,
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
   }
 });
 
+// Indexes for better performance
 GeneratedDesignSchema.index({ user: 1, preference: 1 });
 GeneratedDesignSchema.index({ user: 1, originalDesign: 1 });
 GeneratedDesignSchema.index({ user: 1, createdAt: -1 });
+GeneratedDesignSchema.index({ totalCost: 1 });
+GeneratedDesignSchema.index({ roomType: 1, style: 1 });
+GeneratedDesignSchema.index({ isPublic: 1, createdAt: -1 });
+
+// Virtual for cost per item
+GeneratedDesignSchema.virtual('costPerItem').get(function() {
+  return this.furnitureCount > 0 ? this.totalCost / this.furnitureCount : 0;
+});
+
+// Method to update cost
+GeneratedDesignSchema.methods.updateCost = async function() {
+  if (this.relatedProducts && this.relatedProducts.length > 0) {
+    const InventoryItem = mongoose.model('InventoryItem');
+    const items = await InventoryItem.find({ _id: { $in: this.relatedProducts } });
+    this.totalCost = items.reduce((sum, item) => sum + (item.price || 0), 0);
+    this.furnitureCount = items.length;
+    await this.save();
+  }
+};
+
+// Method to add view
+GeneratedDesignSchema.methods.addView = async function() {
+  this.views += 1;
+  await this.save();
+};
+
+// Method to add download
+GeneratedDesignSchema.methods.addDownload = async function() {
+  this.downloads += 1;
+  await this.save();
+};
+
+// Pre-save middleware to ensure metadata is set
+GeneratedDesignSchema.pre('save', function(next) {
+  if (this.isNew && !this.metadata.generationTime) {
+    this.metadata.generationTime = new Date();
+  }
+  next();
+});
 
 module.exports = mongoose.models.GeneratedDesign || mongoose.model('GeneratedDesign', GeneratedDesignSchema);

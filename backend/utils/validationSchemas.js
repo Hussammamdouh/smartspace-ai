@@ -66,6 +66,7 @@ const updateProfileSchema = Joi.object({
   name: Joi.string().optional(),
   email: Joi.string().email().optional(),
   phone: Joi.string().optional(),
+  address: Joi.string().optional(),
 });
 
 // Order Body Schema
@@ -86,10 +87,14 @@ const orderSchema = Joi.object({
 const inventoryFilterSchema = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).optional(),
+  category: Joi.string().optional(),
+  style: Joi.string().optional(),
+  color: Joi.string().optional(),
   type: Joi.string().optional(),
   minPrice: Joi.number().min(0).optional(),
   maxPrice: Joi.number().min(0).optional(),
-  available: Joi.boolean().optional()
+  available: Joi.boolean().optional(),
+  search: Joi.string().optional(),
 });
 
 // Orders Query Filter Schema
@@ -107,6 +112,16 @@ const resendVerificationSchema = Joi.object({
   })
 });
 
+// AI prompt schema
+const aiPromptSchema = Joi.object({
+  prompt: Joi.string().required().min(1).max(1000).messages({
+    'string.empty': 'Prompt is required',
+    'string.min': 'Prompt must be at least 1 character long',
+    'string.max': 'Prompt cannot exceed 1000 characters',
+    'any.required': 'Prompt is required'
+  })
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -117,4 +132,5 @@ module.exports = {
   inventoryFilterSchema,
   orderFilterSchema,
   resendVerificationSchema,
+  aiPromptSchema,
 };

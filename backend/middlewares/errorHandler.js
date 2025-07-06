@@ -1,101 +1,124 @@
 const mongoose = require('mongoose');
 const { JsonWebTokenError, TokenExpiredError } = require('jsonwebtoken');
+const logger = require('../utils/logger');
 
-// Custom error class for API errors
+// Custom API Error class
 class APIError extends Error {
-  constructor(message, statusCode, isOperational = true) {
+  constructor(message, statusCode) {
     super(message);
     this.statusCode = statusCode;
-    this.isOperational = isOperational;
     this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
+    this.isOperational = true;
+
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
-// Error handler middleware
+// Global error handler middleware
 const errorHandler = (err, req, res, next) => {
-  // Set default values
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || 'error';
-
-  // Development error response
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Error 💥:', {
-      name: err.name,
-      message: err.message,
-      stack: err.stack,
-      path: req.path,
-      method: req.method,
-      body: req.body,
-      query: req.query,
-      params: req.params,
-      user: req.user ? req.user.id : 'Not authenticated'
-    });
-
-    return res.status(err.statusCode).json({
-      status: err.status,
-      error: err,
-      message: err.message,
-      stack: err.stack
-    });
-  }
-
-  // Production error response
   let error = { ...err };
   error.message = err.message;
 
-  // Handle Mongoose validation errors
-  if (err instanceof mongoose.Error.ValidationError) {
-    const errors = Object.values(err.errors).map(el => el.message);
-    error = new APIError(`Invalid input data: ${errors.join('. ')}`, 400);
+  // Log error
+  logger.error('Error:', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
+
+  // Mongoose bad ObjectId
+  if (err.name === 'CastError') {
+    const message = 'Resource not found';
+    error = new APIError(message, 404);
   }
 
-  // Handle JWT errors
-  if (err instanceof JsonWebTokenError) {
-    error = new APIError('Invalid token. Please log in again.', 401);
-  }
-
-  if (err instanceof TokenExpiredError) {
-    error = new APIError('Your token has expired. Please log in again.', 401);
-  }
-
-  // Handle duplicate key errors
+  // Mongoose duplicate key
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    error = new APIError(`Duplicate field value: ${field}. Please use another value.`, 400);
+    const message = `Duplicate field value: ${field}. Please use another value.`;
+    error = new APIError(message, 400);
   }
 
-  // Handle mongoose cast errors (invalid ObjectId)
-  if (err instanceof mongoose.Error.CastError) {
-    error = new APIError(`Invalid ${err.path}: ${err.value}`, 400);
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    const message = Object.values(err.errors).map(val => val.message).join(', ');
+    error = new APIError(message, 400);
   }
 
-  // Handle multer errors
-  if (err.name === 'MulterError') {
-    error = new APIError(`File upload error: ${err.message}`, 400);
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    const message = 'Invalid token. Please log in again.';
+    error = new APIError(message, 401);
   }
 
-  // Handle axios errors
-  if (err.isAxiosError) {
-    error = new APIError( 
-      err.response?.data?.message || 'External API request failed',
-      err.response?.status || 500
-    );
+  if (err.name === 'TokenExpiredError') {
+    const message = 'Your token has expired. Please log in again.';
+    error = new APIError(message, 401);
   }
 
-  // Handle unknown errors
-  if (!error.isOperational) {
-    error = new APIError('Something went wrong', 500, false);
+  // Multer errors
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    const message = 'File too large. Maximum size is 10MB.';
+    error = new APIError(message, 400);
   }
 
-  // Send error response
-  res.status(error.statusCode).json({
-    status: error.status,
-    message: error.message
-  });
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    const message = 'Unexpected file field.';
+    error = new APIError(message, 400);
+  }
+
+  // OpenAI API errors
+  if (err.type === 'openai_error') {
+    const message = err.message || 'OpenAI API error occurred';
+    error = new APIError(message, 500);
+  }
+
+  // Cloudinary errors
+  if (err.http_code && err.http_code >= 400) {
+    const message = 'Image upload failed. Please try again.';
+    error = new APIError(message, 500);
+  }
+
+  // Default error response
+  const statusCode = error.statusCode || 500;
+  const message = error.message || 'Internal Server Error';
+
+  // Development error response
+  if (process.env.NODE_ENV === 'development') {
+    res.status(statusCode).json({
+      status: 'error',
+      message,
+      stack: err.stack,
+      error: err
+    });
+  } else {
+    // Production error response
+    res.status(statusCode).json({
+      status: 'error',
+      message: statusCode === 500 ? 'Internal Server Error' : message
+    });
+  }
+};
+
+// 404 handler for undefined routes
+const notFound = (req, res, next) => {
+  const error = new APIError(`Route ${req.originalUrl} not found`, 404);
+  next(error);
+};
+
+// Async error wrapper
+const asyncHandler = (fn) => {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 };
 
 module.exports = {
+  APIError,
   errorHandler,
-  APIError
+  notFound,
+  asyncHandler
 };

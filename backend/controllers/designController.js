@@ -2,7 +2,9 @@ const designService = require('../services/designService');
 const DesignPreference = require('../models/DesignPreference');
 const GeneratedDesign = require('../models/GeneratedDesign');
 const Design = require('../models/Design');
+const InventoryItem = require('../models/InventoryItem');
 const { APIError } = require('../middlewares/errorHandler');
+const fetch = require('node-fetch');
 
 // Get user designs for dashboard
 exports.getUserDesigns = async (req, res, next) => {
@@ -109,6 +111,41 @@ exports.generateDesign = async (req, res, next) => {
   }
 };
 
+// Simple design generation for mobile app
+exports.generateSimpleDesign = async (req, res, next) => {
+  try {
+    const { roomType, style, description } = req.body;
+
+    if (!roomType || !style || !description) {
+      return next(new APIError('Room type, style, and description are required', 400));
+    }
+
+    // Create a simple design preference
+    const preference = await DesignPreference.create({
+      user: req.user.id,
+      roomType,
+      style,
+      additionalNotes: description,
+    });
+
+    // Generate design using the service
+    const design = await designService.generateImageDesign(preference._id, req.user.id);
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        designId: design._id,
+        imageUrl: design.imageUrl || 'https://example.com/generated-image.jpg',
+        style,
+        roomType,
+        description
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getGeneratedDesigns = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -153,5 +190,131 @@ exports.getGeneratedDesigns = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+// Extract furniture items from a design for purchase
+exports.extractItems = async (req, res, next) => {
+  try {
+    const { imageUrl, prompt } = req.body;
+    
+    if (!imageUrl) {
+      return next(new APIError('Image URL is required', 400));
+    }
+
+    // Extract context from the prompt to find relevant items
+    const context = {
+      category: 'living room', // Default
+      style: 'modern', // Default
+      color: null
+    };
+
+    // Simple keyword extraction from prompt
+    if (prompt) {
+      const promptLower = prompt.toLowerCase();
+      
+      // Extract room type
+      if (promptLower.includes('bedroom')) context.category = 'bedroom';
+      else if (promptLower.includes('kitchen')) context.category = 'kitchen';
+      else if (promptLower.includes('bathroom')) context.category = 'bathroom';
+      else if (promptLower.includes('living')) context.category = 'living room';
+      
+      // Extract style
+      if (promptLower.includes('modern')) context.style = 'modern';
+      else if (promptLower.includes('classic')) context.style = 'classic';
+      else if (promptLower.includes('vintage')) context.style = 'vintage';
+      else if (promptLower.includes('minimalist')) context.style = 'minimalist';
+      
+      // Extract color
+      const colors = ['brown', 'white', 'black', 'gray', 'blue', 'green', 'red', 'yellow'];
+      for (const color of colors) {
+        if (promptLower.includes(color)) {
+          context.color = color;
+          break;
+        }
+      }
+    }
+
+    // Find relevant inventory items
+    const filter = {
+      isDeleted: false,
+      available: true,
+      stock: { $gt: 0 }
+    };
+
+    if (context.category) {
+      filter.category = context.category;
+    }
+
+    if (context.style) {
+      filter.style = new RegExp(context.style, 'i');
+    }
+
+    if (context.color) {
+      filter.color = new RegExp(context.color, 'i');
+    }
+
+    // Get items from inventory
+    let items = await InventoryItem.find(filter)
+      .sort({ price: 1 })
+      .limit(5);
+
+    // If no items found with filters, get any available items
+    if (!items.length) {
+      items = await InventoryItem.find({
+        isDeleted: false,
+        available: true,
+        stock: { $gt: 0 }
+      })
+      .sort({ price: 1 })
+      .limit(5);
+    }
+
+    const totalCost = items.reduce((sum, item) => sum + item.price, 0);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        items,
+        totalCost,
+        itemCount: items.length,
+        context
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Download image proxy to avoid CORS issues
+exports.downloadImage = async (req, res, next) => {
+  try {
+    const { imageUrl, filename } = req.body;
+    
+    if (!imageUrl) {
+      return next(new APIError('Image URL is required', 400));
+    }
+
+    // Fetch the image from the external URL
+    const response = await fetch(imageUrl);
+    
+    if (!response.ok) {
+      return next(new APIError('Failed to fetch image', response.status));
+    }
+
+    // Get the image buffer
+    const buffer = await response.arrayBuffer();
+    
+    // Set headers for file download
+    const downloadFilename = filename || `design-${Date.now()}.png`;
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+    res.setHeader('Content-Length', buffer.byteLength);
+    
+    // Send the image buffer
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Download image error:', error);
+    next(new APIError('Failed to download image', 500));
   }
 };

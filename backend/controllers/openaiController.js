@@ -1,4 +1,5 @@
 const { chatWithGPT, generateImageWithDalle } = require("../services/openaiService");
+const logger = require("../utils/logger");
 
 exports.handleUnifiedChat = async (req, res, next) => {
   const { messages, model } = req.body;
@@ -33,7 +34,7 @@ exports.handleUnifiedChat = async (req, res, next) => {
       return res.status(400).json({ error: "Invalid model selection." });
     }
   } catch (err) {
-    console.error("Unified Chat Error:", err);
+    logger.error("Unified Chat Error:", err);
     return res.status(500).json({ error: "Something went wrong." });
   }
 };

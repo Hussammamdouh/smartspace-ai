@@ -20,8 +20,8 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Auth
- *   description: User authentication routes
+ *   name: "Phase 1: Authentication"
+ *   description: User registration, login, email verification, and password management
  */
 
 /**
@@ -29,65 +29,30 @@ const router = express.Router();
  * /api/auth/register:
  *   post:
  *     summary: Register a new user
- *     tags: [Auth]
+ *     description: |
+ *       Creates a new user account with email verification.
+ *       
+ *       **Test Cases:**
+ *       - ✅ Valid registration data
+ *       - ❌ Duplicate email
+ *       - ❌ Invalid password format
+ *       - ❌ Mismatched passwords
+ *       - ❌ Invalid phone number format
+ *       - ❌ Missing required fields
+ *     tags: ["Phase 1: Authentication"]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - firstName
- *               - lastName
- *               - email
- *               - password
- *               - passwordConfirm
- *               - phone
- *             properties:
- *               firstName:
- *                 type: string
- *                 example: "John"
- *               lastName:
- *                 type: string
- *                 example: "Doe"
- *               email:
- *                 type: string
- *                 format: email
- *                 example: "john@example.com"
- *               password:
- *                 type: string
- *                 minLength: 8
- *                 example: "Password123!"
- *               passwordConfirm:
- *                 type: string
- *                 example: "Password123!"
- *               phone:
- *                 type: string
- *                 pattern: "^(010|011|012|015)\\d{8}$"
- *                 example: "01012345678"
+ *             $ref: '#/components/schemas/RegisterRequest'
  *     responses:
  *       201:
  *         description: User registered successfully. Verification email sent.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: "success"
- *                 message:
- *                   type: string
- *                   example: "Registration successful. Please check your email to verify your account."
- *                 token:
- *                   type: string
- *                 refreshToken:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/AuthResponse'
  *       400:
  *         description: Validation error or user already exists
  *         content:
@@ -102,44 +67,30 @@ router.post('/register', validate(registerSchema), register);
  * /api/auth/login:
  *   post:
  *     summary: Login a user
- *     tags: [Auth]
+ *     description: |
+ *       Authenticates a user and returns JWT tokens.
+ *       
+ *       **Test Cases:**
+ *       - ✅ Valid email and password
+ *       - ❌ Invalid email
+ *       - ❌ Invalid password
+ *       - ❌ Unverified email
+ *       - ❌ Account locked (too many attempts)
+ *       - ❌ Deactivated account
+ *     tags: ["Phase 1: Authentication"]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: "john@example.com"
- *               password:
- *                 type: string
- *                 example: "Password123!"
+ *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
  *         description: User logged in successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: "success"
- *                 token:
- *                   type: string
- *                 refreshToken:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/AuthResponse'
  *       401:
  *         description: Invalid credentials or email not verified
  *         content:

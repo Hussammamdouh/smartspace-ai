@@ -120,8 +120,8 @@ const { designSchema } = require('../utils/validationSchemas');
 /**
  * @swagger
  * tags:
- *   name: Designs
- *   description: Design generation and management endpoints
+ *   name: "Phase 4: AI Design Generation"
+ *   description: Design preferences, AI image generation, and design editing
  */
 
 /**
@@ -272,6 +272,9 @@ router.delete('/:id', protect, designController.deleteDesign);
 // 🔥 AI Design Routes
 router.post('/preferences', protect, designController.savePreferences);
 router.post('/generate', protect, designController.generateDesign);
+router.post('/generate-simple', protect, designController.generateSimpleDesign);
 router.get('/generated', protect, designController.getGeneratedDesigns);
+router.post('/extract-items', protect, designController.extractItems);
+router.post('/download-image', protect, designController.downloadImage);
 
 module.exports = router;

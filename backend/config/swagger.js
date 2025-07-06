@@ -4,12 +4,81 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'AI Interior Design API',
+      title: 'AI Interior Design API - Complete Documentation',
       version: '2.0.0',
-      description: 'Complete API documentation for AI Interior Design application with email verification, file uploads, and AI-powered design generation',
+      description: `
+# AI Interior Design Platform API Documentation
+
+This comprehensive API documentation is organized by implementation phases to help you understand and test the complete functionality.
+
+## 📋 Implementation Phases
+
+### Phase 1: Authentication & User Management
+- User registration with email verification
+- Login/logout with JWT tokens
+- Password reset functionality
+- User profile management
+
+### Phase 2: Admin Panel & Management
+- Product inventory management
+- User management
+- Order processing
+- System analytics
+
+### Phase 3: E-Commerce & Shopping
+- Product catalog with filtering
+- Shopping cart functionality
+- Order placement and tracking
+- Payment processing
+
+### Phase 4: AI-Powered Design Generation
+- Design preference management
+- AI image generation (OpenAI DALL-E 3)
+- Design editing and iteration
+- Furniture matching
+
+### Phase 5: AI Chat Assistant
+- Conversational AI interface
+- Design consultation
+- Multi-model AI support
+- Chat history management
+
+### Phase 6: System & Monitoring
+- Health checks
+- Performance monitoring
+- Error handling
+- API documentation
+
+## 🔐 Authentication
+
+All protected endpoints require a valid JWT token in the Authorization header:
+\`Authorization: Bearer <your-jwt-token>\`
+
+## 📝 Testing Guidelines
+
+1. **Start with Phase 1** - Register a user and get authentication tokens
+2. **Test each phase sequentially** - Each phase builds upon the previous
+3. **Use the provided examples** - All endpoints include realistic test data
+4. **Check response formats** - All responses follow standardized format
+5. **Monitor error responses** - Test both success and error scenarios
+
+## 🚀 Quick Start
+
+1. Register a new user: \`POST /api/auth/register\`
+2. Verify email: \`GET /api/auth/verify-email/{token}\`
+3. Login: \`POST /api/auth/login\`
+4. Use the returned token for authenticated requests
+
+---
+
+**Base URL**: http://localhost:5000/api
+**Documentation**: http://localhost:5000/api-docs
+**Health Check**: http://localhost:5000/api/health
+      `,
       contact: {
-        name: 'API Support',
-        email: 'support@aiinteriordesign.com'
+        name: 'AI Interior Design API Support',
+        email: 'support@aiinteriordesign.com',
+        url: 'https://aiinteriordesign.com/support'
       },
       license: {
         name: 'ISC',
@@ -18,11 +87,11 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
+        url: 'http://localhost:5000/api',
         description: 'Development server'
       },
       {
-        url: 'https://api.aiinteriordesign.com',
+        url: 'https://api.aiinteriordesign.com/api',
         description: 'Production server'
       }
     ],
@@ -32,11 +101,11 @@ const options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT token obtained from login endpoint'
+          description: 'JWT token obtained from login endpoint. Include in Authorization header: Bearer <token>'
         }
       },
       schemas: {
-        // User Schema
+        // ===== PHASE 1: AUTHENTICATION SCHEMAS =====
         User: {
           type: 'object',
           properties: {
@@ -69,7 +138,58 @@ const options = {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        // InventoryItem Schema
+        RegisterRequest: {
+          type: 'object',
+          required: ['firstName', 'lastName', 'email', 'password', 'passwordConfirm', 'phone'],
+          properties: {
+            firstName: { type: 'string', example: 'John' },
+            lastName: { type: 'string', example: 'Doe' },
+            email: { type: 'string', format: 'email', example: 'john@example.com' },
+            password: { type: 'string', minLength: 8, example: 'Password123!' },
+            passwordConfirm: { type: 'string', example: 'Password123!' },
+            phone: { type: 'string', pattern: '^(010|011|012|015)\\d{8}$', example: '01012345678' }
+          }
+        },
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: { type: 'string', format: 'email', example: 'john@example.com' },
+            password: { type: 'string', example: 'Password123!' }
+          }
+        },
+        AuthResponse: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', example: 'success' },
+            message: { type: 'string', example: 'Login successful' },
+            token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+            refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+            data: {
+              type: 'object',
+              properties: {
+                user: { $ref: '#/components/schemas/User' }
+              }
+            }
+          }
+        },
+        ForgotPasswordRequest: {
+          type: 'object',
+          required: ['email'],
+          properties: {
+            email: { type: 'string', format: 'email', example: 'john@example.com' }
+          }
+        },
+        ResetPasswordRequest: {
+          type: 'object',
+          required: ['password', 'passwordConfirm'],
+          properties: {
+            password: { type: 'string', minLength: 8, example: 'NewPassword123!' },
+            passwordConfirm: { type: 'string', example: 'NewPassword123!' }
+          }
+        },
+
+        // ===== PHASE 2: ADMIN & INVENTORY SCHEMAS =====
         InventoryItem: {
           type: 'object',
           properties: {
@@ -83,7 +203,7 @@ const options = {
             style: { type: 'string', example: 'modern' },
             color: { type: 'string', example: 'gray' },
             price: { type: 'number', example: 1500 },
-            description: { type: 'string', example: 'Comfortable modern sofa' },
+            description: { type: 'string', example: 'Comfortable modern sofa with premium fabric' },
             available: { type: 'boolean', default: true },
             stock: { type: 'number', default: 1 },
             isDeleted: { type: 'boolean', default: false },
@@ -91,13 +211,73 @@ const options = {
             tags: { 
               type: 'array', 
               items: { type: 'string' },
-              example: ['modern', 'comfortable', 'gray']
+              example: ['modern', 'comfortable', 'gray', 'sofa']
             },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        // Order Schema
+        CreateInventoryItemRequest: {
+          type: 'object',
+          required: ['name', 'category', 'price'],
+          properties: {
+            name: { type: 'string', example: 'Modern Sofa' },
+            category: { 
+              type: 'string', 
+              enum: ['bedroom', 'child bedroom', 'kitchen', 'bathroom', 'living room'],
+              example: 'living room'
+            },
+            style: { type: 'string', example: 'modern' },
+            color: { type: 'string', example: 'gray' },
+            price: { type: 'number', example: 1500 },
+            description: { type: 'string', example: 'Comfortable modern sofa' },
+            stock: { type: 'number', default: 1 },
+            tags: { 
+              type: 'array', 
+              items: { type: 'string' },
+              example: ['modern', 'comfortable', 'gray']
+            }
+          }
+        },
+        UpdateInventoryItemRequest: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', example: 'Updated Modern Sofa' },
+            category: { 
+              type: 'string', 
+              enum: ['bedroom', 'child bedroom', 'kitchen', 'bathroom', 'living room']
+            },
+            style: { type: 'string', example: 'contemporary' },
+            color: { type: 'string', example: 'navy' },
+            price: { type: 'number', example: 1800 },
+            description: { type: 'string', example: 'Updated description' },
+            available: { type: 'boolean', example: true },
+            stock: { type: 'number', example: 5 },
+            tags: { 
+              type: 'array', 
+              items: { type: 'string' }
+            }
+          }
+        },
+        InventoryFilterQuery: {
+          type: 'object',
+          properties: {
+            page: { type: 'number', minimum: 1, example: 1 },
+            limit: { type: 'number', minimum: 1, maximum: 100, example: 10 },
+            category: { 
+              type: 'string', 
+              enum: ['bedroom', 'child bedroom', 'kitchen', 'bathroom', 'living room']
+            },
+            style: { type: 'string', example: 'modern' },
+            color: { type: 'string', example: 'gray' },
+            minPrice: { type: 'number', minimum: 0, example: 100 },
+            maxPrice: { type: 'number', minimum: 0, example: 2000 },
+            available: { type: 'boolean', example: true },
+            search: { type: 'string', example: 'sofa' }
+          }
+        },
+
+        // ===== PHASE 3: E-COMMERCE & ORDERS SCHEMAS =====
         Order: {
           type: 'object',
           properties: {
@@ -129,12 +309,12 @@ const options = {
             shippingAddress: {
               type: 'object',
               properties: {
-                name: { type: 'string' },
-                address: { type: 'string' },
-                city: { type: 'string' },
-                postalCode: { type: 'string' },
-                country: { type: 'string' },
-                phone: { type: 'string' }
+                name: { type: 'string', example: 'John Doe' },
+                address: { type: 'string', example: '123 Main St' },
+                city: { type: 'string', example: 'Cairo' },
+                postalCode: { type: 'string', example: '12345' },
+                country: { type: 'string', example: 'Egypt' },
+                phone: { type: 'string', example: '01012345678' }
               }
             },
             isPaid: { type: 'boolean', default: false },
@@ -143,7 +323,55 @@ const options = {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        // DesignPreference Schema
+        CreateOrderRequest: {
+          type: 'object',
+          required: ['products', 'total', 'paymentMethod', 'shippingAddress'],
+          properties: {
+            products: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['productId', 'quantity', 'price'],
+                properties: {
+                  productId: { type: 'string', example: '507f1f77bcf86cd799439012' },
+                  quantity: { type: 'number', minimum: 1, example: 1 },
+                  price: { type: 'number', minimum: 0, example: 1500 }
+                }
+              }
+            },
+            total: { type: 'number', minimum: 0, example: 1500 },
+            paymentMethod: { 
+              type: 'string', 
+              enum: ['card', 'cash-on-delivery'],
+              example: 'card'
+            },
+            shippingAddress: {
+              type: 'object',
+              required: ['name', 'address', 'city', 'country', 'phone'],
+              properties: {
+                name: { type: 'string', example: 'John Doe' },
+                address: { type: 'string', example: '123 Main St' },
+                city: { type: 'string', example: 'Cairo' },
+                postalCode: { type: 'string', example: '12345' },
+                country: { type: 'string', example: 'Egypt' },
+                phone: { type: 'string', example: '01012345678' }
+              }
+            }
+          }
+        },
+        UpdateOrderStatusRequest: {
+          type: 'object',
+          required: ['status'],
+          properties: {
+            status: { 
+              type: 'string', 
+              enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+              example: 'processing'
+            }
+          }
+        },
+
+        // ===== PHASE 4: AI DESIGN GENERATION SCHEMAS =====
         DesignPreference: {
           type: 'object',
           properties: {
@@ -162,7 +390,22 @@ const options = {
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
-        // GeneratedDesign Schema
+        CreateDesignPreferenceRequest: {
+          type: 'object',
+          required: ['roomType', 'style', 'colorPalette'],
+          properties: {
+            roomType: { type: 'string', example: 'living room' },
+            style: { type: 'string', example: 'modern' },
+            colorPalette: { 
+              type: 'array', 
+              items: { type: 'string' },
+              example: ['gray', 'white', 'blue']
+            },
+            dimensions: { type: 'string', example: '5x7 meters' },
+            budget: { type: 'number', example: 2000 },
+            additionalNotes: { type: 'string', example: 'Include a large sofa and TV' }
+          }
+        },
         GeneratedDesign: {
           type: 'object',
           properties: {
@@ -213,7 +456,29 @@ const options = {
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
-        // ChatHistory Schema
+        GenerateDesignRequest: {
+          type: 'object',
+          required: ['preferenceId'],
+          properties: {
+            preferenceId: { type: 'string', example: '507f1f77bcf86cd799439014' }
+          }
+        },
+        EditDesignRequest: {
+          type: 'object',
+          required: ['action', 'furnitureItems'],
+          properties: {
+            action: { type: 'string', enum: ['add', 'remove', 'modify'], example: 'add' },
+            furnitureItems: { 
+              type: 'array', 
+              items: { type: 'string' },
+              example: ['507f1f77bcf86cd799439012']
+            },
+            prompt: { type: 'string', example: 'Add a coffee table to the living room' },
+            originalImageUrl: { type: 'string', example: 'https://example.com/original.jpg' }
+          }
+        },
+
+        // ===== PHASE 5: AI CHAT ASSISTANT SCHEMAS =====
         ChatHistory: {
           type: 'object',
           properties: {
@@ -239,7 +504,61 @@ const options = {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        // File Upload Response Schema
+        StartConversationRequest: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', example: 'Living Room Design Consultation' }
+          }
+        },
+        SendMessageRequest: {
+          type: 'object',
+          required: ['conversationId', 'message'],
+          properties: {
+            conversationId: { type: 'string', example: '507f1f77bcf86cd799439016' },
+            message: { type: 'string', example: 'I want a modern living room design' },
+            model: { type: 'string', enum: ['chat', 'image'], default: 'chat' }
+          }
+        },
+        UpdateConversationTitleRequest: {
+          type: 'object',
+          required: ['title'],
+          properties: {
+            title: { type: 'string', example: 'Updated Conversation Title' }
+          }
+        },
+
+        // ===== PHASE 6: AI SERVICES SCHEMAS =====
+        AIPromptRequest: {
+          type: 'object',
+          required: ['prompt'],
+          properties: {
+            prompt: { 
+              type: 'string', 
+              minLength: 1, 
+              maxLength: 1000,
+              example: 'Generate a modern living room design with gray sofa and white walls'
+            }
+          }
+        },
+        AIChatRequest: {
+          type: 'object',
+          required: ['messages'],
+          properties: {
+            messages: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['role', 'content'],
+                properties: {
+                  role: { type: 'string', enum: ['user', 'assistant', 'system'] },
+                  content: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+
+        // ===== COMMON RESPONSE SCHEMAS =====
         FileUploadResponse: {
           type: 'object',
           properties: {
@@ -257,22 +576,20 @@ const options = {
             }
           }
         },
-        // Health Check Response Schema
         HealthCheckResponse: {
           type: 'object',
           properties: {
             status: { type: 'string', example: 'success' },
-            message: { type: 'string', example: 'AI Interior Design API is running' },
+            message: { type: 'string', example: 'AI Interior Design API health check' },
             timestamp: { type: 'string', format: 'date-time' },
             version: { type: 'string', example: '2.0.0' },
             environment: { type: 'string', example: 'development' },
             services: {
               type: 'object',
               properties: {
-                database: { type: 'string', example: 'connected' },
-                email: { type: 'string', example: 'configured' },
-                openai: { type: 'string', example: 'configured' },
-                gemini: { type: 'string', example: 'configured' }
+                database: { type: 'object' },
+                email: { type: 'object' },
+                openai: { type: 'object' }
               }
             },
             uptime: { type: 'number', example: 3600 },
@@ -284,15 +601,9 @@ const options = {
                 heapUsed: { type: 'number' },
                 external: { type: 'number' }
               }
-            },
-            missingEnvVars: { 
-              type: 'array', 
-              items: { type: 'string' },
-              nullable: true
             }
           }
         },
-        // Error Response Schema
         Error: {
           type: 'object',
           properties: {
@@ -300,7 +611,6 @@ const options = {
             message: { type: 'string', example: 'Something went wrong' }
           }
         },
-        // Success Response Schema
         Success: {
           type: 'object',
           properties: {
@@ -308,45 +618,54 @@ const options = {
             message: { type: 'string', example: 'Operation completed successfully' },
             data: { type: 'object' }
           }
+        },
+        PaginatedResponse: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', example: 'success' },
+            message: { type: 'string', example: 'Data retrieved successfully' },
+            data: { type: 'array' },
+            meta: {
+              type: 'object',
+              properties: {
+                page: { type: 'number', example: 1 },
+                limit: { type: 'number', example: 10 },
+                total: { type: 'number', example: 50 },
+                totalPages: { type: 'number', example: 5 }
+              }
+            }
+          }
         }
       }
     },
     tags: [
       {
-        name: 'Auth',
-        description: 'Authentication and authorization endpoints including email verification'
+        name: 'Phase 1: Authentication',
+        description: 'User registration, login, email verification, and password management'
       },
       {
-        name: 'User',
-        description: 'User profile and management endpoints'
+        name: 'Phase 2: Admin & Inventory',
+        description: 'Product management, user administration, and system management'
       },
       {
-        name: 'Inventory',
-        description: 'Product inventory management and file upload endpoints'
+        name: 'Phase 3: E-Commerce',
+        description: 'Shopping cart, order processing, and payment management'
       },
       {
-        name: 'Orders',
-        description: 'Order management and processing endpoints'
+        name: 'Phase 4: AI Design Generation',
+        description: 'Design preferences, AI image generation, and design editing'
       },
       {
-        name: 'Designs',
-        description: 'Design generation and management endpoints'
+        name: 'Phase 5: AI Chat Assistant',
+        description: 'Conversational AI, chat history, and design consultation'
       },
       {
-        name: 'Edit Design',
-        description: 'Design editing functionality endpoints'
+        name: 'Phase 6: AI Services',
+        description: 'Direct AI service integrations (OpenAI, Gemini, Replicate)'
       },
       {
-        name: 'Chat',
-        description: 'Chat history and conversation management endpoints'
-      },
-      {
-        name: 'AI Services',
-        description: 'AI-powered services (OpenAI, Gemini, Replicate)'
-      },
-      {
-        name: 'System',
-        description: 'System health and monitoring endpoints'
+        name: 'System & Monitoring',
+        description: 'Health checks, performance monitoring, and system status'
       }
     ]
   },

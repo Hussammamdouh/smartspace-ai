@@ -9,8 +9,8 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Orders
- *   description: Order management endpoints
+ *   name: "Phase 3: E-Commerce"
+ *   description: Shopping cart, order processing, and payment management
  */
 
 /**

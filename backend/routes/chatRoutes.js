@@ -6,6 +6,7 @@ const {
   getChatConversation,
   startNewConversation,
   sendMessage,
+  sendSimpleMessage,
   deleteConversation,
   updateConversationTitle,
   getUserChats
@@ -14,8 +15,8 @@ const {
 /**
  * @swagger
  * tags:
- *   name: Chat
- *   description: Chat history and conversation management
+ *   name: "Phase 5: AI Chat Assistant"
+ *   description: Conversational AI, chat history, and design consultation
  */
 
 /**
@@ -132,6 +133,7 @@ router.get('/history', protect, getChatHistory);
 router.get('/conversation/:conversationId', protect, getChatConversation);
 router.post('/conversation', protect, startNewConversation);
 router.post('/message', protect, sendMessage);
+router.post('/send', protect, sendSimpleMessage);
 router.delete('/conversation/:conversationId', protect, deleteConversation);
 router.patch('/conversation/:conversationId/title', protect, updateConversationTitle);
 

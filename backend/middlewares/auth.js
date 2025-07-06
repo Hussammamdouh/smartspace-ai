@@ -38,7 +38,7 @@ const protect = async (req, res, next) => {
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
     // 3) Check if user still exists
-    const currentUser = await User.findById(decoded.id).select('-password');
+    const currentUser = await User.findById(decoded.id).select('+active -password');
     if (!currentUser) {
       return next(new APIError('The user belonging to this token no longer exists.', 401));
     }
@@ -110,11 +110,20 @@ const validatePassword = (password) => {
   return errors;
 };
 
+// Admin middleware
+const admin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return next(new APIError('Admin access only', 403));
+  }
+  next();
+};
+
 module.exports = {
   protect,
   restrictTo,
   authorize,
   loginLimiter,
   registerLimiter,
-  validatePassword
+  validatePassword,
+  admin
 }; 

@@ -2,15 +2,70 @@ const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventoryController');
 const { protect, restrictTo } = require('../middlewares/auth');
-const upload = require('../middlewares/uploadMiddleware');
 const { validate, validateQuery } = require('../middlewares/validateMiddleware');
 const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validationSchemas');
+const { upload } = require('../middlewares/uploadMiddleware');
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     InventoryItem:
+ *       type: object
+ *       required:
+ *         - name
+ *         - category
+ *         - price
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Auto-generated unique identifier
+ *         name:
+ *           type: string
+ *           description: Product name
+ *         category:
+ *           type: string
+ *           enum: [bedroom, child bedroom, kitchen, bathroom, living room]
+ *           description: Product category
+ *         style:
+ *           type: string
+ *           description: Design style
+ *         color:
+ *           type: string
+ *           description: Product color
+ *         price:
+ *           type: number
+ *           description: Product price
+ *         description:
+ *           type: string
+ *           description: Product description
+ *         available:
+ *           type: boolean
+ *           description: Product availability
+ *         stock:
+ *           type: number
+ *           description: Available stock quantity
+ *         image:
+ *           type: string
+ *           description: Product image URL
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Product tags
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */
 
 /**
  * @swagger
  * tags:
  *   name: Inventory
- *   description: Product inventory management endpoints
+ *   description: Inventory management endpoints
  */
 
 /**
@@ -20,6 +75,14 @@ const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validat
  *     summary: Get all inventory items with filtering and pagination
  *     tags: [Inventory]
  *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *         description: Items per page
  *       - in: query
  *         name: category
  *         schema: { type: string }
@@ -33,21 +96,17 @@ const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validat
  *         schema: { type: string }
  *         description: Filter by color
  *       - in: query
+ *         name: minPrice
+ *         schema: { type: number }
+ *         description: Minimum price filter
+ *       - in: query
  *         name: maxPrice
  *         schema: { type: number }
  *         description: Maximum price filter
  *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 9 }
- *         description: Number of items per page
- *       - in: query
- *         name: ids
- *         schema: { type: string }
- *         description: Comma-separated list of product IDs
+ *         name: available
+ *         schema: { type: boolean }
+ *         description: Filter by availability
  *     responses:
  *       200:
  *         description: List of inventory items
@@ -56,6 +115,7 @@ const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validat
  *             schema:
  *               type: object
  *               properties:
+ *                 status: { type: string }
  *                 data:
  *                   type: array
  *                   items:
@@ -63,9 +123,10 @@ const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validat
  *                 meta:
  *                   type: object
  *                   properties:
- *                     total: { type: number }
- *                     page: { type: number }
- *                     totalPages: { type: number }
+ *                     page: { type: integer }
+ *                     limit: { type: integer }
+ *                     total: { type: integer }
+ *                     totalPages: { type: integer }
  */
 
 /**
@@ -88,10 +149,9 @@ const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validat
  *             schema:
  *               type: object
  *               properties:
+ *                 status: { type: string }
  *                 data:
  *                   $ref: '#/components/schemas/InventoryItem'
- *       400:
- *         description: Invalid ID format
  *       404:
  *         description: Item not found
  */
@@ -250,6 +310,7 @@ const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validat
 
 // Public routes (no authentication required)
 router.get("/", validateQuery(inventoryFilterSchema), inventoryController.getInventory);
+router.get("/categories", inventoryController.getCategories);
 router.get("/:id", inventoryController.getInventoryItem);
 
 // Test upload route (public)
@@ -270,7 +331,8 @@ router.post('/test-upload', upload.single('image'), (req, res) => {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size,
-        path: req.file.path
+        path: req.file.path,
+        url: req.file.url || `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
       }
     });
   } catch (error) {

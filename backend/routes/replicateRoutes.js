@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middlewares/auth");
+const { validate } = require("../middlewares/validateMiddleware");
+const { aiPromptSchema } = require("../utils/validationSchemas");
 const { generateImage } = require("../controllers/replicateImageController");
 
 /**
@@ -8,7 +10,17 @@ const { generateImage } = require("../controllers/replicateImageController");
  * /api/replicate/generate:
  *   post:
  *     summary: Generate image using Replicate AI
- *     tags: [AI Services]
+ *     description: |
+ *       Generates images using Replicate AI service.
+ *       
+ *       **Test Cases:**
+ *       - ✅ Valid prompt
+ *       - ❌ Empty prompt
+ *       - ❌ Invalid prompt format
+ *       - ❌ Prompt too long (>1000 chars)
+ *       - ❌ Unauthorized access
+ *       - ❌ Service unavailable
+ *     tags: [Phase 6: AI Services]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -42,5 +54,5 @@ const { generateImage } = require("../controllers/replicateImageController");
  *         description: Replicate service error
  */
 
-router.post("/generate", protect, generateImage);
+router.post("/generate", protect, validate(aiPromptSchema), generateImage);
 module.exports = router;

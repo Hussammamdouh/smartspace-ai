@@ -3,9 +3,9 @@ const InventoryItem = require('../models/InventoryItem');
 const mongoose = require("mongoose");
 const { APIError } = require('../middlewares/errorHandler');
 
-exports.getInventory = async (req, res) => {
+exports.getInventory = async (req, res, next) => {
   try {
-    const { category, style, color, maxPrice = 5000, page = 1, limit = 9, ids } = req.query;
+    const { category, style, color, maxPrice = 5000, page = 1, limit = 9, ids, search } = req.query;
 
     const filter = {
       isDeleted: false,
@@ -16,6 +16,16 @@ exports.getInventory = async (req, res) => {
     if (category) filter.category = category.toLowerCase();
     if (style) filter.style = style.toLowerCase();
     if (color) filter.color = color.toLowerCase();
+    
+    // Support for searching by name, description, or tags
+    if (search && search.trim()) {
+      const regex = new RegExp(search.trim(), 'i');
+      filter.$or = [
+        { name: regex },
+        { description: regex },
+        { tags: regex }
+      ];
+    }
     
     // Support for fetching by IDs (for wishlist)
     if (ids) {
@@ -67,22 +77,45 @@ exports.getInventoryItem = async (req, res, next) => {
 
 exports.addInventoryItem = async (req, res, next) => {
   try {
-    const { name, type, price, stock } = req.body;
+    const { name, category, price, stock, style, color, description, tags, available } = req.body;
     const filePath = req.file ? req.file.path : null;
 
-    if (!name || !type || !price || !stock || !filePath) {
+    if (!name || !category || !price || stock === undefined || !filePath) {
       return next(new APIError("Missing required fields", 400));
     }
 
-    const item = await inventoryService.createItem({
-      name,
-      type,
-      price,
-      stock,
-      filePath,
-    });
+    // Parse tags if they come as JSON string
+    let parsedTags = [];
+    if (tags) {
+      try {
+        parsedTags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+      } catch (e) {
+        parsedTags = [];
+      }
+    }
 
-    res.status(201).json(item);
+    const itemData = {
+      name,
+      category: category.toLowerCase(),
+      price: Number(price),
+      stock: Number(stock),
+      available: available !== 'false',
+      image: filePath
+    };
+
+    // Add optional fields if provided
+    if (style) itemData.style = style;
+    if (color) itemData.color = color;
+    if (description) itemData.description = description;
+    if (parsedTags.length > 0) itemData.tags = parsedTags;
+
+    const item = await inventoryService.createItem(itemData);
+
+    res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      data: item
+    });
   } catch (error) {
     next(error);
   }
@@ -110,6 +143,26 @@ exports.deleteInventoryItem = async (req, res, next) => {
   try {
     await inventoryService.deleteItem(req.params.id);
     res.status(200).json({ message: "Item deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get all available categories
+exports.getCategories = async (req, res, next) => {
+  try {
+    const categories = [
+      { _id: 'bedroom', name: 'Bedroom' },
+      { _id: 'child-bedroom', name: 'Child Bedroom' },
+      { _id: 'kitchen', name: 'Kitchen' },
+      { _id: 'bathroom', name: 'Bathroom' },
+      { _id: 'living-room', name: 'Living Room' },
+    ];
+
+    res.status(200).json({
+      status: 'success',
+      data: categories
+    });
   } catch (error) {
     next(error);
   }

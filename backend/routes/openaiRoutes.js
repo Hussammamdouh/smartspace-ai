@@ -6,8 +6,8 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: AI Services
- *   description: AI-powered services (OpenAI, Gemini, Replicate)
+ *   name: "Phase 6: AI Services"
+ *   description: Direct AI service integrations (OpenAI, Gemini, Replicate)
  */
 
 /**

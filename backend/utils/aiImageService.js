@@ -1,4 +1,5 @@
 const OpenAI = require("openai");
+const logger = require("./logger");
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -15,7 +16,7 @@ exports.generateRoomImage = async (preferences, matchingItems) => {
     Include matching furniture: ${matchingItems.map(item => item.name).join(', ')}.
   `;
 
-  console.log("🧠 Sending prompt to OpenAI:", prompt);
+  logger.info("🧠 Sending prompt to OpenAI:", prompt);
 
   const response = await openai.images.generate({
     model: "dall-e-3", // or "dall-e-2" if preferred

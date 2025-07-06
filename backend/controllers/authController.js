@@ -11,14 +11,14 @@ const logger = require('../utils/logger');
 // Sign JWT token
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '1d'
+    expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
   });
 };
 
 // Sign refresh token
 const signRefreshToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: '7d'
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
   });
 };
 
@@ -72,7 +72,11 @@ exports.register = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Send verification email
-    const verificationURL = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${verificationToken}`;
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationURL = `${frontendURL}/verify-email/${verificationToken}`;
+    
+    // Log the verification URL for debugging
+    logger.info(`Sending verification email to ${user.email} with URL: ${verificationURL}`);
     
     try {
       await sendTemplateEmail(user.email, 'welcome', {
@@ -102,7 +106,7 @@ exports.register = async (req, res, next) => {
       }
     });
   } catch (err) {
-    console.error('Registration Error:', err);
+    logger.error('Registration Error:', err);
     if (err.name === 'ValidationError') {
       return next(new APIError(err.message, 400));
     }
@@ -164,7 +168,22 @@ exports.logout = (req, res) => {
 // Get current user
 exports.getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    // Use findById without the active filter to check the actual status
+    const user = await User.findById(req.user.id).select('+active');
+    
+    if (!user) {
+      return next(new APIError('User not found', 404));
+    }
+
+    // Check if user is active
+    if (!user.active) {
+      return next(new APIError('Your account has been deactivated. Please contact support.', 401));
+    }
+
+    // Remove sensitive fields
+    user.password = undefined;
+    user.active = undefined;
+
     res.status(200).json({
       status: 'success',
       data: {
@@ -293,11 +312,15 @@ exports.verifyEmail = async (req, res, next) => {
       return next(new APIError('Verification token is required', 400));
     }
 
+    logger.info(`Verifying email with token: ${token}`);
+
     // Hash the token
     const hashedToken = crypto
       .createHash('sha256')
       .update(token)
       .digest('hex');
+
+    logger.info(`Hashed token: ${hashedToken}`);
 
     // Find user with this token
     const user = await User.findOne({
@@ -306,7 +329,22 @@ exports.verifyEmail = async (req, res, next) => {
     });
 
     if (!user) {
-      return next(new APIError('Invalid or expired verification token', 400));
+      logger.error(`No user found with token: ${hashedToken}`);
+      // Check if token exists but is expired
+      const expiredUser = await User.findOne({ emailVerificationToken: hashedToken });
+      if (expiredUser) {
+        logger.error(`Token found but expired. Expires: ${expiredUser.emailVerificationExpires}, Now: ${Date.now()}`);
+        return next(new APIError('Verification token has expired. Please request a new one.', 400));
+      }
+      // Check if user is already verified (by email)
+      const alreadyVerifiedUser = await User.findOne({ emailVerified: true, email: req.query.email });
+      if (alreadyVerifiedUser) {
+        return res.status(200).json({
+          status: 'success',
+          message: 'Your email is already verified. You can log in now.'
+        });
+      }
+      return next(new APIError('Invalid verification token', 400));
     }
 
     // Update user
@@ -362,8 +400,8 @@ exports.resendVerification = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Send verification email
-    const verificationURL = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${verificationToken}`;
-    
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationURL = `${frontendURL}/verify-email/${verificationToken}`;
     try {
       await sendTemplateEmail(user.email, 'welcome', {
         name: user.name,

@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, 'Please provide your email'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
@@ -36,6 +35,7 @@ const userSchema = new mongoose.Schema({
     }
   },
   phone: { type: String, required: true },
+  address: { type: String },
   role: {
     type: String,
     enum: ['user', 'admin'],
@@ -144,7 +144,7 @@ userSchema.methods.createEmailVerificationToken = function() {
     .update(verificationToken)
     .digest('hex');
 
-  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  this.emailVerificationExpires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
 
   return verificationToken;
 };

@@ -1,50 +1,29 @@
-# AI Interior Design Backend API
+# AI Interior Design Backend
 
-A comprehensive Node.js/Express backend API for the AI Interior Design application, featuring user authentication, design generation, inventory management, and email verification.
+A robust Node.js backend for the AI Interior Design application with comprehensive error handling, cloud storage, and cost estimation features.
 
 ## 🚀 Features
 
-- **User Authentication & Authorization**
-  - JWT-based authentication with refresh tokens
-  - Email verification system
-  - Password reset functionality
-  - Role-based access control (User/Admin)
-
-- **AI-Powered Design Generation**
-  - OpenAI DALL-E 3 integration
-  - Google Gemini integration
-  - Replicate AI integration
-  - Design preference management
-
-- **Inventory Management**
-  - Product catalog with filtering and pagination
-  - Image upload functionality
-  - Stock management
-  - Category and style organization
-
-- **Order Management**
-  - Shopping cart functionality
-  - Order processing and tracking
-  - Payment integration support
-
-- **Security Features**
-  - Rate limiting
-  - Input validation and sanitization
-  - CORS protection
-  - Helmet security headers
-  - XSS protection
+- **AI Integration**: OpenAI DALL-E 3 for image generation
+- **Database Integration**: MongoDB with Mongoose ODM
+- **Cloud Storage**: Cloudinary integration for image storage
+- **Cost Estimation**: Automatic furniture cost calculation
+- **Chat History**: Persistent conversation storage
+- **Security**: JWT authentication, rate limiting, input sanitization
+- **Monitoring**: Comprehensive health checks and logging
+- **API Documentation**: Swagger/OpenAPI documentation
 
 ## 📋 Prerequisites
 
 - Node.js (v16 or higher)
-- MongoDB (v5 or higher)
-- npm or yarn
+- MongoDB (local or cloud)
+- OpenAI API key
+- Cloudinary account (optional but recommended)
 
 ## 🛠️ Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
    cd backend
    ```
 
@@ -53,255 +32,168 @@ A comprehensive Node.js/Express backend API for the AI Interior Design applicati
    npm install
    ```
 
-3. **Environment Configuration**
-   Create a `.env` file in the root directory:
+3. **Environment Setup**
+   Create a `.env` file in the backend directory with the following variables:
+
    ```env
-   # Server Configuration
+   # Required
    NODE_ENV=development
    PORT=5000
-   
-   # Database
    MONGO_URI=mongodb://localhost:27017/ai-interior-design
-   
-   # JWT Secrets
    JWT_SECRET=your-super-secret-jwt-key-here
-   JWT_REFRESH_SECRET=your-super-secret-refresh-key-here
-   
-   # Email Configuration (Development)
-   EMAIL_SERVICE=Gmail
+   OPENAI_API_KEY=your-openai-api-key-here
+
+   # Optional but recommended
+   CLOUDINARY_CLOUD_NAME=your-cloud-name
+   CLOUDINARY_API_KEY=your-api-key
+   CLOUDINARY_API_SECRET=your-api-secret
+
+   # Optional
    EMAIL_USER=your-email@gmail.com
    EMAIL_PASS=your-app-password
-   EMAIL_FROM=your-email@gmail.com
-   
-   # Email Configuration (Production)
-   SMTP_HOST=smtp.your-provider.com
-   SMTP_PORT=587
-   SMTP_SECURE=false
-   SMTP_USER=your-smtp-username
-   SMTP_PASS=your-smtp-password
-   
-   # AI Services
-   OPENAI_API_KEY=your-openai-api-key
-   GEMINI_API_KEY=your-gemini-api-key
-   REPLICATE_API_TOKEN=your-replicate-token
-   
-   # Frontend URLs (for CORS)
-   FRONTEND_URL=http://localhost:5173
-   ADMIN_URL=http://localhost:3000
+   GEMINI_API_KEY=your-gemini-api-key-here
+   REPLICATE_API_TOKEN=your-replicate-api-token-here
    ```
 
 4. **Start the server**
    ```bash
    # Development mode
    npm run dev
-   
+
    # Production mode
    npm start
    ```
-
-## 📚 API Documentation
-
-The API documentation is available at `/api-docs` when the server is running.
-
-### Base URL
-```
-http://localhost:5000/api
-```
-
-### Authentication Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/auth/register` | Register new user | No |
-| POST | `/auth/login` | User login | No |
-| POST | `/auth/refresh-token` | Refresh access token | No |
-| GET | `/auth/verify-email/:token` | Verify email address | No |
-| POST | `/auth/resend-verification` | Resend verification email | No |
-| GET | `/auth/me` | Get current user | Yes |
-| PATCH | `/auth/updatePassword` | Update password | Yes |
-| POST | `/auth/forgotPassword` | Request password reset | No |
-| PATCH | `/auth/resetPassword/:token` | Reset password | No |
-| GET | `/auth/logout` | Logout user | Yes |
-
-### Inventory Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/inventory` | Get all products | No |
-| GET | `/inventory/:id` | Get product by ID | No |
-| POST | `/inventory/test-upload` | Test file upload | No |
-| POST | `/inventory` | Add new product | Admin |
-| PUT | `/inventory/:id` | Update product | Admin |
-| DELETE | `/inventory/:id` | Delete product | Admin |
-
-### Design Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/design` | Get user designs | Yes |
-| GET | `/design/:id` | Get design by ID | Yes |
-| POST | `/design` | Create new design | Yes |
-| DELETE | `/design/:id` | Delete design | Yes |
-| POST | `/design/preferences` | Save design preferences | Yes |
-| POST | `/design/generate` | Generate AI design | Yes |
-
-### AI Service Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/chatbot` | OpenAI chat completion | Yes |
-| POST | `/gemini` | Google Gemini chat | Yes |
-| POST | `/replicate` | Replicate AI generation | Yes |
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-#### Required Variables
-- `MONGO_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT signing
-- `JWT_REFRESH_SECRET`: Secret key for refresh tokens
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MONGO_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | Secret key for JWT tokens |
+| `OPENAI_API_KEY` | Yes | OpenAI API key for DALL-E |
+| `CLOUDINARY_CLOUD_NAME` | No | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | No | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | No | Cloudinary API secret |
+| `EMAIL_USER` | No | Email service username |
+| `EMAIL_PASS` | No | Email service password |
 
-#### Optional Variables
-- `NODE_ENV`: Environment mode (development/production)
-- `PORT`: Server port (default: 5000)
-- `EMAIL_*`: Email configuration
-- `OPENAI_API_KEY`: OpenAI API key
-- `GEMINI_API_KEY`: Google Gemini API key
-- `REPLICATE_API_TOKEN`: Replicate API token
+### Database Setup
 
-### Database Configuration
+The application will automatically create the necessary collections and indexes when it starts. Make sure your MongoDB instance is running and accessible.
 
-The application uses MongoDB with Mongoose ODM. Key features:
-- Automatic connection management
-- Index optimization for performance
-- Soft delete functionality
-- Data validation and sanitization
+## 📚 API Documentation
 
-### File Upload Configuration
+Once the server is running, you can access the API documentation at:
+- **Swagger UI**: `http://localhost:5000/api-docs`
+- **Health Check**: `http://localhost:5000/api/health`
 
-- **Supported formats**: JPEG, PNG, WebP, GIF
-- **Maximum file size**: 5MB
-- **Storage location**: `uploads/` directory
-- **File naming**: Timestamp + sanitized original name
+## 🔍 Health Check
 
-## 🚀 Deployment
+The health check endpoint (`/api/health`) monitors:
+- Database connectivity
+- OpenAI API configuration
+- Cloudinary configuration
+- Email service configuration
+- Environment variables
+- System resources
 
-### Production Checklist
-
-1. **Environment Variables**
-   - Set `NODE_ENV=production`
-   - Configure production database URL
-   - Set up production email service
-   - Configure CORS origins
-
-2. **Security**
-   - Use strong JWT secrets
-   - Enable HTTPS
-   - Configure proper CORS settings
-   - Set up rate limiting
-
-3. **Performance**
-   - Enable database indexes
-   - Configure proper logging
-   - Set up monitoring
-
-4. **File Storage**
-   - Consider using cloud storage (AWS S3, Google Cloud Storage)
-   - Configure proper file permissions
-   - Set up backup strategies
-
-### Docker Deployment
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-
-EXPOSE 5000
-
-CMD ["npm", "start"]
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **Database Connection Failed**
-   - Check MongoDB is running
-   - Verify `MONGO_URI` is correct
-   - Check network connectivity
-
-2. **Email Not Sending**
-   - Verify email credentials
-   - Check SMTP settings
-   - Ensure app passwords are used for Gmail
-
-3. **File Upload Issues**
-   - Check `uploads/` directory permissions
-   - Verify file size limits
-   - Check supported file formats
-
-4. **JWT Token Issues**
-   - Verify JWT secrets are set
-   - Check token expiration times
-   - Ensure proper token format
-
-### Logs
-
-Application logs are stored in:
-- `logs/combined.log`: All logs
-- `logs/error.log`: Error logs only
-
-### Health Check
-
-Use the health check endpoint to verify system status:
-```bash
-curl http://localhost:5000/api/health
-```
-
-## 📝 Development
-
-### Project Structure
+## 🗂️ Project Structure
 
 ```
 backend/
-├── config/          # Configuration files
-├── controllers/     # Route controllers
-├── middlewares/     # Custom middlewares
-├── models/          # Database models
+├── config/           # Configuration files
+│   ├── db.js        # Database configuration
+│   ├── cloudinary.js # Cloudinary configuration
+│   └── swagger.js   # API documentation
+├── controllers/      # Route controllers
+├── middlewares/      # Express middlewares
+├── models/          # Mongoose models
 ├── routes/          # API routes
 ├── services/        # Business logic
 ├── utils/           # Utility functions
-├── uploads/         # File uploads
+├── uploads/         # Local file storage
 ├── logs/            # Application logs
-└── server.js        # Entry point
+└── server.js        # Main application file
 ```
 
-### Adding New Features
+## 🔐 Security Features
 
-1. **Create Model** (if needed)
-   - Add to `models/` directory
-   - Include proper validation and indexes
+- **JWT Authentication**: Secure token-based authentication
+- **Rate Limiting**: Prevents abuse with configurable limits
+- **Input Sanitization**: MongoDB injection protection
+- **XSS Protection**: Cross-site scripting prevention
+- **Helmet**: Security headers
+- **CORS**: Configurable cross-origin resource sharing
 
-2. **Create Controller**
-   - Add to `controllers/` directory
-   - Follow error handling patterns
+## 📊 Cost Estimation System
 
-3. **Create Routes**
-   - Add to `routes/` directory
-   - Include proper validation and authentication
+The backend automatically calculates furniture costs when generating designs:
 
-4. **Update Documentation**
-   - Add Swagger documentation
-   - Update this README
+1. **Furniture Selection**: AI selects appropriate furniture from inventory
+2. **Cost Calculation**: Total cost is calculated based on selected items
+3. **Budget Tracking**: Design preferences include budget constraints
+4. **Cost History**: All designs include cost metadata for analysis
 
-### Testing
+## 🗄️ Database Models
+
+### User
+- Authentication and profile information
+- Role-based access control
+- Email verification and password reset
+
+### InventoryItem
+- Furniture catalog with categories, styles, and prices
+- Stock management and availability tracking
+- Soft delete support
+
+### GeneratedDesign
+- AI-generated design images
+- Cost estimation and furniture mapping
+- Edit history and version control
+
+### ChatHistory
+- Persistent conversation storage
+- Message types (text/image)
+- Design references and metadata
+
+### DesignPreference
+- User design preferences
+- Budget constraints and cost tracking
+- Usage analytics
+
+## 🚨 Error Handling
+
+The application includes comprehensive error handling:
+
+- **Global Error Handler**: Catches all unhandled errors
+- **Custom Error Classes**: APIError for operational errors
+- **Logging**: Winston-based logging with file and console output
+- **Graceful Degradation**: Fallback mechanisms for external services
+
+## 📝 Logging
+
+Logs are stored in the `logs/` directory:
+- `combined.log`: All application logs
+- `error.log`: Error-level logs only
+
+Log levels: `error`, `warn`, `info`, `debug`
+
+## 🔄 File Upload
+
+### Local Storage (Fallback)
+- Files stored in `uploads/` directory
+- Automatic cleanup of temporary files
+- Configurable file size limits
+
+### Cloudinary (Primary)
+- Automatic upload to cloud storage
+- Image optimization and transformation
+- Secure URL generation
+- Automatic fallback to local storage
+
+## 🧪 Testing
 
 ```bash
 # Run tests
@@ -311,22 +203,74 @@ npm test
 npm run test:coverage
 ```
 
-## 🤝 Contributing
+## 🚀 Deployment
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+### Production Checklist
+
+1. **Environment Variables**: Set all required production variables
+2. **Database**: Use production MongoDB instance
+3. **Cloudinary**: Configure for production use
+4. **Logging**: Configure production log levels
+5. **Security**: Review security headers and CORS settings
+6. **Monitoring**: Set up health check monitoring
+
+### Docker Deployment
+
+```dockerfile
+FROM node:16-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 5000
+CMD ["npm", "start"]
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed**
+   - Check MongoDB URI and network connectivity
+   - Verify database permissions
+
+2. **OpenAI API Errors**
+   - Verify API key is valid and has sufficient credits
+   - Check rate limits and usage quotas
+
+3. **File Upload Issues**
+   - Verify Cloudinary credentials (if using cloud storage)
+   - Check file size limits and supported formats
+   - Ensure uploads directory has write permissions
+
+4. **JWT Token Issues**
+   - Verify JWT_SECRET is set and secure
+   - Check token expiration settings
+
+### Debug Mode
+
+Enable debug logging by setting:
+```env
+LOG_LEVEL=debug
+NODE_ENV=development
+```
+
+## 📞 Support
+
+For issues and questions:
+1. Check the health check endpoint
+2. Review application logs
+3. Verify environment configuration
+4. Test individual API endpoints
+
+## 🔄 Updates
+
+To update the application:
+1. Pull latest changes
+2. Install new dependencies: `npm install`
+3. Run database migrations if needed
+4. Restart the application
 
 ## 📄 License
 
-This project is licensed under the ISC License.
-
-## 🆘 Support
-
-For support and questions:
-- Check the API documentation at `/api-docs`
-- Review the logs in `logs/` directory
-- Use the health check endpoint
-- Contact the development team
+This project is part of the AI Interior Design application.

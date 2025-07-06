@@ -1,6 +1,7 @@
 const ChatHistory = require('../models/ChatHistory');
 const { chatWithGPT, generateImageWithDalle } = require('../services/openaiService');
 const { APIError } = require('../middlewares/errorHandler');
+const logger = require('../utils/logger');
 
 // Get user chats for dashboard
 exports.getUserChats = async (req, res, next) => {
@@ -18,6 +19,7 @@ exports.getUserChats = async (req, res, next) => {
       data: conversations
     });
   } catch (error) {
+    logger.error('Error getting user chats:', error);
     next(error);
   }
 };
@@ -43,7 +45,7 @@ exports.getChatHistory = async (req, res, next) => {
     });
 
     res.status(200).json({
-      success: true,
+      status: 'success',
       data: conversations,
       meta: {
         page: Number(page),
@@ -53,6 +55,7 @@ exports.getChatHistory = async (req, res, next) => {
       }
     });
   } catch (error) {
+    logger.error('Error getting chat history:', error);
     next(error);
   }
 };
@@ -73,10 +76,11 @@ exports.getChatConversation = async (req, res, next) => {
     }
 
     res.status(200).json({
-      success: true,
+      status: 'success',
       data: conversation
     });
   } catch (error) {
+    logger.error('Error getting chat conversation:', error);
     next(error);
   }
 };
@@ -92,11 +96,14 @@ exports.startNewConversation = async (req, res, next) => {
       conversation: []
     });
 
+    logger.info(`New conversation created: ${newConversation._id}`);
+
     res.status(201).json({
-      success: true,
+      status: 'success',
       data: newConversation
     });
   } catch (error) {
+    logger.error('Error starting new conversation:', error);
     next(error);
   }
 };
@@ -131,6 +138,7 @@ exports.sendMessage = async (req, res, next) => {
 
     let aiResponse;
     let responseType = 'text';
+    let designData = null;
 
     if (model === 'chat') {
       // Get AI text response
@@ -151,22 +159,44 @@ exports.sendMessage = async (req, res, next) => {
 
     } else if (model === 'image') {
       // Generate image
-      const { imageUrl, designId, prompt, usedItems } = await generateImageWithDalle(
+      const { imageUrl, designId, prompt, usedItems, totalCost, furnitureCount, metadata } = await generateImageWithDalle(
         message,
         req.user.id
       );
 
       aiResponse = imageUrl;
       responseType = 'image';
+      designData = {
+        designId,
+        totalCost,
+        furnitureCount,
+        usedItems: usedItems.map(item => ({
+          id: item._id,
+          name: item.name,
+          category: item.category,
+          price: item.price
+        })),
+        metadata
+      };
 
       // Add AI response to conversation
       conversation.conversation.push({
         role: 'assistant',
-        content: `Generated image based on: ${message}`,
+        content: `Generated interior design image based on: ${message}`,
         type: 'image',
         imageUrl,
         designId,
-        timestamp: new Date()
+        timestamp: new Date(),
+        metadata: {
+          totalCost,
+          furnitureCount,
+          usedItems: usedItems.map(item => ({
+            id: item._id,
+            name: item.name,
+            category: item.category,
+            price: item.price
+          }))
+        }
       });
     }
 
@@ -174,15 +204,46 @@ exports.sendMessage = async (req, res, next) => {
     conversation.updatedAt = new Date();
     await conversation.save();
 
+    logger.info(`Message sent in conversation ${conversationId}, response type: ${responseType}`);
+
     res.status(200).json({
-      success: true,
+      status: 'success',
       data: {
         conversation: conversation.conversation,
         response: aiResponse,
-        type: responseType
+        type: responseType,
+        designData
       }
     });
   } catch (error) {
+    logger.error('Error sending message:', error);
+    next(error);
+  }
+};
+
+// Simple chat endpoint for mobile app
+exports.sendSimpleMessage = async (req, res, next) => {
+  try {
+    const { message } = req.body;
+
+    if (!message) {
+      return next(new APIError('Message is required', 400));
+    }
+
+    // Get AI response using OpenAI service
+    const aiResponse = await chatWithGPT([
+      { role: 'user', content: message }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        message: aiResponse,
+        content: aiResponse
+      }
+    });
+  } catch (error) {
+    logger.error('Error sending simple message:', error);
     next(error);
   }
 };
@@ -205,11 +266,14 @@ exports.deleteConversation = async (req, res, next) => {
       return next(new APIError('Conversation not found', 404));
     }
 
+    logger.info(`Conversation deleted: ${conversationId}`);
+
     res.status(200).json({
-      success: true,
+      status: 'success',
       message: 'Conversation deleted successfully'
     });
   } catch (error) {
+    logger.error('Error deleting conversation:', error);
     next(error);
   }
 };
@@ -238,11 +302,14 @@ exports.updateConversationTitle = async (req, res, next) => {
       return next(new APIError('Conversation not found', 404));
     }
 
+    logger.info(`Conversation title updated: ${conversationId} -> ${title}`);
+
     res.status(200).json({
-      success: true,
+      status: 'success',
       data: conversation
     });
   } catch (error) {
+    logger.error('Error updating conversation title:', error);
     next(error);
   }
 }; 

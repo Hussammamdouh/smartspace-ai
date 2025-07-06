@@ -6,7 +6,7 @@ import Loader from "../components/Loader";
 import { FaArrowLeft, FaBox, FaTruck, FaCheckCircle } from "react-icons/fa";
 
 const OrderDetails = () => {
-  const { id } = useParams();
+    const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,7 @@ const OrderDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] p-6 lg:p-12">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text)] p-6 lg:p-12">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-10">

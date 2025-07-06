@@ -1,4 +1,3 @@
-import React from "react";
 import HeroSection from "../components/landing/Hero";
 import AboutSection from "../components/landing/About";
 import StatsSection from "../components/landing/Stats";
@@ -7,7 +6,10 @@ import ContactSection from "../components/landing/Contact";
 
 const LandingPage = () => {
   return (
-    <div className="bg-[#181818] text-[#E5CBBE]">
+    <div className="bg-theme-background text-theme-text">
+      {/* <div className="text-center py-4">
+        <h1 className="text-2xl font-bold">{'Home'}</h1>
+      </div> */}
       <HeroSection />
       <AboutSection />
       <StatsSection />

@@ -1,240 +1,326 @@
-import { useContext, useEffect, useState, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FiMenu, FiX, FiSun, FiMoon, FiChevronDown } from "react-icons/fi";
+import { useState, useEffect, useContext } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
-import { useTheme } from "../contexts/ThemeContext";
 import { useCart } from "../contexts/CartContext";
+import ThemeSwitcher from "./ThemeSwitcher";
 import Avatar from "./Avatar";
+import { 
+  FaShoppingCart, 
+  FaHeart, 
+  FaUser, 
+  FaBars, 
+  FaTimes, 
+  FaHome,
+  FaStore,
+  FaPalette,
+  FaComments,
+  FaCog,
+  FaSignOutAlt,
+  FaChevronDown
+} from "react-icons/fa";
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated } = useContext(AuthContext);
-  const { isDarkMode, toggleTheme } = useTheme();
-  const { getCartCount } = useCart();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { user, logout } = useContext(AuthContext);
+  const { cart } = useCart();
   const navigate = useNavigate();
-  const dropdownRef = useRef();
+  const location = useLocation();
+  
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close menus when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+  }, [location.pathname]);
+
+  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
+      if (isUserMenuOpen && !event.target.closest('.user-menu')) {
+        setIsUserMenuOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isUserMenuOpen]);
 
   const handleLogout = () => {
     logout();
-    setDropdownOpen(false);
     navigate("/");
+    setIsUserMenuOpen(false);
   };
 
-  const navLinkClass = "text-lg font-medium hover:text-[#A58077] transition";
+  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+  const navLinks = [
+    { to: "/", label: "Home", icon: FaHome },
+    { to: "/products", label: "Products", icon: FaStore },
+    { to: "/generate-image", label: "AI Design", icon: FaPalette },
+    { to: "/chat", label: "Chat", icon: FaComments },
+  ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#181818] dark:bg-[#E5CBBE] text-[#E5CBBE] dark:text-[#181818] shadow-sm backdrop-blur transition-colors">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        {/* Logo */}
-        <Link
-          to="/"
-          className="text-2xl font-bold hover:text-[#A58077] transition"
-        >
-          AI Interior Design
-        </Link>
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex space-x-6">
-          <Link to="/" className={navLinkClass}>
-            Home
-          </Link>
-          <Link to="/products" className={navLinkClass}>
-            Products
-          </Link>
-          <Link to="/cart" className={`${navLinkClass} relative`}>
-            Cart
-            {getCartCount() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {getCartCount()}
-              </span>
-            )}
-          </Link>
-          <Link to="/chatbot" className={navLinkClass}>
-            AI Chat
-          </Link>
-          {isAuthenticated && (
-            <Link to="/dashboard" className={navLinkClass}>
-              Dashboard
-            </Link>
-          )}
-          {user?.role === "admin" && (
-            <Link to="/admin" className={navLinkClass}>
-              Admin Panel
-            </Link>
-          )}
-        </div>
-
-        {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-4 relative">
-          <button
-            onClick={toggleTheme}
-            className="text-xl hover:text-[#A58077] transition"
-          >
-            {isDarkMode ? <FiSun /> : <FiMoon />}
-          </button>
-
-          {isAuthenticated ? (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 hover:text-[#A58077] transition"
-                aria-haspopup="true"
-                aria-expanded={dropdownOpen}
-              >
-                <Avatar name={user.name} size={36} />
-                <FiChevronDown
-                  className={`transition-transform ${
-                    dropdownOpen ? "rotate-180" : ""
-                  }`}
+    <>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        isScrolled 
+          ? 'bg-theme-background/95 backdrop-blur-xl border-b border-theme-border/30 shadow-2xl' 
+          : 'bg-theme-background/90 backdrop-blur-lg'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 lg:h-20">
+            
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-3 group flex-shrink-0">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 overflow-hidden">
+                <img 
+                  src="/images/Logo.JPG" 
+                  alt="SmartSpace.AI Logo" 
+                  className="w-full h-full object-cover rounded-xl"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
                 />
-              </button>
+                <span className="text-white font-bold text-lg lg:text-xl hidden">AI</span>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-[#E5CBBE] to-[#A58077] bg-clip-text text-transparent group-hover:from-white group-hover:to-[#E5CBBE] transition-all duration-500">
+                  SmartSpace.AI
+                </h1>
+                <p className="text-xs text-theme-text-secondary -mt-1 opacity-80 group-hover:opacity-100 transition-opacity duration-300">AI-Powered Solutions</p>
+              </div>
+            </Link>
 
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white text-[#181818] rounded-xl shadow-xl py-2 transition-all origin-top-right scale-100 animate-fade-in z-50">
-                  <div className="px-4 py-2">
-                    <p className="font-semibold">{user.name}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
-                  </div>
-                  <hr className="my-1 border-gray-200" />
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-1">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = location.pathname === link.to;
+                return (
                   <Link
-                    to="/profile"
-                    className="block px-4 py-2 hover:bg-gray-100 text-sm"
-                    onClick={() => setDropdownOpen(false)}
+                    key={link.to}
+                    to={link.to}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white shadow-lg' 
+                        : 'text-theme-text hover:bg-[#A58077]/10 hover:text-white hover:shadow-md'
+                    }`}
                   >
-                    Profile
+                    <Icon className={`text-sm transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    <span className="font-medium">{link.label}</span>
+                    {isActive && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full animate-pulse"></div>
+                    )}
                   </Link>
-                  <Link
-                    to="/dashboard"
-                    className="block px-4 py-2 hover:bg-gray-100 text-sm"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    Dashboard
-                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-2 lg:space-x-4">
+              
+              {/* Theme Switcher */}
+              <div className="hidden sm:block">
+                <ThemeSwitcher />
+              </div>
+
+              {/* Cart */}
+              <Link
+                to="/cart"
+                className="relative p-2.5 text-theme-text hover:text-white hover:bg-[#A58077]/20 rounded-xl transition-all duration-300 group hover:scale-110"
+                aria-label="Cart"
+              >
+                <FaShoppingCart className="text-lg" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse shadow-lg">
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* User Menu */}
+              {user ? (
+                <div className="relative user-menu">
                   <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center space-x-2 p-2.5 text-theme-text hover:text-white hover:bg-[#A58077]/20 rounded-xl transition-all duration-300 hover:scale-105"
+                    aria-label="User menu"
                   >
-                    Logout
+                    <Avatar user={user} size="sm" />
+                    <span className="hidden sm:block font-medium max-w-24 truncate">{user.name}</span>
+                    <FaChevronDown className={`text-xs transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
+
+                  {/* Dropdown Menu */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-3 w-72 bg-theme-surface/95 backdrop-blur-xl border border-theme-border/50 rounded-2xl shadow-2xl py-3 z-50 animate-in slide-in-from-top-2 duration-300">
+                      <div className="px-4 py-3 border-b border-theme-border/50">
+                        <p className="text-theme-text font-semibold text-lg">{user.name}</p>
+                        <p className="text-theme-text-secondary text-sm opacity-80">{user.email}</p>
+                      </div>
+                      
+                      <div className="py-2 space-y-1">
+                        <Link
+                          to="/dashboard"
+                          className="flex items-center space-x-3 px-4 py-3 text-theme-text hover:bg-[#A58077]/20 hover:text-white transition-all duration-200 rounded-lg mx-2 group"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <FaUser className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                          <span>Dashboard</span>
+                        </Link>
+                        
+                        <Link
+                          to="/wishlist"
+                          className="flex items-center space-x-3 px-4 py-3 text-theme-text hover:bg-[#A58077]/20 hover:text-white transition-all duration-200 rounded-lg mx-2 group"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <FaHeart className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                          <span>Wishlist</span>
+                        </Link>
+                        
+                        {user.role === 'admin' && (
+                          <Link
+                            to="/admin"
+                            className="flex items-center space-x-3 px-4 py-3 text-theme-text hover:bg-[#A58077]/20 hover:text-white transition-all duration-200 rounded-lg mx-2 group"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <FaCog className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                            <span>Admin Panel</span>
+                          </Link>
+                        )}
+                        
+                        <div className="border-t border-theme-border/50 mt-2 pt-2">
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center space-x-3 px-4 py-3 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all duration-200 rounded-lg mx-2 w-full group"
+                          >
+                            <FaSignOutAlt className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                            <span>Logout</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Link
+                    to="/login"
+                    className="px-4 py-2.5 text-theme-text hover:text-white hover:bg-[#A58077]/20 rounded-xl transition-all duration-300 font-medium hover:scale-105"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-4 py-2.5 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-medium shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    Register
+                  </Link>
                 </div>
               )}
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="px-4 py-2 text-sm border border-[#E5CBBE] dark:border-[#181818] rounded-[12px] hover:text-[#A58077] hover:border-[#A58077] hover:bg-[#E5CBBE] dark:hover:bg-[#181818] transition"
-            >
-              Login
-            </Link>
-          )}
-        </div>
 
-        {/* Mobile Toggle */}
-        <div className="md:hidden flex items-center gap-3">
-          <button
-            onClick={toggleTheme}
-            className="text-xl hover:text-[#A58077] transition"
-          >
-            {isDarkMode ? <FiSun /> : <FiMoon />}
-          </button>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="text-2xl"
-          >
-            {mobileOpen ? <FiX /> : <FiMenu />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {mobileOpen && (
-        <div className="md:hidden px-4 pb-6 pt-2 space-y-4 bg-[#181818] dark:bg-[#E5CBBE] text-[#E5CBBE] dark:text-[#181818] border-t border-[#A09C9C] transition-all animate-fade-in">
-          <Link
-            to="/"
-            onClick={() => setMobileOpen(false)}
-            className={navLinkClass}
-          >
-            Home
-          </Link>
-          <Link
-            to="/products"
-            onClick={() => setMobileOpen(false)}
-            className={navLinkClass}
-          >
-            Products
-          </Link>
-          <Link
-            to="/cart"
-            onClick={() => setMobileOpen(false)}
-            className={`${navLinkClass} relative`}
-          >
-            Cart
-            {getCartCount() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {getCartCount()}
-              </span>
-            )}
-          </Link>
-          <Link
-            to="/chatbot"
-            onClick={() => setMobileOpen(false)}
-            className={navLinkClass}
-          >
-            AI Chat
-          </Link>
-          {isAuthenticated && (
-            <Link
-              to="/dashboard"
-              onClick={() => setMobileOpen(false)}
-              className={navLinkClass}
-            >
-              Dashboard
-            </Link>
-          )}
-
-          <hr className="border-[#A09C9C]" />
-
-          {isAuthenticated ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Avatar name={user.name} size={36} />
-                <div>
-                  <p className="font-semibold">{user.name}</p>
-                  <p className="text-sm text-gray-400">{user.email}</p>
-                </div>
-              </div>
+              {/* Mobile Menu Button */}
               <button
-                onClick={() => {
-                  handleLogout();
-                  setMobileOpen(false);
-                }}
-                className="w-full text-sm border border-[#E5CBBE] px-4 py-2 rounded hover:text-[#A58077] hover:border-[#A58077] hover:bg-[#E5CBBE] transition"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="lg:hidden p-2.5 text-theme-text hover:text-white hover:bg-[#A58077]/20 rounded-xl transition-all duration-300 hover:scale-110"
+                aria-label="Toggle menu"
               >
-                Logout
+                {isMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
               </button>
             </div>
-          ) : (
-            <Link
-              to="/login"
-              onClick={() => setMobileOpen(false)}
-              className="block w-full text-sm border border-[#E5CBBE] px-4 py-2 rounded hover:text-[#A58077] hover:border-[#A58077] hover:bg-[#E5CBBE] transition"
-            >
-              Login
-            </Link>
-          )}
+          </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="lg:hidden bg-[#2C2C2C]/95 backdrop-blur-xl border-t border-[#3C3C3C]/50 shadow-2xl animate-in slide-in-from-top-2 duration-300">
+            <div className="px-4 py-6 space-y-2">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = location.pathname === link.to;
+                return (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={`flex items-center space-x-4 px-4 py-4 rounded-xl transition-all duration-300 group ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white shadow-lg' 
+                        : 'text-theme-text hover:bg-[#A58077]/20 hover:text-white'
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Icon className={`text-xl transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    <span className="font-medium text-lg">{link.label}</span>
+                  </Link>
+                );
+              })}
+              
+              {user && (
+                <>
+                  <div className="border-t border-[#3C3C3C]/50 pt-4 mt-4">
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center space-x-4 px-4 py-4 text-theme-text hover:bg-[#A58077]/20 hover:text-white rounded-xl transition-all duration-300 group"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FaUser className="text-xl group-hover:scale-110 transition-transform duration-200" />
+                      <span className="font-medium text-lg">Dashboard</span>
+                    </Link>
+                    
+                    <Link
+                      to="/wishlist"
+                      className="flex items-center space-x-4 px-4 py-4 text-theme-text hover:bg-[#A58077]/20 hover:text-white rounded-xl transition-all duration-300 group"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FaHeart className="text-xl group-hover:scale-110 transition-transform duration-200" />
+                      <span className="font-medium text-lg">Wishlist</span>
+                    </Link>
+                    
+                    {user.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        className="flex items-center space-x-4 px-4 py-4 text-theme-text hover:bg-[#A58077]/20 hover:text-white rounded-xl transition-all duration-300 group"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <FaCog className="text-xl group-hover:scale-110 transition-transform duration-200" />
+                        <span className="font-medium text-lg">Admin Panel</span>
+                      </Link>
+                    )}
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center space-x-4 px-4 py-4 text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded-xl transition-all duration-300 w-full group"
+                    >
+                      <FaSignOutAlt className="text-xl group-hover:scale-110 transition-transform duration-200" />
+                      <span className="font-medium text-lg">Logout</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+      
+      {/* Backdrop for mobile menu */}
+      {isMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsMenuOpen(false)}
+        />
       )}
-    </nav>
+    </>
   );
 };
 

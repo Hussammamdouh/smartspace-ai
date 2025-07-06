@@ -1,9 +1,7 @@
-import { useTranslation } from 'react-i18next';
 import { FaSun, FaMoon } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
 const ThemeSwitcher = () => {
-  const { t } = useTranslation();
   const { isDarkMode, toggleTheme, colors } = useTheme();
 
   return (
@@ -14,10 +12,10 @@ const ThemeSwitcher = () => {
         backgroundColor: colors.surface,
         color: colors.text,
       }}
-      aria-label={isDarkMode ? t('lightMode') : t('darkMode')}
+      aria-label={isDarkMode ? 'Light Mode' : 'Dark Mode'}
     >
       {isDarkMode ? <FaSun /> : <FaMoon />}
-      <span>{isDarkMode ? t('lightMode') : t('darkMode')}</span>
+      <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
     </button>
   );
 };

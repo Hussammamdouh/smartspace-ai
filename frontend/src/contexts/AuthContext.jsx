@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useState, useEffect, useContext, useRef } from "react";
 import PropTypes from 'prop-types';
 import axiosInstance from '../utils/axiosInstance';
 import { toast } from 'react-hot-toast';
@@ -17,15 +17,46 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // Loading state for user verification
+  const verifyingRef = useRef(false); // Prevent multiple simultaneous verifications
 
   // Verify token and get user data on mount
   const verifyToken = async () => {
+    // Prevent multiple simultaneous verifications
+    if (verifyingRef.current) {
+      return;
+    }
+    
+    verifyingRef.current = true;
+    
     const token = localStorage.getItem('authToken');
+    const refreshToken = localStorage.getItem('refreshToken');
     console.log('Checking for token:', token ? 'Token exists' : 'No token found');
     
     if (!token) {
+      // Try to refresh if refresh token exists
+      if (refreshToken) {
+        try {
+          const response = await axiosInstance.post('/auth/refresh-token', { refreshToken });
+          const { token: newToken, refreshToken: newRefreshToken } = response.data;
+          localStorage.setItem('authToken', newToken);
+          localStorage.setItem('refreshToken', newRefreshToken);
+          // Retry /auth/me with new token
+          verifyingRef.current = false;
+          return await verifyToken();
+        } catch (refreshError) {
+          console.error('Failed to refresh token:', refreshError);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          setUser(null);
+          setLoading(false);
+          verifyingRef.current = false;
+          return;
+        }
+      }
       console.log('No token found, skipping verification');
       setLoading(false);
+      verifyingRef.current = false;
       return;
     }
 
@@ -46,11 +77,25 @@ export const AuthProvider = ({ children }) => {
         config: error.config
       });
       
-      // Check if it's a network error (backend not running)
-      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        console.log('Backend server appears to be offline');
+      // If token expired, try to refresh
+      if (error.response?.data?.message?.toLowerCase().includes('expired') && refreshToken) {
+        try {
+          const response = await axiosInstance.post('/auth/refresh-token', { refreshToken });
+          const { token: newToken, refreshToken: newRefreshToken } = response.data;
+          localStorage.setItem('authToken', newToken);
+          localStorage.setItem('refreshToken', newRefreshToken);
+          // Retry /auth/me with new token
+          verifyingRef.current = false;
+          return await verifyToken();
+        } catch (refreshError) {
+          console.error('Failed to refresh token:', refreshError);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          setUser(null);
+        }
+      } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
         // Don't clear tokens if it's just a network issue
-        // User can still use the app with cached data
         const cachedUser = localStorage.getItem('user');
         if (cachedUser) {
           try {
@@ -68,6 +113,7 @@ export const AuthProvider = ({ children }) => {
       }
     } finally {
       setLoading(false);
+      verifyingRef.current = false;
     }
   };
 
@@ -76,23 +122,42 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (userData, token, refreshToken) => {
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('refreshToken', refreshToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    try {
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+    } catch (error) {
+      console.error('Error during login:', error);
+      toast.error('Failed to save login information');
+      throw error;
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    setUser(null);
-    toast.success('Logged out successfully');
+  const logout = async () => {
+    try {
+      // Call logout endpoint to invalidate token on server
+      await axiosInstance.get('/auth/logout');
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with local logout even if API call fails
+    } finally {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      setUser(null);
+      toast.success('Logged out successfully');
+    }
   };
 
   const updateUser = (updatedUser) => {
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    try {
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update user information');
+    }
   };
 
   if (loading) {
@@ -114,7 +179,8 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       updateUser,
-      isAuthenticated: !!user 
+      isAuthenticated: !!user,
+      loading
     }}>
       {children}
     </AuthContext.Provider>

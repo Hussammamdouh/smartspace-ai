@@ -5,7 +5,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 30 second timeout for image generation and long operations
 });
 
 // Request interceptor
@@ -29,14 +29,43 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 errors (unauthorized)
+    // Handle 401 errors (unauthorized) - but only for authenticated requests
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Skip refresh token logic for auth endpoints (login, register, etc.)
+      const isAuthEndpoint = originalRequest.url?.includes('/auth/');
+      if (isAuthEndpoint) {
+        // For auth endpoints, just return the error without trying to refresh
+        return Promise.reject(error);
+      }
+
+      // Skip if this is a login/register request that failed
+      const isLoginRequest = originalRequest.url?.includes('/auth/login') || 
+                           originalRequest.url?.includes('/auth/register');
+      if (isLoginRequest) {
+        return Promise.reject(error);
+      }
+
+      // Skip if this is a logout request
+      const isLogoutRequest = originalRequest.url?.includes('/auth/logout');
+      if (isLogoutRequest) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
       
       try {
         // Get refresh token from localStorage
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) {
+          // No refresh token available, redirect to login
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          
+          // Only redirect if we're not already on login page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
           throw new Error('No refresh token available');
         }
 
@@ -68,6 +97,19 @@ axiosInstance.interceptors.response.use(
         }
         return Promise.reject(refreshError);
       }
+    }
+
+    // Handle network errors
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.error('Network error:', error);
+      // Don't redirect for network errors, just return the error
+      return Promise.reject(error);
+    }
+
+    // Handle timeout errors
+    if (error.code === 'ECONNABORTED') {
+      console.error('Request timeout:', error);
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);

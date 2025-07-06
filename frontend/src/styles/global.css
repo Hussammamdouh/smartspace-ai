@@ -1,3 +1,253 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global CSS Variables for Theme */
+:root {
+  --primary-light: #8B6B61;
+  --primary-dark: #A58077;
+  --secondary-light: #D4B5A0;
+  --secondary-dark: #E5CBBE;
+  --background-light: #F5F1ED; /* Light beige background */
+  --background-dark: #181818;
+  --surface-light: #FAF7F3; /* Lighter beige for cards instead of pure white */
+  --surface-dark: #2C2C2C;
+  --surface-light-secondary: #F0EBE6; /* Even lighter beige for secondary surfaces */
+  --surface-dark-secondary: #3C3C3C;
+  --text-light: #2C2C2C;
+  --text-dark: #E5CBBE;
+  --text-secondary-light: #666666;
+  --text-secondary-dark: #A58077;
+  --border-light: #E5D3C7; /* Light beige border */
+  --border-dark: #3C3C3C;
+  --shadow-light: rgba(139, 107, 97, 0.1);
+  --shadow-dark: rgba(0, 0, 0, 0.3);
+}
+
+/* Light mode styles (default) */
+:root {
+  --primary: var(--primary-light);
+  --secondary: var(--secondary-light);
+  --background: var(--background-light);
+  --surface: var(--surface-light);
+  --surface-light: var(--surface-light-secondary);
+  --text: var(--text-light);
+  --text-secondary: var(--text-secondary-light);
+  --border: var(--border-light);
+  --shadow: var(--shadow-light);
+}
+
+/* Dark mode styles */
+.dark {
+  --primary: var(--primary-dark);
+  --secondary: var(--secondary-dark);
+  --background: var(--background-dark);
+  --surface: var(--surface-dark);
+  --surface-light: var(--surface-dark-secondary);
+  --text: var(--text-dark);
+  --text-secondary: var(--text-secondary-dark);
+  --border: var(--border-dark);
+  --shadow: var(--shadow-dark);
+}
+
+/* Apply theme colors globally */
+body {
+  background-color: var(--background);
+  color: var(--text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+/* Ensure all elements inherit theme colors */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Custom scrollbar for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--surface-dark);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--primary-dark);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-dark);
+}
+
+/* Custom scrollbar for light mode */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-light);
+}
+
+/* Theme-aware utility classes */
+.bg-theme-background {
+  background-color: var(--background);
+}
+
+.bg-theme-surface {
+  background-color: var(--surface);
+}
+
+.bg-theme-surface-light {
+  background-color: var(--surface-light);
+}
+
+.text-theme-text {
+  color: var(--text);
+}
+
+.text-theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+.border-theme-border {
+  border-color: var(--border);
+}
+
+.shadow-theme {
+  box-shadow: 0 4px 6px -1px var(--shadow);
+}
+
+/* Tailwind dark mode overrides */
+.dark .bg-theme-background {
+  background-color: var(--background-dark);
+}
+
+.dark .bg-theme-surface {
+  background-color: var(--surface-dark);
+}
+
+.dark .bg-theme-surface-light {
+  background-color: var(--surface-dark-secondary);
+}
+
+.dark .text-theme-text {
+  color: var(--text-dark);
+}
+
+.dark .text-theme-text-secondary {
+  color: var(--text-secondary-dark);
+}
+
+.dark .border-theme-border {
+  border-color: var(--border-dark);
+}
+
+/* Override common hardcoded colors with theme variables */
+.bg-\[\#181818\] {
+  background-color: var(--background) !important;
+}
+
+.bg-\[\#2C2C2C\] {
+  background-color: var(--surface) !important;
+}
+
+.bg-\[\#1e1e1e\] {
+  background-color: var(--surface-light) !important;
+}
+
+.text-\[\#E5CBBE\] {
+  color: var(--text) !important;
+}
+
+.text-\[\#A58077\] {
+  color: var(--text-secondary) !important;
+}
+
+.border-\[\#3C3C3C\] {
+  border-color: var(--border) !important;
+}
+
+/* Dark mode specific overrides */
+.dark .bg-\[\#181818\] {
+  background-color: var(--background-dark) !important;
+}
+
+.dark .bg-\[\#2C2C2C\] {
+  background-color: var(--surface-dark) !important;
+}
+
+.dark .bg-\[\#1e1e1e\] {
+  background-color: var(--surface-dark-secondary) !important;
+}
+
+.dark .text-\[\#E5CBBE\] {
+  color: var(--text-dark) !important;
+}
+
+.dark .text-\[\#A58077\] {
+  color: var(--text-secondary-dark) !important;
+}
+
+.dark .border-\[\#3C3C3C\] {
+  border-color: var(--border-dark) !important;
+}
+
+/* Hero section animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 8s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 10s ease-in-out infinite;
+}
+
+/* Custom slider styles for products page */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #A58077;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #A58077;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}

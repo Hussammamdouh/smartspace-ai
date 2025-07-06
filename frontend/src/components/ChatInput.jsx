@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { FiSend } from "react-icons/fi";
+import PropTypes from "prop-types";
 
 const ChatInput = ({ onSend }) => {
   const [input, setInput] = useState("");
@@ -27,6 +28,10 @@ const ChatInput = ({ onSend }) => {
       </button>
     </form>
   );
+};
+
+ChatInput.propTypes = {
+  onSend: PropTypes.func.isRequired
 };
 
 export default ChatInput;

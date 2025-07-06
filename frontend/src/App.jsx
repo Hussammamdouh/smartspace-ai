@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -15,12 +15,12 @@ import { Toaster } from "react-hot-toast";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
-import "./i18n";
 
 // Pages
 import ProductsPage from "./pages/Products";
 import SingleProductPage from "./pages/Product";
 import CartPage from "./pages/Cart";
+import WishlistPage from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import UnifiedChat from "./pages/ChatPage";
 import PaymentPage from "./pages/Payment";
@@ -35,22 +35,19 @@ const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const EmailVerification = lazy(() => import("./pages/EmailVerification"));
 const UserDashboard = lazy(() => import("./pages/Dashboard"));
+const GenerateImage = lazy(() => import("./pages/GenerateImage"));
+const GeminiChat = lazy(() => import("./pages/GeminiChat"));
+const EditDesignPage = lazy(() => import("./pages/EditDesignPage"));
 
 // AppContent component that uses the theme
 const AppContent = () => {
-  const { isDarkMode, colors } = useTheme();
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+  const { isDarkMode } = useTheme();
 
   return (
-    <div style={{ backgroundColor: colors.background, color: colors.text, minHeight: '100vh' }}>
+    <div className="min-h-screen bg-theme-background text-theme-text">
       <BackendStatus />
       <ToastContainer
         position="top-right"
@@ -62,7 +59,7 @@ const AppContent = () => {
 
       <Suspense
         fallback={
-          <div className="text-center p-5" style={{ color: colors.primary }}>
+          <div className="text-center p-5 text-theme-text-secondary">
             Loading...
           </div>
         }
@@ -94,6 +91,8 @@ const AppContent = () => {
               </RedirectIfLoggedIn>
             }
           />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/verify-email/:token" element={<EmailVerification />} />
 
           {/* Protected Pages */}
           <Route
@@ -125,8 +124,35 @@ const AppContent = () => {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/product/:id" element={<SingleProductPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/chatbot" element={<UnifiedChat />} />
           <Route path="/ai" element={<UnifiedChat />} />
+
+          {/* AI Pages */}
+          <Route
+            path="/generate-image"
+            element={
+              <ProtectedRoute>
+                <GenerateImage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gemini-chat"
+            element={
+              <ProtectedRoute>
+                <GeminiChat />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/edit-design"
+            element={
+              <ProtectedRoute>
+                <EditDesignPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Payment and Orders */}
           <Route path="/thankyou" element={<ThankYouPage />} />

@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
+import PropTypes from "prop-types";
 
 const Notification = ({ message, type = "info", duration = 3000, onClose }) => {
   useEffect(() => {
@@ -42,6 +43,13 @@ const Notification = ({ message, type = "info", duration = 3000, onClose }) => {
       )}
     </div>
   );
+};
+
+Notification.propTypes = {
+  message: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(['success', 'error', 'info']),
+  duration: PropTypes.number,
+  onClose: PropTypes.func
 };
 
 export default Notification;

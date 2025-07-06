@@ -23,7 +23,7 @@ const EditProduct = () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/inventory/${id}`);
         setProduct(res.data.data || res.data);
-      } catch (err) {
+      } catch {
         toast.error("Failed to fetch product.");
       }
     };

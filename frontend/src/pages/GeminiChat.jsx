@@ -3,7 +3,7 @@ import { useState } from "react";
 import axios from "axios";
 
 const ImageGenerator = () => {
-  const [prompt, setPrompt] = useState("");
+    const [prompt, setPrompt] = useState("");
   const [image, setImage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,8 +26,8 @@ const ImageGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] p-8">
-      <h1 className="text-4xl font-bold mb-6">Interior Design Image Generator</h1>
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text)] p-8">
+      <h1 className="text-4xl font-bold mb-6">{''}</h1>
 
       <form onSubmit={handleGenerate} className="flex gap-4 mb-6">
         <input

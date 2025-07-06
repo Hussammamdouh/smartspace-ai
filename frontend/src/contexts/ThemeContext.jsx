@@ -19,7 +19,39 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    document.documentElement.classList.toggle('dark', isDarkMode);
+    
+    // Apply dark mode class to document
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Set CSS variables for theme colors
+    const root = document.documentElement;
+    if (isDarkMode) {
+      // Dark mode colors
+      root.style.setProperty('--primary', '#A58077');
+      root.style.setProperty('--secondary', '#E5CBBE');
+      root.style.setProperty('--background', '#181818');
+      root.style.setProperty('--surface', '#2C2C2C');
+      root.style.setProperty('--surface-light', '#3C3C3C');
+      root.style.setProperty('--text', '#E5CBBE');
+      root.style.setProperty('--text-secondary', '#A58077');
+      root.style.setProperty('--border', '#3C3C3C');
+      root.style.setProperty('--shadow', 'rgba(0, 0, 0, 0.3)');
+    } else {
+      // Light mode colors with light beige background
+      root.style.setProperty('--primary', '#8B6B61');
+      root.style.setProperty('--secondary', '#D4B5A0');
+      root.style.setProperty('--background', '#F5F1ED'); // Light beige background
+      root.style.setProperty('--surface', '#FAF7F3'); // Lighter beige for cards
+      root.style.setProperty('--surface-light', '#F0EBE6'); // Even lighter beige for secondary surfaces
+      root.style.setProperty('--text', '#2C2C2C');
+      root.style.setProperty('--text-secondary', '#666666');
+      root.style.setProperty('--border', '#E5D3C7'); // Light beige border
+      root.style.setProperty('--shadow', 'rgba(139, 107, 97, 0.1)');
+    }
   }, [isDarkMode]);
 
   const toggleTheme = () => {
@@ -32,10 +64,13 @@ export const ThemeProvider = ({ children }) => {
     colors: {
       primary: isDarkMode ? '#A58077' : '#8B6B61',
       secondary: isDarkMode ? '#E5CBBE' : '#D4B5A0',
-      background: isDarkMode ? '#181818' : '#FFFFFF',
-      surface: isDarkMode ? '#2C2C2C' : '#F5F5F5',
+      background: isDarkMode ? '#181818' : '#F5F1ED', // Light beige for light mode
+      surface: isDarkMode ? '#2C2C2C' : '#FAF7F3',
+      surfaceLight: isDarkMode ? '#3C3C3C' : '#F0EBE6',
       text: isDarkMode ? '#E5CBBE' : '#2C2C2C',
       textSecondary: isDarkMode ? '#A58077' : '#666666',
+      border: isDarkMode ? '#3C3C3C' : '#E5D3C7',
+      shadow: isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(139, 107, 97, 0.1)',
     }
   };
 

@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+
 const MessageBubble = ({ sender, text, loading = false }) => {
   const isUser = sender === "user";
   const baseStyles = "max-w-[75%] px-4 py-3 rounded-lg shadow text-sm whitespace-pre-wrap";
@@ -11,6 +13,12 @@ const MessageBubble = ({ sender, text, loading = false }) => {
       </div>
     </div>
   );
+};
+
+MessageBubble.propTypes = {
+  sender: PropTypes.string.isRequired,
+  text: PropTypes.string.isRequired,
+  loading: PropTypes.bool
 };
 
 export default MessageBubble;

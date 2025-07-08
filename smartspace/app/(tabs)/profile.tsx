@@ -8,369 +8,438 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
-  Modal,
+  Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import apiService from '../../services/api';
-import ProfileEditModal from '../../components/ProfileEditModal';
+import { Button } from '../../components/ui/Button';
+import { Ionicons } from '@expo/vector-icons';
+import api from '../../services/api';
+import { router } from 'expo-router';
 
-interface UserProfile {
+const { width } = Dimensions.get('window');
+
+interface Order {
   _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  avatar?: string;
+  orderNumber: string;
+  status: string;
+  total: number;
+  createdAt: string;
+  items: Array<{
+    product: {
+      name: string;
+      price: number;
+    };
+    quantity: number;
+  }>;
+}
+
+interface Design {
+  _id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  style: string;
+  roomType: string;
   createdAt: string;
 }
 
 export default function ProfileScreen() {
-  const { user, logout, isAuthenticated } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { colors, theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [designs, setDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
+
+  const containerStyle = {
+    flex: 1,
+    backgroundColor: colors.background,
+  };
+
+  const textStyle = {
+    color: colors.text,
+  };
+
+  const subtitleStyle = {
+    color: colors.textSecondary,
+  };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadProfile();
+    if (user) {
+      loadUserData();
     }
-  }, [isAuthenticated]);
+  }, [user]);
 
-  const loadProfile = async () => {
+  const loadUserData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await apiService.getProfile();
-      if (response.success && response.data) {
-        setProfile(response.data as UserProfile);
-      }
+      await Promise.all([
+        loadOrders(),
+        loadDesigns(),
+      ]);
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
+  const loadOrders = async () => {
+    try {
+      const response = await api.getOrders();
+      if (response.success && response.data) {
+        setOrders(response.data as Order[]);
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    }
+  };
+
+  const loadDesigns = async () => {
+    try {
+      const response = await api.getDesigns();
+      if (response.success && response.data) {
+        setDesigns(response.data as Design[]);
+      }
+    } catch (error) {
+      console.error('Error loading designs:', error);
+    }
+  };
+
+  const handleLogout = async () => {
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error) {
+              console.error('Logout error:', error);
+            }
+          },
+        },
       ]
     );
   };
 
   const handleEditProfile = () => {
-    setShowEditModal(true);
+    Alert.alert('Edit Profile', 'Profile editing will be implemented soon');
   };
 
-  const handleProfileUpdate = () => {
-    loadProfile(); // Reload profile data
+  const handleViewOrder = (order: Order) => {
+    router.push({
+      pathname: '/order/[id]',
+      params: { id: order._id }
+    });
   };
 
-  const handleViewOrders = () => {
-    Alert.alert('Orders', 'Order history will be implemented');
+  const handleViewDesign = (design: Design) => {
+    Alert.alert('Design Details', `Title: ${design.title}\nStyle: ${design.style}\nRoom: ${design.roomType}`);
   };
 
-  const handleViewWishlist = () => {
-    Alert.alert('Wishlist', 'Wishlist will be implemented');
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
-  const handleViewDesigns = () => {
-    Alert.alert('My Designs', 'Design history will be implemented');
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return '#4CAF50';
+      case 'pending':
+        return '#FF9800';
+      case 'cancelled':
+        return '#F44336';
+      default:
+        return colors.textSecondary;
+    }
   };
 
-  const handleSettings = () => {
-    setShowSettings(true);
-  };
-
-  const handleHelp = () => {
-    Alert.alert('Help & Support', 'Help center will be implemented');
-  };
-
-  const handleAbout = () => {
-    Alert.alert('About', 'About page will be implemented');
-  };
-
-  if (!isAuthenticated) {
+  // Show login screen for unauthenticated users
+  if (!user) {
     return (
-      <View style={styles.authContainer}>
-        <Ionicons name="person-outline" size={64} color="#666" />
-        <Text style={styles.authText}>Login to view your profile</Text>
+      <View style={[containerStyle, styles.centerContainer]}>
+        <View style={[styles.loginCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name="person-circle-outline" size={80} color={colors.primary} />
+          <Text style={[styles.loginTitle, textStyle]}>Welcome to SmartSpace.AI</Text>
+          <Text style={[styles.loginSubtitle, subtitleStyle]}>
+            Sign in to access your profile, orders, and AI design features
+          </Text>
+          <Button
+            title="Login"
+            onPress={() => router.push('/auth/login')}
+            style={styles.loginButton}
+          />
+          <Button
+            title="Create Account"
+            onPress={() => router.push('/auth/register')}
+            variant="outline"
+            style={styles.registerButton}
+          />
+        </View>
       </View>
     );
   }
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#A58077" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View style={[containerStyle, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, subtitleStyle]}>Loading profile...</Text>
       </View>
     );
   }
 
   return (
-    <>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.profileSection}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={40} color="#FCF3E8" />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.name}>{profile?.name || user?.name || 'User'}</Text>
-              <Text style={styles.email}>{profile?.email || user?.email}</Text>
-              <Text style={styles.memberSince}>
-                Member since {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Recently'}
-              </Text>
-            </View>
+    <ScrollView style={containerStyle} showsVerticalScrollIndicator={false}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+            <Text style={styles.avatarText}>
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </Text>
           </View>
-          <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-            <Ionicons name="pencil" size={20} color="#A58077" />
+          <View style={styles.profileInfo}>
+            <Text style={[styles.userName, textStyle]}>{user?.name || 'User'}</Text>
+            <Text style={[styles.userEmail, subtitleStyle]}>{user?.email || 'user@example.com'}</Text>
+            <Text style={[styles.memberSince, subtitleStyle]}>
+              Member since {user?.createdAt ? formatDate(user.createdAt) : '2024'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.editButton, { borderColor: colors.border }]}
+            onPress={handleEditProfile}
+          >
+            <Ionicons name="pencil" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
+      {/* Stats */}
+      <View style={styles.statsSection}>
+        <View style={[styles.statsGrid, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>0</Text>
-            <Text style={styles.statLabel}>Orders</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{orders.length}</Text>
+            <Text style={[styles.statLabel, subtitleStyle]}>Orders</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>0</Text>
-            <Text style={styles.statLabel}>Designs</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{designs.length}</Text>
+            <Text style={[styles.statLabel, subtitleStyle]}>Designs</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>0</Text>
-            <Text style={styles.statLabel}>Wishlist</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>0</Text>
+            <Text style={[styles.statLabel, subtitleStyle]}>Wishlist</Text>
           </View>
         </View>
+      </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>My Account</Text>
-          
-          <TouchableOpacity style={styles.menuItem} onPress={handleViewOrders}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="bag-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>My Orders</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={handleViewDesigns}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="images-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>My Designs</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={handleViewWishlist}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="heart-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>Wishlist</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          
-          <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="settings-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>App Settings</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="notifications-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>Notifications</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#444', true: '#A58077' }}
-              thumbColor={notificationsEnabled ? '#FCF3E8' : '#666'}
-            />
+      {/* Settings */}
+      <View style={styles.settingsSection}>
+        <Text style={[styles.sectionTitle, textStyle]}>Settings</Text>
+        
+        <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.settingInfo}>
+            <Ionicons name="moon" size={20} color={colors.primary} />
+            <Text style={[styles.settingLabel, textStyle]}>Dark Mode</Text>
           </View>
+                     <Switch
+             value={theme === 'dark'}
+             onValueChange={toggleTheme}
+             trackColor={{ false: colors.border, true: colors.primary }}
+             thumbColor={theme === 'dark' ? '#FFFFFF' : colors.text}
+           />
+        </View>
 
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="moon-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>Dark Mode</Text>
-            </View>
-            <Switch
-              value={darkModeEnabled}
-              onValueChange={setDarkModeEnabled}
-              trackColor={{ false: '#444', true: '#A58077' }}
-              thumbColor={darkModeEnabled ? '#FCF3E8' : '#666'}
-            />
+        <View style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.settingInfo}>
+            <Ionicons name="notifications" size={20} color={colors.primary} />
+            <Text style={[styles.settingLabel, textStyle]}>Notifications</Text>
           </View>
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={setNotificationsEnabled}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={notificationsEnabled ? '#FFFFFF' : colors.text}
+          />
         </View>
 
-        <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          
-          <TouchableOpacity style={styles.menuItem} onPress={handleHelp}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="help-circle-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>Help & Support</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={handleAbout}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="information-circle-outline" size={20} color="#A58077" />
-              </View>
-              <Text style={styles.menuText}>About</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#E5CBBE" />
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity
+          style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => Alert.alert('Help', 'Help and support will be available soon')}
+        >
+          <View style={styles.settingInfo}>
+            <Ionicons name="help-circle" size={20} color={colors.primary} />
+            <Text style={[styles.settingLabel, textStyle]}>Help & Support</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-
-      {/* Profile Edit Modal */}
-      {profile && (
-        <ProfileEditModal
-          visible={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onUpdate={handleProfileUpdate}
-          profile={profile}
-        />
-      )}
-
-      {/* Settings Modal */}
-      <Modal
-        visible={showSettings}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.settingsContainer}>
-          <View style={styles.settingsHeader}>
-            <TouchableOpacity onPress={() => setShowSettings(false)}>
-              <Ionicons name="close" size={24} color="#E5CBBE" />
-            </TouchableOpacity>
-            <Text style={styles.settingsTitle}>Settings</Text>
-            <View style={styles.settingsHeaderSpacer} />
+        <TouchableOpacity
+          style={[styles.settingItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => Alert.alert('Privacy', 'Privacy policy will be available soon')}
+        >
+          <View style={styles.settingInfo}>
+            <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
+            <Text style={[styles.settingLabel, textStyle]}>Privacy Policy</Text>
           </View>
-          <ScrollView style={styles.settingsContent}>
-            <Text style={styles.settingsText}>Settings screen will be implemented here</Text>
-          </ScrollView>
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Recent Orders */}
+      <View style={styles.ordersSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, textStyle]}>Recent Orders</Text>
+          <TouchableOpacity onPress={() => Alert.alert('Orders', 'View all orders')}>
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </>
+
+        {(orders || []).length === 0 ? (
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, textStyle]}>No orders yet</Text>
+            <Text style={[styles.emptySubtext, subtitleStyle]}>
+              Your order history will appear here
+            </Text>
+          </View>
+        ) : (
+          (orders || []).slice(0, 3).map((order) => (
+            <TouchableOpacity
+              key={order._id}
+              style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => handleViewOrder(order)}
+            >
+              <View style={styles.orderInfo}>
+                <Text style={[styles.orderNumber, textStyle]}>#{order.orderNumber}</Text>
+                <Text style={[styles.orderDate, subtitleStyle]}>{formatDate(order.createdAt)}</Text>
+              </View>
+              <View style={styles.orderStatus}>
+                <Text style={[styles.orderStatusText, { color: getStatusColor(order.status) }]}>
+                  {order.status}
+                </Text>
+                <Text style={[styles.orderTotal, textStyle]}>
+                  ${(order.total || 0).toFixed(2)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      {/* Saved Designs */}
+      <View style={styles.designsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, textStyle]}>Saved Designs</Text>
+          <TouchableOpacity onPress={() => Alert.alert('Designs', 'View all designs')}>
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {(designs || []).length === 0 ? (
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="images-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, textStyle]}>No designs yet</Text>
+            <Text style={[styles.emptySubtext, subtitleStyle]}>
+              Your AI-generated designs will appear here
+            </Text>
+          </View>
+        ) : (
+          (designs || []).slice(0, 3).map((design) => (
+            <TouchableOpacity
+              key={design._id}
+              style={[styles.designCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => handleViewDesign(design)}
+            >
+              <View style={[styles.designImage, { backgroundColor: colors.border }]}>
+                <Text style={[styles.designImageText, subtitleStyle]}>{design.title}</Text>
+              </View>
+              <View style={styles.designInfo}>
+                <Text style={[styles.designTitle, textStyle]}>{design.title}</Text>
+                <Text style={[styles.designStyle, subtitleStyle]}>{design.style} • {design.roomType}</Text>
+                <Text style={[styles.designDate, subtitleStyle]}>{formatDate(design.createdAt)}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      {/* Logout Button */}
+      <View style={styles.logoutSection}>
+        <Button
+          title="Logout"
+          onPress={handleLogout}
+          variant="outline"
+          style={styles.logoutButton}
+        />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#181818',
-  },
-  authContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  authText: {
-    color: '#666',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#E5CBBE',
-    marginTop: 16,
-    fontSize: 16,
-  },
   header: {
-    backgroundColor: '#2C2C2C',
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 24,
+    paddingTop: 40,
   },
-  profileSection: {
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#A58077',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
   profileInfo: {
     flex: 1,
   },
-  name: {
-    fontSize: 24,
+  userName: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#E5CBBE',
     marginBottom: 4,
   },
-  email: {
-    fontSize: 16,
-    color: '#A58077',
+  userEmail: {
+    fontSize: 14,
     marginBottom: 4,
   },
   memberSince: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 12,
   },
   editButton: {
-    padding: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  statsContainer: {
+  statsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  statsGrid: {
     flexDirection: 'row',
-    backgroundColor: '#2C2C2C',
-    marginTop: 1,
-    paddingVertical: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
   },
   statItem: {
     flex: 1,
@@ -379,97 +448,175 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#A58077',
+    marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
   },
-  menuSection: {
-    marginTop: 24,
+  settingsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E5CBBE',
-    marginBottom: 12,
-    paddingHorizontal: 20,
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
   },
-  menuItem: {
+  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#2C2C2C',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 1,
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(165, 128, 119, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  menuText: {
-    fontSize: 16,
-    color: '#E5CBBE',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#A58077',
-    marginHorizontal: 20,
-    marginTop: 32,
-    paddingVertical: 16,
+    padding: 16,
     borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
   },
-  logoutText: {
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  ordersSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  viewAllText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#E5CBBE',
-    marginLeft: 8,
   },
-  bottomSpacing: {
-    height: 20,
+  emptyContainer: {
+    alignItems: 'center',
+    padding: 32,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  settingsContainer: {
-    flex: 1,
-    backgroundColor: '#181818',
+  emptyText: {
+    fontSize: 18,
+    marginTop: 16,
   },
-  settingsHeader: {
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  orderCard: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#2C2C2C',
-    borderBottomWidth: 1,
-    borderBottomColor: '#444',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
   },
-  settingsTitle: {
+  orderInfo: {
     flex: 1,
-    fontSize: 20,
+  },
+  orderNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  orderDate: {
+    fontSize: 14,
+  },
+  orderStatus: {
+    alignItems: 'flex-end',
+  },
+  orderStatusText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  orderTotal: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#E5CBBE',
+  },
+  designsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  designCard: {
+    flexDirection: 'row',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  designImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  designImageText: {
+    fontSize: 10,
     textAlign: 'center',
   },
-  settingsHeaderSpacer: {
-    width: 24,
-  },
-  settingsContent: {
+  designInfo: {
     flex: 1,
-    padding: 16,
   },
-  settingsText: {
-    color: '#E5CBBE',
+  designTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  designStyle: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  designDate: {
+    fontSize: 12,
+  },
+  logoutSection: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+  logoutButton: {
+    marginBottom: 20,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  centerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginCard: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  loginTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  loginSubtitle: {
     fontSize: 16,
     textAlign: 'center',
+    marginBottom: 24,
+  },
+  loginButton: {
+    marginBottom: 16,
+  },
+  registerButton: {
+    marginBottom: 16,
   },
 }); 

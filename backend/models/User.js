@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema({
     default: 'user'
   },
   avatar: { type: String },
+  public_id: { type: String }, // Cloudinary public_id for avatar
   gender: { type: String },
   country: { type: String },
   language: { type: String },

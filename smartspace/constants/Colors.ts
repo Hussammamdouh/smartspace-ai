@@ -6,25 +6,24 @@
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+// Color palette for SmartSpace.AI mobile app
 export const Colors = {
-  light: {
-    primary: '#F5F5F5', // Primary and Background
-    secondary: '#FCF3E8',
-    text: '#0C0C0D', // Typo/Main Text
-    accent: '#DFCCC2', // Fourth Color
-    background: '#F5F5F5',
-    tabIconDefault: '#0C0C0D',
-    tabIconSelected: '#DFCCC2',
-    icon: '#0C0C0D',
-  },
-  dark: {
-    primary: '#0C0C0D',
-    secondary: '#DFCCC2',
-    text: '#F5F5F5',
-    accent: '#FCF3E8',
-    background: '#0C0C0D',
-    tabIconDefault: '#DFCCC2',
-    tabIconSelected: '#FCF3E8',
-    icon: '#F5F5F5',
-  },
+  primary: '#A58077',
+  primaryDark: '#8B6B63',
+  secondary: '#E5CBBE',
+  secondaryDark: '#D4B5A0',
+  background: '#F5F1ED', // Light beige
+  backgroundDark: '#181818',
+  surface: '#FAF7F3', // Card background
+  surfaceDark: '#2C2C2C',
+  surfaceLight: '#F0EBE6',
+  surfaceDarkSecondary: '#3C3C3C',
+  text: '#2C2C2C',
+  textDark: '#E5CBBE',
+  textSecondary: '#666666',
+  textSecondaryDark: '#A58077',
+  border: '#E5D3C7',
+  borderDark: '#3C3C3C',
+  shadow: 'rgba(139, 107, 97, 0.1)',
+  shadowDark: 'rgba(0, 0, 0, 0.3)',
 };

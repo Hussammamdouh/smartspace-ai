@@ -1,12 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
   children: ReactNode;
@@ -16,9 +11,57 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
-export default class ErrorBoundary extends Component<Props, State> {
+function ErrorFallback({ error, errorInfo, onReset }: { 
+  error?: Error; 
+  errorInfo?: ErrorInfo; 
+  onReset: () => void;
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="warning" size={64} color={colors.primary} />
+        </View>
+        
+        <Text style={[styles.title, { color: colors.text }]}>
+          Oops! Something went wrong
+        </Text>
+        
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          We're sorry, but something unexpected happened. Please try again or contact support if the problem persists.
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.resetButton, { backgroundColor: colors.primary }]}
+          onPress={onReset}
+        >
+          <Text style={styles.resetButtonText}>Try Again</Text>
+        </TouchableOpacity>
+
+        {__DEV__ && error && (
+          <View style={[styles.errorContainer, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.errorTitle, { color: colors.text }]}>Error Details (Development):</Text>
+            <Text style={[styles.errorText, { color: colors.textSecondary }]}>
+              {error.toString()}
+            </Text>
+            {errorInfo && (
+              <Text style={[styles.errorText, { color: colors.textSecondary }]}>
+                {errorInfo.componentStack}
+              </Text>
+            )}
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -29,22 +72,11 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
-    // You can log the error to an error reporting service here
-    // Example: logErrorToService(error, errorInfo);
+    this.setState({ error, errorInfo });
   }
 
-  handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
-  };
-
-  handleReportError = () => {
-    Alert.alert(
-      'Report Error',
-      'Error reporting functionality will be implemented',
-      [{ text: 'OK' }]
-    );
+  handleReset = () => {
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
   render() {
@@ -54,38 +86,11 @@ export default class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="warning-outline" size={64} color="#A58077" />
-            </View>
-            
-            <Text style={styles.title}>Oops! Something went wrong</Text>
-            <Text style={styles.message}>
-              We encountered an unexpected error. Please try again or contact support if the problem persists.
-            </Text>
-            
-            {__DEV__ && this.state.error && (
-              <View style={styles.errorDetails}>
-                <Text style={styles.errorTitle}>Error Details (Development):</Text>
-                <Text style={styles.errorText}>{this.state.error.message}</Text>
-                <Text style={styles.errorStack}>{this.state.error.stack}</Text>
-              </View>
-            )}
-            
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
-                <Ionicons name="refresh" size={20} color="#FCF3E8" />
-                <Text style={styles.retryButtonText}>Try Again</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.reportButton} onPress={this.handleReportError}>
-                <Ionicons name="bug-outline" size={20} color="#A58077" />
-                <Text style={styles.reportButtonText}>Report Error</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <ErrorFallback
+          error={this.state.error}
+          errorInfo={this.state.errorInfo}
+          onReset={this.handleReset}
+        />
       );
     }
 
@@ -96,14 +101,12 @@ export default class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#181818',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  content: {
-    alignItems: 'center',
-    maxWidth: 400,
+    padding: 24,
   },
   iconContainer: {
     marginBottom: 24,
@@ -111,72 +114,41 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#E5CBBE',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  message: {
+  subtitle: {
     fontSize: 16,
-    color: '#A58077',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
+    paddingHorizontal: 20,
   },
-  errorDetails: {
-    backgroundColor: '#2C2C2C',
-    padding: 16,
+  resetButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 24,
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorContainer: {
+    padding: 16,
+    borderRadius: 8,
     width: '100%',
+    maxHeight: 200,
   },
   errorTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#E5CBBE',
+    fontWeight: '600',
     marginBottom: 8,
   },
   errorText: {
     fontSize: 12,
-    color: '#A58077',
-    marginBottom: 8,
-  },
-  errorStack: {
-    fontSize: 10,
-    color: '#666',
     fontFamily: 'monospace',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#A58077',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FCF3E8',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  reportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#A58077',
-  },
-  reportButtonText: {
-    color: '#A58077',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+    marginBottom: 4,
   },
 }); 

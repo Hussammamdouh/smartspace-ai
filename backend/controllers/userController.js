@@ -3,6 +3,7 @@ const Design = require('../models/Design'); // If designs are stored separately
 const Order = require('../models/Order');   // If orders are stored separately
 const { APIError } = require('../middlewares/errorHandler');
 const logger = require('../utils/logger');
+const { deleteFromCloudinary } = require('../config/cloudinary');
 
 // Fetch user profile
 exports.getUserProfile = async (req, res, next) => {
@@ -86,7 +87,12 @@ exports.uploadAvatar = async (req, res, next) => {
     }
 
     const user = await User.findById(req.user.id);
-    user.avatar = req.file.path; // Save file path
+    // Delete old avatar from Cloudinary if present
+    if (user.public_id) {
+      await deleteFromCloudinary(user.public_id);
+    }
+    user.avatar = req.file.url ? req.file.url : req.file.path; // Save Cloudinary URL or file path
+    user.public_id = req.file.public_id; // Save Cloudinary public_id
     await user.save();
 
     res.status(200).json({ success: true, avatar: user.avatar });
@@ -225,26 +231,24 @@ exports.updateUser = async (req, res, next) => {
 exports.deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     // Prevent admin from deleting themselves
     if (id === req.user.id) {
       return next(new APIError('You cannot delete yourself', 400));
     }
-
     const user = await User.findById(id);
     if (!user) {
       return next(new APIError('User not found', 404));
     }
-
     // Prevent deleting other admins
     if (user.role === 'admin') {
       return next(new APIError('Cannot delete admin users', 400));
     }
-
+    // Delete avatar from Cloudinary if public_id exists
+    if (user.public_id) {
+      await deleteFromCloudinary(user.public_id);
+    }
     await User.findByIdAndDelete(id);
-
     logger.info(`Admin ${req.user.id} deleted user ${id}`);
-
     res.status(200).json({
       success: true,
       message: 'User deleted successfully'

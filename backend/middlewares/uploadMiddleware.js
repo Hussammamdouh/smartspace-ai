@@ -81,6 +81,7 @@ const uploadWithCloudinary = async (req, res, next) => {
             // Add Cloudinary info to request
             req.file.cloudinary = cloudinaryResult;
             req.file.url = cloudinaryResult.url;
+            req.file.public_id = cloudinaryResult.public_id;
             
             // Clean up local file
             fs.unlinkSync(req.file.path);

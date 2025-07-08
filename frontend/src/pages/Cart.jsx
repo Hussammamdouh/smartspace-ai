@@ -24,7 +24,6 @@ const CartPage = () => {
   const [moreProducts, setMoreProducts] = useState([]);
 
   const [updatingItem, setUpdatingItem] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   const decreaseQuantity = (product) => {
     if (product.quantity === 1) {
@@ -64,7 +63,6 @@ const CartPage = () => {
   useEffect(() => {
     const fetchMore = async () => {
       try {
-        setLoading(true);
         const { data } = await axiosInstance.get('/inventory', {
           params: { limit: 4 },
         });
@@ -72,8 +70,6 @@ const CartPage = () => {
       } catch (error) {
         console.error("Failed to load more products:", error);
         toast.error("Failed to load recommended products");
-      } finally {
-        setLoading(false);
       }
     };
     fetchMore();
@@ -90,7 +86,7 @@ const CartPage = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
+      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-16">
             <div className="text-8xl mb-6">🛒</div>
@@ -125,7 +121,7 @@ const CartPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
+    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
@@ -160,13 +156,11 @@ const CartPage = () => {
                   {/* Product Image */}
                   <div className="relative">
                     <img
-                      src={item.image || item.filePath}
+                      src={item.image || 'https://via.placeholder.com/128x128/2C2C2C/A58077?text=No+Image'}
                       alt={item.name}
                       className="w-24 h-24 sm:w-32 sm:h-32 object-cover bg-[#1e1e1e] rounded-lg shadow-lg group-hover:shadow-xl transition-all duration-300"
                       loading="lazy"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/128x128/2C2C2C/A58077?text=No+Image';
-                      }}
+                      onError={e => { e.target.src = 'https://via.placeholder.com/128x128/2C2C2C/A58077?text=No+Image'; }}
                     />
                     
                     {/* Stock Badge */}

@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, useContext, useRef } from "react";
 import PropTypes from 'prop-types';
 import axiosInstance from '../utils/axiosInstance';
 import { toast } from 'react-hot-toast';
+import { useCart } from './CartContext';
 
 export const AuthContext = createContext();
 
@@ -18,6 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // Loading state for user verification
   const verifyingRef = useRef(false); // Prevent multiple simultaneous verifications
+  const clearCartRef = useRef(null);
 
   // Verify token and get user data on mount
   const verifyToken = async () => {
@@ -121,6 +123,17 @@ export const AuthProvider = ({ children }) => {
     verifyToken();
   }, []);
 
+  // Use an effect to store clearCart in a ref
+  useEffect(() => {
+    try {
+      // Only assign if useCart is available
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clearCartRef.current = useCart().clearCart;
+    } catch {
+      // ignore if useCart is not available
+    }
+  }, []);
+
   const login = async (userData, token, refreshToken) => {
     try {
       localStorage.setItem('authToken', token);
@@ -136,16 +149,15 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Call logout endpoint to invalidate token on server
       await axiosInstance.get('/auth/logout');
     } catch (error) {
       console.error('Logout API call failed:', error);
-      // Continue with local logout even if API call fails
     } finally {
       localStorage.removeItem('authToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
+      if (clearCartRef.current) clearCartRef.current();
       toast.success('Logged out successfully');
     }
   };

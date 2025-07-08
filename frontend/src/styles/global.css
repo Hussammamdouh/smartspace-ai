@@ -199,6 +199,35 @@ body {
   color: var(--text-secondary-dark) !important;
 }
 
+/* Credit Card Flip Animation */
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* 3D Card Container */
+.credit-card-container {
+  perspective: 1000px;
+}
+
+.credit-card-front,
+.credit-card-back {
+  backface-visibility: hidden;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.credit-card-back {
+  transform: rotateY(180deg);
+}
+
+.credit-card-container.flipped .credit-card-front {
+  transform: rotateY(180deg);
+}
+
+.credit-card-container.flipped .credit-card-back {
+  transform: rotateY(0deg);
+}
+
 .dark .border-\[\#3C3C3C\] {
   border-color: var(--border-dark) !important;
 }

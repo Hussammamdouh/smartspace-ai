@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from '../services/api';
+import api from '../services/api';
 
 interface CartItem {
   _id: string;
@@ -9,9 +9,19 @@ interface CartItem {
     _id: string;
     name: string;
     price: number;
-    image: string;
+    image?: string;
+    description?: string;
   };
   quantity: number;
+  price: number;
+}
+
+interface Cart {
+  _id: string;
+  userId: string;
+  items: CartItem[];
+  total: number;
+  updatedAt: string;
 }
 
 interface CartContextType {
@@ -19,11 +29,13 @@ interface CartContextType {
   totalItems: number;
   totalPrice: number;
   loading: boolean;
+  error: string | null;
   addToCart: (productId: string, quantity?: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   loadCart: () => Promise<void>;
+  refreshCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -43,56 +55,87 @@ interface CartProviderProps {
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiService.getCart();
+      setError(null);
+      const response = await api.getCart();
       if (response.success && response.data) {
         const cartData = response.data as any;
-        setItems(cartData.items || cartData || []);
+        const cartItems = cartData.items || cartData || [];
+        setItems(cartItems);
+      } else {
+        setError(response.error || 'Failed to load cart');
       }
     } catch (error) {
-      console.error('Error loading cart:', error);
+      setError('Failed to load cart');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const addToCart = async (productId: string, quantity: number = 1) => {
+  const refreshCart = useCallback(async () => {
+    await loadCart();
+  }, [loadCart]);
+
+  const addToCart = useCallback(async (productId: string, quantity: number = 1) => {
     try {
-      const response = await apiService.addToCart(productId, quantity);
+      setLoading(true);
+      setError(null);
+      const response = await api.addToCart(productId, quantity);
       if (response.success) {
-        await loadCart(); // Reload cart to get updated data
+        // Update cart items directly instead of reloading
+        const responseData = response.data as any;
+        if (responseData && responseData.items) {
+          setItems(responseData.items);
+        } else {
+          // Fallback to reloading if response structure is unexpected
+          await loadCart();
+        }
       } else {
+        setError(response.error || 'Failed to add to cart');
         throw new Error(response.error || 'Failed to add to cart');
       }
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      setError('Failed to add to cart');
       throw error;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [loadCart]);
 
-  const removeFromCart = async (itemId: string) => {
+  const removeFromCart = useCallback(async (itemId: string) => {
     try {
-      const response = await apiService.removeFromCart(itemId);
+      setLoading(true);
+      setError(null);
+      const response = await api.removeFromCart(itemId);
       if (response.success) {
         setItems(prev => prev.filter(item => item._id !== itemId));
       } else {
+        setError(response.error || 'Failed to remove from cart');
         throw new Error(response.error || 'Failed to remove from cart');
       }
     } catch (error) {
-      console.error('Error removing from cart:', error);
+      setError('Failed to remove from cart');
       throw error;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const updateQuantity = async (itemId: string, quantity: number) => {
+  const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
+    if (quantity < 1) return;
+
     try {
-      const response = await apiService.updateCartItem(itemId, quantity);
+      setLoading(true);
+      setError(null);
+      const response = await api.updateCartItem(itemId, quantity);
       if (response.success) {
         setItems(prev => 
           prev.map(item => 
@@ -100,35 +143,60 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           )
         );
       } else {
+        setError(response.error || 'Failed to update quantity');
         throw new Error(response.error || 'Failed to update quantity');
       }
     } catch (error) {
-      console.error('Error updating quantity:', error);
+      setError('Failed to update quantity');
       throw error;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     try {
-      setItems([]);
-      // Note: Backend might not have a clear cart endpoint
-      // This is a local clear, you might want to implement backend support
+      setLoading(true);
+      setError(null);
+      const response = await api.clearCart();
+      if (response.success) {
+        setItems([]);
+      } else {
+        setError(response.error || 'Failed to clear cart');
+        throw new Error(response.error || 'Failed to clear cart');
+      }
     } catch (error) {
-      console.error('Error clearing cart:', error);
+      setError('Failed to clear cart');
       throw error;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
+
+  // Load cart only once on initialization
+  useEffect(() => {
+    if (!isInitialized) {
+      loadCart().catch(() => {
+        // Silently fail if user is not authenticated
+        // Cart will be loaded when user logs in
+      }).finally(() => {
+        setIsInitialized(true);
+      });
+    }
+  }, [isInitialized, loadCart]);
 
   const value: CartContextType = {
     items,
     totalItems,
     totalPrice,
     loading,
+    error,
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
     loadCart,
+    refreshCart,
   };
 
   return (

@@ -15,6 +15,7 @@ const InventoryItemSchema = mongoose.Schema(
     stock: { type: Number, default: 1 },
     isDeleted: { type: Boolean, default: false },
     image: { type: String },
+    public_id: { type: String },
     tags: [{ type: String }],
   },
   { timestamps: true }

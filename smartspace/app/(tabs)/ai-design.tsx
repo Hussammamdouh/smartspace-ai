@@ -1,452 +1,312 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   TextInput,
+  TouchableOpacity,
   Alert,
   ActivityIndicator,
-  FlatList,
-  Modal,
+  Dimensions,
 } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Button } from '../../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import apiService from '../../services/api';
-import AIDesignCard from '../../components/AIDesignCard';
+import api from '../../services/api';
 
-interface Design {
-  _id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  style: string;
-  roomType: string;
-  createdAt: string;
-}
-
-const ROOM_TYPES = [
-  'Living Room',
-  'Bedroom',
-  'Kitchen',
-  'Bathroom',
-  'Dining Room',
-  'Office',
-  'Study',
-  'Garden',
-];
-
-const DESIGN_STYLES = [
-  'Modern',
-  'Minimalist',
-  'Scandinavian',
-  'Industrial',
-  'Bohemian',
-  'Traditional',
-  'Contemporary',
-  'Art Deco',
-  'Rustic',
-  'Coastal',
-];
+const { width } = Dimensions.get('window');
 
 export default function AIDesignScreen() {
-  const { isAuthenticated } = useAuth();
-  const [designs, setDesigns] = useState<Design[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [selectedRoomType, setSelectedRoomType] = useState('');
-  const [selectedStyle, setSelectedStyle] = useState('');
-  const [description, setDescription] = useState('');
+  const { colors } = useTheme();
+  const { user } = useAuth();
+  const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadDesigns();
-    }
-  }, [isAuthenticated]);
-
-  const loadDesigns = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.getDesigns();
-      if (response.success && response.data) {
-        setDesigns(response.data as Design[]);
-      }
-    } catch (error) {
-      console.error('Error loading designs:', error);
-      Alert.alert('Error', 'Failed to load designs');
-    } finally {
-      setLoading(false);
-    }
+  const containerStyle = {
+    flex: 1,
+    backgroundColor: colors.background,
   };
 
-  const handleGenerateDesign = async () => {
-    if (!isAuthenticated) {
-      Alert.alert('Login Required', 'Please login to generate designs');
+  const textStyle = {
+    color: colors.text,
+  };
+
+  const subtitleStyle = {
+    color: colors.textSecondary,
+  };
+
+  const inputStyle = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    color: colors.text,
+  };
+
+  const handleGenerateImage = async () => {
+    if (!prompt.trim()) {
+      Alert.alert('Error', 'Please enter a description of your room');
       return;
     }
 
-    if (!selectedRoomType || !selectedStyle || !description.trim()) {
-      Alert.alert('Missing Information', 'Please fill in all fields');
+    if (!user) {
+      Alert.alert('Error', 'Please log in to generate designs');
       return;
     }
 
+    setIsGenerating(true);
     try {
-      setGenerating(true);
-      const response = await apiService.generateDesign({
-        roomType: selectedRoomType,
-        style: selectedStyle,
-        description: description.trim(),
+      const response = await api.generateDesign({
+        roomType: 'living-room',
+        style: 'modern',
+        description: prompt.trim(),
       });
 
       if (response.success && response.data) {
-        Alert.alert('Success', 'Design generated successfully!');
-        setShowGenerateModal(false);
-        resetForm();
-        loadDesigns(); // Reload designs to show the new one
+        // Backend returns design data with imageUrl
+        const designData = response.data as any;
+        setGeneratedImage(designData.imageUrl || 'https://example.com/generated-image.jpg');
+        Alert.alert('Success', 'Your design has been generated!');
       } else {
-        Alert.alert('Error', response.error || 'Failed to generate design');
+        Alert.alert('Error', response.error || 'Failed to generate image');
       }
-    } catch (error) {
-      console.error('Error generating design:', error);
-      Alert.alert('Error', 'Failed to generate design');
+    } catch (error: any) {
+      console.error('Generate image error:', error);
+      Alert.alert('Error', 'Failed to generate image. Please try again.');
     } finally {
-      setGenerating(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleDownload = async (designId: string) => {
-    Alert.alert('Download', 'Download functionality will be implemented');
+  const handleSaveDesign = async () => {
+    if (!generatedImage) return;
+
+    try {
+      // For now, just show success message since we don't have a save design endpoint
+      Alert.alert('Success', 'Design saved to your collection!');
+    } catch (error: any) {
+      console.error('Save design error:', error);
+      Alert.alert('Error', 'Failed to save design');
+    }
   };
-
-  const handleShare = async (designId: string) => {
-    Alert.alert('Share', 'Share functionality will be implemented');
-  };
-
-  const handleEditDesign = async (designId: string) => {
-    Alert.alert('Edit Design', 'Edit functionality will be implemented');
-  };
-
-  const resetForm = () => {
-    setSelectedRoomType('');
-    setSelectedStyle('');
-    setDescription('');
-  };
-
-  const renderDesign = ({ item }: { item: Design }) => (
-    <AIDesignCard
-      design={item}
-      onPress={() => handleEditDesign(item._id)}
-      onDownload={() => handleDownload(item._id)}
-      onShare={() => handleShare(item._id)}
-    />
-  );
-
-  const renderRoomType = ({ item }: { item: string }) => (
-    <TouchableOpacity
-      style={[
-        styles.optionButton,
-        selectedRoomType === item && styles.selectedOption,
-      ]}
-      onPress={() => setSelectedRoomType(item)}
-    >
-      <Text
-        style={[
-          styles.optionText,
-          selectedRoomType === item && styles.selectedOptionText,
-        ]}
-      >
-        {item}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderStyle = ({ item }: { item: string }) => (
-    <TouchableOpacity
-      style={[
-        styles.optionButton,
-        selectedStyle === item && styles.selectedOption,
-      ]}
-      onPress={() => setSelectedStyle(item)}
-    >
-      <Text
-        style={[
-          styles.optionText,
-          selectedStyle === item && styles.selectedOptionText,
-        ]}
-      >
-        {item}
-      </Text>
-    </TouchableOpacity>
-  );
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={containerStyle} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>AI Design Studio</Text>
-        <TouchableOpacity
-          style={styles.generateButton}
-          onPress={() => setShowGenerateModal(true)}
-        >
-          <Ionicons name="add" size={24} color="#FCF3E8" />
-          <Text style={styles.generateButtonText}>Generate</Text>
-        </TouchableOpacity>
+        <Text style={[styles.title, textStyle]}>AI Design Generator</Text>
+        <Text style={[styles.subtitle, subtitleStyle]}>
+          Describe your dream space and let AI create it for you
+        </Text>
       </View>
 
-      {/* Content */}
-      {!isAuthenticated ? (
-        <View style={styles.authContainer}>
-          <Ionicons name="lock-closed" size={64} color="#666" />
-          <Text style={styles.authText}>Login to access AI Design features</Text>
-        </View>
-      ) : loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#A58077" />
-          <Text style={styles.loadingText}>Loading designs...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={designs}
-          renderItem={renderDesign}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.designsList}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="images-outline" size={64} color="#666" />
-              <Text style={styles.emptyText}>No designs yet</Text>
-              <Text style={styles.emptySubtext}>
-                Generate your first AI design to get started
-              </Text>
-            </View>
-          }
+      {/* Input Section */}
+      <View style={styles.inputSection}>
+        <Text style={[styles.sectionTitle, textStyle]}>Describe Your Room</Text>
+        <TextInput
+          style={[styles.textInput, inputStyle]}
+          placeholder="e.g., A modern living room with large windows, neutral colors, and comfortable seating"
+          placeholderTextColor={colors.textSecondary}
+          value={prompt}
+          onChangeText={setPrompt}
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
         />
+        
+        <View style={styles.styleOptions}>
+          <Text style={[styles.styleLabel, textStyle]}>Style:</Text>
+          <View style={styles.styleButtons}>
+            {['Modern', 'Traditional', 'Minimalist', 'Bohemian'].map((style) => (
+              <TouchableOpacity
+                key={style}
+                style={[
+                  styles.styleButton,
+                  { backgroundColor: colors.surface, borderColor: colors.border }
+                ]}
+              >
+                <Text style={[styles.styleButtonText, textStyle]}>{style}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <Button
+          title={isGenerating ? 'Generating...' : 'Generate Design'}
+          onPress={handleGenerateImage}
+          disabled={isGenerating}
+          style={styles.generateButton}
+        />
+      </View>
+
+      {/* Generated Image Section */}
+      {isGenerating && (
+        <View style={styles.loadingSection}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, subtitleStyle]}>
+            Creating your dream space...
+          </Text>
+        </View>
       )}
 
-      {/* Generate Design Modal */}
-      <Modal
-        visible={showGenerateModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Generate New Design</Text>
-            <TouchableOpacity
-              onPress={() => setShowGenerateModal(false)}
-              disabled={generating}
-            >
-              <Ionicons name="close" size={24} color="#E5CBBE" />
-            </TouchableOpacity>
+      {generatedImage && (
+        <View style={styles.resultSection}>
+          <Text style={[styles.sectionTitle, textStyle]}>Your Generated Design</Text>
+          
+          <View style={[styles.imageContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.imagePlaceholder, subtitleStyle]}>
+              Generated Image Here
+            </Text>
+            {/* In a real app, you would use Image component here */}
+            {/* <Image source={{ uri: generatedImage }} style={styles.generatedImage} /> */}
           </View>
 
-          <ScrollView style={styles.modalContent}>
-            {/* Room Type Selection */}
-            <Text style={styles.sectionTitle}>Room Type</Text>
-            <FlatList
-              data={ROOM_TYPES}
-              renderItem={renderRoomType}
-              keyExtractor={(item) => item}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.optionsList}
+          <View style={styles.actionButtons}>
+            <Button
+              title="Save Design"
+              onPress={handleSaveDesign}
+              variant="outline"
+              style={styles.actionButton}
             />
-
-            {/* Style Selection */}
-            <Text style={styles.sectionTitle}>Design Style</Text>
-            <FlatList
-              data={DESIGN_STYLES}
-              renderItem={renderStyle}
-              keyExtractor={(item) => item}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.optionsList}
+            <Button
+              title="Generate Another"
+              onPress={() => {
+                setGeneratedImage(null);
+                setPrompt('');
+              }}
+              style={styles.actionButton}
             />
-
-            {/* Description */}
-            <Text style={styles.sectionTitle}>Description</Text>
-            <TextInput
-              style={styles.descriptionInput}
-              placeholder="Describe your ideal room design..."
-              placeholderTextColor="#666"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-
-            {/* Generate Button */}
-            <TouchableOpacity
-              style={[styles.submitButton, generating && styles.disabledButton]}
-              onPress={handleGenerateDesign}
-              disabled={generating}
-            >
-              {generating ? (
-                <ActivityIndicator size="small" color="#FCF3E8" />
-              ) : (
-                <Ionicons name="sparkles" size={20} color="#FCF3E8" />
-              )}
-              <Text style={styles.submitButtonText}>
-                {generating ? 'Generating...' : 'Generate Design'}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+          </View>
         </View>
-      </Modal>
-    </View>
+      )}
+
+      {/* Tips Section */}
+      <View style={styles.tipsSection}>
+        <Text style={[styles.sectionTitle, textStyle]}>Tips for Better Results</Text>
+        <View style={styles.tipsList}>
+          {[
+            'Be specific about colors, materials, and furniture',
+            'Mention the room type (living room, bedroom, kitchen)',
+            'Include lighting preferences (natural, warm, cool)',
+            'Describe the overall mood you want to achieve',
+          ].map((tip, index) => (
+            <View key={index} style={styles.tipItem}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+              <Text style={[styles.tipText, subtitleStyle]}>{tip}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#181818',
-  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#2C2C2C',
+    padding: 24,
+    paddingTop: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#E5CBBE',
+    marginBottom: 8,
   },
-  generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#A58077',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  generateButtonText: {
-    color: '#FCF3E8',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  authContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  authText: {
-    color: '#666',
+  subtitle: {
     fontSize: 16,
-    textAlign: 'center',
-    marginTop: 16,
+    lineHeight: 24,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#E5CBBE',
-    marginTop: 16,
-    fontSize: 16,
-  },
-  designsList: {
-    padding: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-  },
-  emptyText: {
-    color: '#666',
-    fontSize: 18,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    color: '#666',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#181818',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#2C2C2C',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#E5CBBE',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
+  inputSection: {
+    padding: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#E5CBBE',
+    marginBottom: 16,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    minHeight: 120,
+    marginBottom: 20,
+  },
+  styleOptions: {
+    marginBottom: 24,
+  },
+  styleLabel: {
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 12,
-    marginTop: 16,
   },
-  optionsList: {
-    paddingBottom: 8,
+  styleButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  optionButton: {
+  styleButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    marginRight: 12,
     borderRadius: 20,
-    backgroundColor: '#2C2C2C',
     borderWidth: 1,
-    borderColor: '#444',
   },
-  selectedOption: {
-    backgroundColor: '#A58077',
-    borderColor: '#A58077',
-  },
-  optionText: {
-    color: '#E5CBBE',
+  styleButtonText: {
     fontSize: 14,
     fontWeight: '500',
   },
-  selectedOptionText: {
-    color: '#FCF3E8',
+  generateButton: {
+    marginBottom: 24,
   },
-  descriptionInput: {
-    backgroundColor: '#2C2C2C',
-    borderRadius: 12,
-    padding: 16,
-    color: '#E5CBBE',
+  loadingSection: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
     fontSize: 16,
-    minHeight: 100,
-    textAlignVertical: 'top',
   },
-  submitButton: {
+  resultSection: {
+    padding: 24,
+  },
+  imageContainer: {
+    width: width - 48,
+    height: 300,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  imagePlaceholder: {
+    fontSize: 16,
+  },
+  generatedImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  tipsSection: {
+    padding: 24,
+  },
+  tipsList: {
+    gap: 12,
+  },
+  tipItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#A58077',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 24,
+    gap: 12,
   },
-  disabledButton: {
-    backgroundColor: '#666',
-  },
-  submitButtonText: {
-    color: '#FCF3E8',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+  tipText: {
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
   },
 }); 

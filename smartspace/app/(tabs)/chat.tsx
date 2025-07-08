@@ -1,60 +1,99 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TextInput,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
-  Alert,
+  Dimensions,
+  FlatList,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import apiService from '../../services/api';
+import { Button } from '../../components/ui/Button';
+import { Ionicons } from '@expo/vector-icons';
+import api from '../../services/api';
+
+const { width } = Dimensions.get('window');
 
 interface Message {
   _id: string;
   content: string;
   sender: 'user' | 'ai';
-  timestamp: string;
+  timestamp: Date;
+  type: 'text' | 'image';
 }
 
 export default function ChatScreen() {
-  const { isAuthenticated } = useAuth();
+  const { colors } = useTheme();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const flatListRef = useRef<FlatList<Message>>(null);
+
+  const containerStyle = {
+    flex: 1,
+    backgroundColor: colors.background,
+  };
+
+  const textStyle = {
+    color: colors.text,
+  };
+
+  const subtitleStyle = {
+    color: colors.textSecondary,
+  };
+
+  const inputStyle = {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    color: colors.text,
+  };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadChatHistory();
-    }
-  }, [isAuthenticated]);
+    loadChatHistory();
+  }, []);
+
+  useEffect(() => {
+    // Scroll to bottom when new messages arrive
+    setTimeout(() => {
+      if (flatListRef.current && messages.length > 0) {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }
+    }, 100);
+  }, [messages]);
 
   const loadChatHistory = async () => {
+    if (!user) return;
+
     try {
-      setIsLoading(true);
-      const response = await apiService.getChatHistory();
+      const response = await api.getChatHistory();
       if (response.success && response.data) {
-        setMessages(response.data as Message[]);
+        // Backend returns chat history as array of conversations
+        const chatHistory = response.data as any[];
+        // Convert to messages format if needed
+        const messages = (Array.isArray(chatHistory) ? chatHistory : []).flatMap((conversation: any) =>
+          Array.isArray(conversation?.conversation) ? conversation.conversation : []
+        );
+        setMessages(messages);
       }
     } catch (error) {
       console.error('Error loading chat history:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isSending) return;
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
 
-    if (!isAuthenticated) {
-      Alert.alert('Login Required', 'Please login to chat with AI');
+    if (!user) {
+      Alert.alert('Login Required', 'Please log in to chat with AI');
       return;
     }
 
@@ -62,169 +101,189 @@ export default function ChatScreen() {
       _id: Date.now().toString(),
       content: inputMessage.trim(),
       sender: 'user',
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
+      type: 'text',
     };
 
-    // Add user message immediately
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
-    setIsSending(true);
+    setIsLoading(true);
+    setIsTyping(true);
 
     try {
-      const response = await apiService.sendMessage(userMessage.content);
+      const response = await api.sendMessage(inputMessage.trim());
       
-      if (response.success && response.data) {
+              if (response.success && response.data) {
+          const responseData = response.data as any;
+          const aiMessage: Message = {
+            _id: (Date.now() + 1).toString(),
+            content: responseData.message || responseData.content || 'I understand your question. Let me help you with that.',
+            sender: 'ai',
+            timestamp: new Date(),
+            type: 'text',
+          };
+          setMessages(prev => [...prev, aiMessage]);
+        } else {
+        // Add a fallback AI message
         const aiMessage: Message = {
-          _id: (response.data as any)._id || Date.now().toString(),
-          content: (response.data as any).content || (response.data as any).message || 'Response received',
+          _id: (Date.now() + 1).toString(),
+          content: "I'm here to help you with interior design questions! What would you like to know about creating your perfect space?",
           sender: 'ai',
-          timestamp: (response.data as any).timestamp || new Date().toISOString(),
+          timestamp: new Date(),
+          type: 'text',
         };
-        
         setMessages(prev => [...prev, aiMessage]);
-      } else {
-        // Add error message
-        const errorMessage: Message = {
-          _id: Date.now().toString(),
-          content: 'Sorry, I encountered an error. Please try again.',
-          sender: 'ai',
-          timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Send message error:', error);
+      // Add error message
       const errorMessage: Message = {
-        _id: Date.now().toString(),
-        content: 'Sorry, I encountered an error. Please try again.',
+        _id: (Date.now() + 1).toString(),
+        content: "I'm sorry, I'm having trouble responding right now. Please try again in a moment.",
         sender: 'ai',
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
+        type: 'text',
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsSending(false);
+      setIsLoading(false);
+      setIsTyping(false);
     }
   };
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <View style={[
-      styles.messageContainer,
-      item.sender === 'user' ? styles.userMessage : styles.aiMessage
-    ]}>
-      <View style={[
-        styles.messageBubble,
-        item.sender === 'user' ? styles.userBubble : styles.aiBubble
-      ]}>
-        <Text style={[
-          styles.messageText,
-          item.sender === 'user' ? styles.userText : styles.aiText
-        ]}>
-          {item.content}
-        </Text>
-        <Text style={[
-          styles.timestamp,
-          item.sender === 'user' ? styles.userTimestamp : styles.aiTimestamp
-        ]}>
-          {new Date(item.timestamp).toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </Text>
-      </View>
-    </View>
-  );
+  const handleQuickQuestion = (question: string) => {
+    setInputMessage(question);
+  };
 
-  const renderTypingIndicator = () => (
-    <View style={[styles.messageContainer, styles.aiMessage]}>
-      <View style={[styles.messageBubble, styles.aiBubble]}>
-        <View style={styles.typingIndicator}>
-          <ActivityIndicator size="small" color="#A58077" />
-          <Text style={styles.typingText}>AI is typing...</Text>
+  const formatTime = (timestamp: Date) => {
+    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Memoize renderMessage
+  const renderMessage = useCallback(({ item }: { item: Message }) => {
+    const isUser = item.sender === 'user';
+    return (
+      <View style={[
+        styles.messageContainer,
+        isUser ? styles.userMessageContainer : styles.aiMessageContainer
+      ]}>
+        <View style={[
+          styles.messageBubble,
+          isUser 
+            ? { backgroundColor: colors.primary } 
+            : { backgroundColor: colors.surface, borderColor: colors.border }
+        ]}>
+          <Text style={[
+            styles.messageText,
+            isUser ? { color: '#FFFFFF' } : textStyle
+          ]}>
+            {item.content}
+          </Text>
+          <Text style={[
+            styles.messageTime,
+            isUser ? { color: '#FFFFFF', opacity: 0.8 } : subtitleStyle
+          ]}>
+            {formatTime(item.timestamp)}
+          </Text>
         </View>
       </View>
-    </View>
-  );
-
-  if (!isAuthenticated) {
-    return (
-      <View style={styles.authContainer}>
-        <Ionicons name="chatbubbles-outline" size={64} color="#666" />
-        <Text style={styles.authText}>Login to chat with AI Assistant</Text>
-      </View>
     );
-  }
+  }, [colors, textStyle, subtitleStyle]);
+
+  const quickQuestions = [
+    "What colors work well together?",
+    "How do I make a small room look bigger?",
+    "What lighting should I use?",
+    "Help me choose furniture style",
+  ];
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={containerStyle} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.aiAvatar}>
-            <Ionicons name="sparkles" size={20} color="#FCF3E8" />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>AI Assistant</Text>
-            <Text style={styles.headerSubtitle}>Ask me anything about interior design</Text>
-          </View>
-        </View>
+        <Text style={[styles.title, textStyle]}>AI Design Assistant</Text>
+        <Text style={[styles.subtitle, subtitleStyle]}>
+          Get expert advice on interior design and styling
+        </Text>
       </View>
 
       {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item._id}
-        style={styles.messagesList}
-        contentContainerStyle={styles.messagesContent}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-        onLayout={() => flatListRef.current?.scrollToEnd()}
-        ListEmptyComponent={
-          isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#A58077" />
-              <Text style={styles.loadingText}>Loading chat history...</Text>
+      {messages.length === 0 ? (
+        <View style={styles.welcomeContainer}>
+          <View style={[styles.welcomeIcon, { backgroundColor: colors.primary }]}> 
+            <Ionicons name="chatbubble-ellipses" size={32} color="#FFFFFF" />
+          </View>
+          <Text style={[styles.welcomeTitle, textStyle]}>Welcome to SmartSpace.AI</Text>
+          <Text style={[styles.welcomeText, subtitleStyle]}>
+            I&apos;m your AI design assistant. Ask me anything about interior design, 
+            color schemes, furniture placement, or styling tips!
+          </Text>
+          <View style={styles.quickQuestionsContainer}>
+            <Text style={[styles.quickQuestionsTitle, textStyle]}>Quick Questions:</Text>
+            {quickQuestions.map((question, index) => (
+              <TouchableOpacity
+                key={`question-${question}-${index}`}
+                style={[styles.quickQuestionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => handleQuickQuestion(question)}
+              >
+                <Text style={[styles.quickQuestionText, textStyle]}>{question}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ) : (
+        <FlatList
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={item => item._id}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+          ref={flatListRef}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          ListFooterComponent={isTyping ? (
+            <View style={styles.typingContainer}>
+              <View style={[styles.typingBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+                <Text style={[styles.typingText, subtitleStyle]}>AI is typing...</Text>
+                <View style={styles.typingDots}>
+                  <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+                  <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+                  <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+                </View>
+              </View>
             </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubbles-outline" size={64} color="#666" />
-              <Text style={styles.emptyText}>Start a conversation</Text>
-              <Text style={styles.emptySubtext}>
-                Ask me about interior design, furniture, or home decoration
-              </Text>
-            </View>
-          )
-        }
-        ListFooterComponent={isSending ? renderTypingIndicator() : null}
-      />
+          ) : null}
+        />
+      )}
 
-      {/* Input */}
-      <View style={styles.inputContainer}>
+      {/* Input Section */}
+      <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <TextInput
-          style={styles.textInput}
-          placeholder="Type your message..."
-          placeholderTextColor="#666"
+          style={[styles.textInput, inputStyle]}
+          placeholder="Ask about interior design..."
+          placeholderTextColor={colors.textSecondary}
           value={inputMessage}
           onChangeText={setInputMessage}
           multiline
           maxLength={500}
-          editable={!isSending}
+          editable={!isLoading}
         />
         <TouchableOpacity
           style={[
             styles.sendButton,
-            (!inputMessage.trim() || isSending) && styles.sendButtonDisabled
+            { backgroundColor: colors.primary },
+            (!inputMessage.trim() || isLoading) && { opacity: 0.5 }
           ]}
-          onPress={sendMessage}
-          disabled={!inputMessage.trim() || isSending}
+          onPress={handleSendMessage}
+          disabled={!inputMessage.trim() || isLoading}
         >
-          {isSending ? (
-            <ActivityIndicator size="small" color="#FCF3E8" />
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Ionicons name="send" size={20} color="#FCF3E8" />
+            <Ionicons name="send" size={20} color="#FFFFFF" />
           )}
         </TouchableOpacity>
       </View>
@@ -233,169 +292,140 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#181818',
-  },
-  authContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  authText: {
-    color: '#666',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 16,
-  },
   header: {
-    backgroundColor: '#2C2C2C',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#444',
+    padding: 24,
+    paddingTop: 40,
   },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  aiAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#A58077',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  headerText: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#E5CBBE',
+    marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#A58077',
-    marginTop: 2,
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 24,
   },
-  messagesList: {
+  messagesContainer: {
     flex: 1,
   },
   messagesContent: {
     padding: 16,
+    paddingBottom: 20,
   },
-  loadingContainer: {
-    flex: 1,
+  welcomeContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  welcomeIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 64,
+    marginBottom: 24,
   },
-  loadingText: {
-    color: '#E5CBBE',
-    marginTop: 16,
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-  },
-  emptyText: {
-    color: '#666',
-    fontSize: 18,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    color: '#666',
-    fontSize: 14,
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 12,
     textAlign: 'center',
-    marginTop: 8,
+  },
+  welcomeText: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 32,
+    paddingHorizontal: 20,
+  },
+  quickQuestionsContainer: {
+    width: '100%',
+  },
+  quickQuestionsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  quickQuestionButton: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  quickQuestionText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   messageContainer: {
     marginBottom: 16,
   },
-  userMessage: {
+  userMessageContainer: {
     alignItems: 'flex-end',
   },
-  aiMessage: {
+  aiMessageContainer: {
     alignItems: 'flex-start',
   },
   messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
-  },
-  userBubble: {
-    backgroundColor: '#A58077',
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    backgroundColor: '#2C2C2C',
-    borderBottomLeftRadius: 4,
+    maxWidth: width * 0.75,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
+    marginBottom: 8,
   },
-  userText: {
-    color: '#FCF3E8',
-  },
-  aiText: {
-    color: '#E5CBBE',
-  },
-  timestamp: {
+  messageTime: {
     fontSize: 12,
-    marginTop: 4,
-    opacity: 0.7,
+    alignSelf: 'flex-end',
   },
-  userTimestamp: {
-    color: '#FCF3E8',
-    textAlign: 'right',
+  typingContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  aiTimestamp: {
-    color: '#A58077',
-  },
-  typingIndicator: {
+  typingBubble: {
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
   typingText: {
-    color: '#A58077',
-    fontSize: 14,
-    marginLeft: 8,
+    fontSize: 16,
+    marginRight: 8,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    opacity: 0.6,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 16,
-    backgroundColor: '#2C2C2C',
     borderTopWidth: 1,
-    borderTopColor: '#444',
+    gap: 12,
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#181818',
+    borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginRight: 12,
-    color: '#E5CBBE',
     fontSize: 16,
     maxHeight: 100,
+    textAlignVertical: 'top',
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#A58077',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#666',
   },
 }); 

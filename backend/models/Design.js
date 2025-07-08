@@ -8,6 +8,7 @@ const designSchema = mongoose.Schema(
     measurements: { type: Object, required: true },
     notes: { type: String },
     designFile: { type: String }, // Path to a saved file if needed
+    public_id: { type: String }, // Cloudinary public_id for design image
   },
   { timestamps: true }
 );

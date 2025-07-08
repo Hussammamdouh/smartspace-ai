@@ -5,6 +5,7 @@ const Design = require('../models/Design');
 const InventoryItem = require('../models/InventoryItem');
 const { APIError } = require('../middlewares/errorHandler');
 const fetch = require('node-fetch');
+const { deleteFromCloudinary } = require('../config/cloudinary');
 
 // Get user designs for dashboard
 exports.getUserDesigns = async (req, res, next) => {
@@ -71,10 +72,14 @@ exports.createDesign = async (req, res, next) => {
 exports.deleteDesign = async (req, res, next) => {
   try {
     const design = await Design.findById(req.params.id);
-if (!design || design.userId.toString() !== req.user.id.toString()) {
-  return next(new APIError('Unauthorized to delete this design', 403));
-}
-await Design.findByIdAndDelete(req.params.id);
+    if (!design || design.userId.toString() !== req.user.id.toString()) {
+      return next(new APIError('Unauthorized to delete this design', 403));
+    }
+    // Delete image from Cloudinary if public_id exists
+    if (design.public_id) {
+      await deleteFromCloudinary(design.public_id);
+    }
+    await Design.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Design deleted' });
   } catch (error) {
     next(error);
@@ -198,6 +203,8 @@ exports.extractItems = async (req, res, next) => {
   try {
     const { imageUrl, prompt } = req.body;
     
+    console.log('Extract items request:', { imageUrl, prompt });
+    
     if (!imageUrl) {
       return next(new APIError('Image URL is required', 400));
     }
@@ -235,6 +242,8 @@ exports.extractItems = async (req, res, next) => {
       }
     }
 
+    console.log('Extracted context:', context);
+
     // Find relevant inventory items
     const filter = {
       isDeleted: false,
@@ -254,10 +263,14 @@ exports.extractItems = async (req, res, next) => {
       filter.color = new RegExp(context.color, 'i');
     }
 
+    console.log('Inventory filter:', filter);
+
     // Get items from inventory
     let items = await InventoryItem.find(filter)
       .sort({ price: 1 })
       .limit(5);
+
+    console.log('Found items with filter:', items.length);
 
     // If no items found with filters, get any available items
     if (!items.length) {
@@ -268,9 +281,13 @@ exports.extractItems = async (req, res, next) => {
       })
       .sort({ price: 1 })
       .limit(5);
+      
+      console.log('Found items without filter:', items.length);
     }
 
     const totalCost = items.reduce((sum, item) => sum + item.price, 0);
+
+    console.log('Sending response with items:', items.length);
 
     res.status(200).json({
       status: 'success',
@@ -282,6 +299,7 @@ exports.extractItems = async (req, res, next) => {
       }
     });
   } catch (error) {
+    console.error('Extract items error:', error);
     next(error);
   }
 };
@@ -291,6 +309,8 @@ exports.downloadImage = async (req, res, next) => {
   try {
     const { imageUrl, filename } = req.body;
     
+    console.log('Download image request:', { imageUrl, filename });
+    
     if (!imageUrl) {
       return next(new APIError('Image URL is required', 400));
     }
@@ -298,12 +318,16 @@ exports.downloadImage = async (req, res, next) => {
     // Fetch the image from the external URL
     const response = await fetch(imageUrl);
     
+    console.log('Fetch response status:', response.status);
+    
     if (!response.ok) {
       return next(new APIError('Failed to fetch image', response.status));
     }
 
     // Get the image buffer
     const buffer = await response.arrayBuffer();
+    
+    console.log('Image buffer size:', buffer.byteLength);
     
     // Set headers for file download
     const downloadFilename = filename || `design-${Date.now()}.png`;

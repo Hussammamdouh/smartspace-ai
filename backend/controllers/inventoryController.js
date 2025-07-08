@@ -2,6 +2,7 @@ const inventoryService = require("../services/inventoryService");
 const InventoryItem = require('../models/InventoryItem');
 const mongoose = require("mongoose");
 const { APIError } = require('../middlewares/errorHandler');
+const { deleteFromCloudinary } = require('../config/cloudinary');
 
 exports.getInventory = async (req, res, next) => {
   try {
@@ -44,6 +45,7 @@ exports.getInventory = async (req, res, next) => {
     ]);
 
     res.status(200).json({
+      status: 'success',
       data: items,
       meta: {
         total,
@@ -69,7 +71,10 @@ exports.getInventoryItem = async (req, res, next) => {
       return next(new APIError("Product not found", 404));
     }
 
-    res.status(200).json({ data: item });
+    res.status(200).json({ 
+      status: 'success',
+      data: item 
+    });
   } catch (error) {
     next(error);
   }
@@ -100,7 +105,8 @@ exports.addInventoryItem = async (req, res, next) => {
       price: Number(price),
       stock: Number(stock),
       available: available !== 'false',
-      image: filePath
+      image: req.file && req.file.url ? req.file.url : filePath,
+      public_id: req.file && req.file.public_id ? req.file.public_id : undefined
     };
 
     // Add optional fields if provided
@@ -127,7 +133,14 @@ exports.updateInventoryItem = async (req, res, next) => {
       ...req.body,
     };
     if (req.file) {
+      // Delete old image from Cloudinary if present
+      const item = await InventoryItem.findById(req.params.id);
+      if (item && item.public_id) {
+        await deleteFromCloudinary(item.public_id);
+      }
       updates.filePath = req.file.path;
+      updates.image = req.file.url ? req.file.url : req.file.path;
+      updates.public_id = req.file.public_id;
     }
     const updatedItem = await inventoryService.updateItem(req.params.id, updates);
     if (!updatedItem) {
@@ -141,6 +154,10 @@ exports.updateInventoryItem = async (req, res, next) => {
 
 exports.deleteInventoryItem = async (req, res, next) => {
   try {
+    const item = await InventoryItem.findById(req.params.id);
+    if (item && item.public_id) {
+      await deleteFromCloudinary(item.public_id);
+    }
     await inventoryService.deleteItem(req.params.id);
     res.status(200).json({ message: "Item deleted" });
   } catch (error) {

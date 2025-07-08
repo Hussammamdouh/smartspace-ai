@@ -48,55 +48,12 @@ const PaymentPage = () => {
 
   const validateCard = () => {
     const newErrors = {};
-
-    // Card number validation (Luhn algorithm)
-    const cardNumber = cardInfo.number.replace(/\s/g, '');
-    if (!cardNumber || cardNumber.length < 13 || cardNumber.length > 19) {
-      newErrors.number = 'Please enter a valid card number';
-    } else if (!luhnCheck(cardNumber)) {
-      newErrors.number = 'Invalid card number';
-    }
-
-    // Expiry date validation
-    if (!cardInfo.expiry || !/^\d{2}\/\d{2}$/.test(cardInfo.expiry)) {
-      newErrors.expiry = 'Please enter a valid expiry date (MM/YY)';
-    } else {
-      const [month, year] = cardInfo.expiry.split('/');
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear() % 100;
-      const currentMonth = currentDate.getMonth() + 1;
-
-      if (parseInt(month) < 1 || parseInt(month) > 12) {
-        newErrors.expiry = 'Invalid month';
-      } else if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
-        newErrors.expiry = 'Card has expired';
-      }
-    }
-
-    // CVV validation
-    if (!cardInfo.cvv || cardInfo.cvv.length < 3 || cardInfo.cvv.length > 4) {
-      newErrors.cvv = 'Please enter a valid CVV';
-    }
-
-    // Name validation
-    if (!cardInfo.name.trim()) {
-      newErrors.name = 'Please enter the cardholder name';
-    }
-
+    if (!cardInfo.name.trim()) newErrors.name = 'Please enter the cardholder name';
+    if (!cardInfo.number.trim()) newErrors.number = 'Please enter the card number';
+    if (!cardInfo.expiry.trim()) newErrors.expiry = 'Please enter the expiry date';
+    if (!cardInfo.cvv.trim()) newErrors.cvv = 'Please enter the CVV';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  // Luhn algorithm for card number validation
-  const luhnCheck = (num) => {
-    let arr = (num + '')
-      .split('')
-      .reverse()
-      .map(x => parseInt(x));
-    let lastDigit = arr.splice(0, 1)[0];
-    let sum = arr.reduce((acc, val, i) => (i % 2 !== 0 ? acc + val : acc + ((val * 2) % 9) || 9), 0);
-    sum += lastDigit;
-    return sum % 10 === 0;
   };
 
   const handleChange = (e) => {
@@ -216,15 +173,16 @@ const PaymentPage = () => {
     <div className="min-h-screen bg-[var(--background)] text-[var(--text)] flex flex-col md:flex-row items-center justify-center gap-16 p-8">
       {/* Payment Form */}
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
-        <h2 className="text-3xl font-bold mb-2">{''}</h2>
+        <h2 className="text-3xl font-bold mb-2">Payment Details</h2>
 
         <div>
-          <label className="block text-sm mb-1">{''}</label>
+          <label className="block text-sm mb-1" htmlFor="name">Cardholder Name</label>
           <input
+            id="name"
             name="name"
             value={cardInfo.name}
             onChange={handleChange}
-            placeholder={''}
+            placeholder="Full name on card"
             className={`w-full p-4 rounded-lg bg-[#E5CBBE] text-[#181818] placeholder-[#616161] focus:ring-2 focus:ring-[#A58077] outline-none transition ${
               errors.name ? 'border-2 border-red-500' : ''
             }`}
@@ -233,12 +191,13 @@ const PaymentPage = () => {
         </div>
 
         <div>
-          <label className="block text-sm mb-1">{''}</label>
+          <label className="block text-sm mb-1" htmlFor="number">Card Number</label>
           <input
+            id="number"
             name="number"
             value={cardInfo.number}
             onChange={handleChange}
-            placeholder={''}
+            placeholder="1234 5678 9012 3456"
             maxLength={19}
             className={`w-full p-4 rounded-lg bg-[#E5CBBE] text-[#181818] placeholder-[#616161] focus:ring-2 focus:ring-[#A58077] outline-none transition ${
               errors.number ? 'border-2 border-red-500' : ''
@@ -249,12 +208,13 @@ const PaymentPage = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm mb-1">{''}</label>
+            <label className="block text-sm mb-1" htmlFor="expiry">Expiry Date</label>
             <input
+              id="expiry"
               name="expiry"
               value={cardInfo.expiry}
               onChange={handleChange}
-              placeholder={''}
+              placeholder="MM/YY"
               maxLength={5}
               className={`w-full p-4 rounded-lg bg-[#E5CBBE] text-[#181818] placeholder-[#616161] focus:ring-2 focus:ring-[#A58077] outline-none transition ${
                 errors.expiry ? 'border-2 border-red-500' : ''
@@ -263,12 +223,13 @@ const PaymentPage = () => {
             {errors.expiry && <p className="text-red-500 text-sm mt-1">{errors.expiry}</p>}
           </div>
           <div>
-            <label className="block text-sm mb-1">{''}</label>
+            <label className="block text-sm mb-1" htmlFor="cvv">CVV</label>
             <input
+              id="cvv"
               name="cvv"
               value={cardInfo.cvv}
               onChange={handleChange}
-              placeholder={''}
+              placeholder="123"
               maxLength={4}
               className={`w-full p-4 rounded-lg bg-[#E5CBBE] text-[#181818] placeholder-[#616161] focus:ring-2 focus:ring-[#A58077] outline-none transition ${
                 errors.cvv ? 'border-2 border-red-500' : ''
@@ -287,7 +248,7 @@ const PaymentPage = () => {
               : "bg-[#A58077] text-white hover:bg-[#E5CBBE] hover:text-[#181818]"
           }`}
         >
-          {processing ? "Processing..." : `${''} $${total.toFixed(2)}`}
+          {processing ? "Processing..." : `Pay $${total.toFixed(2)}`}
         </button>
 
         {invalidItems.length > 0 && (
@@ -299,7 +260,7 @@ const PaymentPage = () => {
 
       {/* Order Summary */}
       <div className="w-full max-w-md bg-[#171717] rounded-xl p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-6">{''}</h2>
+        <h2 className="text-2xl font-bold mb-6">Order Summary</h2>
 
         <div className="space-y-4 text-md">
           {cart.map((item) => (
@@ -310,11 +271,11 @@ const PaymentPage = () => {
           ))}
           <hr className="border-[#A58077]" />
           <div className="flex justify-between">
-            <span>{''}:</span>
-            <span>{''}</span>
+            <span>Subtotal:</span>
+            <span>${total.toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-bold text-lg mt-4">
-            <span>{''}:</span>
+            <span>Total:</span>
             <span>${total.toFixed(2)}</span>
           </div>
         </div>

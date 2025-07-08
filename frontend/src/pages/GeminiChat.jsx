@@ -26,7 +26,7 @@ const ImageGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--text)] p-8">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text)] p-8 pb-32">
       <h1 className="text-4xl font-bold mb-6">{''}</h1>
 
       <form onSubmit={handleGenerate} className="flex gap-4 mb-6">

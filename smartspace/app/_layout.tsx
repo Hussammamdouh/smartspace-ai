@@ -1,73 +1,110 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
+import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { CartProvider } from '../contexts/CartContext';
+import { View, ActivityIndicator, Text } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import SplashScreen from '../components/SplashScreen';
-import ErrorBoundary from '../components/ErrorBoundary';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { useState, useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Onboarding from '../components/Onboarding';
+import { NotificationProvider } from '../contexts/NotificationContext';
+
+function LoadingScreen() {
+  const { colors } = useTheme();
+  
+  return (
+    <View style={{ 
+      flex: 1, 
+      justifyContent: 'center', 
+      alignItems: 'center',
+      backgroundColor: colors.background 
+    }}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={{ 
+        marginTop: 16, 
+        fontSize: 16, 
+        color: colors.textSecondary 
+      }}>
+        Loading SmartSpace.AI...
+      </Text>
+    </View>
+  );
+}
 
 function AppContent() {
-  const colorScheme = useColorScheme();
+  const { user, isInitialized } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
-  const { isAuthenticated, isLoading } = useAuth();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
 
   useEffect(() => {
-    // Show splash for 3 seconds
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 3000);
-
-    return () => clearTimeout(timer);
+    const checkOnboarding = async () => {
+      const completed = await AsyncStorage.getItem('onboardingCompleted');
+      setShowOnboarding(!completed);
+      setOnboardingChecked(true);
+    };
+    checkOnboarding();
   }, []);
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
+  if (!onboardingChecked) {
+    return null; // Wait for onboarding check
+  }
+  if (showOnboarding) {
+    return <Onboarding onDone={() => setShowOnboarding(false)} />;
   }
 
   if (showSplash) {
-    return <SplashScreen />;
+    return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#181818' }}>
-        <ActivityIndicator size="large" color="#A58077" />
-      </View>
-    );
+  if (!isInitialized) {
+    return <LoadingScreen />;
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {isAuthenticated ? (
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        ) : (
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-        )}
-        <Stack.Screen name="+not-found" />
-      </Stack>
+    <>
       <StatusBar style="auto" />
-    </ThemeProvider>
+      <Stack>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="cart" options={{ headerShown: false }} />
+        <Stack.Screen name="checkout" options={{ headerShown: false }} />
+        <Stack.Screen name="payment" options={{ headerShown: false }} />
+        <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="wishlist" options={{ headerShown: false }} />
+        <Stack.Screen name="search" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/verify-email" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
 }
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
+    <ThemeProvider>
       <AuthProvider>
         <CartProvider>
-          <AppContent />
+          <NotificationProvider>
+            <ErrorBoundary>
+              <AppContent />
+            </ErrorBoundary>
+          </NotificationProvider>
         </CartProvider>
       </AuthProvider>
-    </ErrorBoundary>
+    </ThemeProvider>
   );
 }

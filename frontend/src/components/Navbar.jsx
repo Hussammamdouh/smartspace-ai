@@ -13,7 +13,6 @@ import {
   FaHome,
   FaStore,
   FaPalette,
-  FaComments,
   FaCog,
   FaSignOutAlt,
   FaChevronDown
@@ -66,8 +65,7 @@ const Navbar = () => {
   const navLinks = [
     { to: "/", label: "Home", icon: FaHome },
     { to: "/products", label: "Products", icon: FaStore },
-    { to: "/generate-image", label: "AI Design", icon: FaPalette },
-    { to: "/chat", label: "Chat", icon: FaComments },
+    { to: "/Chatbot", label: "AI Design", icon: FaPalette }
   ];
 
   return (
@@ -157,7 +155,7 @@ const Navbar = () => {
                     className="flex items-center space-x-2 p-2.5 text-theme-text hover:text-white hover:bg-[#A58077]/20 rounded-xl transition-all duration-300 hover:scale-105"
                     aria-label="User menu"
                   >
-                    <Avatar user={user} size="sm" />
+                    <Avatar user={user} size={40} />
                     <span className="hidden sm:block font-medium max-w-24 truncate">{user.name}</span>
                     <FaChevronDown className={`text-xs transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -187,6 +185,15 @@ const Navbar = () => {
                         >
                           <FaHeart className="text-sm group-hover:scale-110 transition-transform duration-200" />
                           <span>Wishlist</span>
+                        </Link>
+                        
+                        <Link
+                          to="/orders"
+                          className="flex items-center space-x-3 px-4 py-3 text-theme-text hover:bg-[#A58077]/20 hover:text-white transition-all duration-200 rounded-lg mx-2 group"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <FaStore className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                          <span>My Orders</span>
                         </Link>
                         
                         {user.role === 'admin' && (
@@ -285,6 +292,15 @@ const Navbar = () => {
                     >
                       <FaHeart className="text-xl group-hover:scale-110 transition-transform duration-200" />
                       <span className="font-medium text-lg">Wishlist</span>
+                    </Link>
+                    
+                    <Link
+                      to="/orders"
+                      className="flex items-center space-x-4 px-4 py-4 text-theme-text hover:bg-[#A58077]/20 hover:text-white rounded-xl transition-all duration-300 group"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FaStore className="text-xl group-hover:scale-110 transition-transform duration-200" />
+                      <span className="font-medium text-lg">My Orders</span>
                     </Link>
                     
                     {user.role === 'admin' && (

@@ -1,16 +1,16 @@
 const About = () => {
   return (
-    <section id="about" className="bg-[#181818] text-[#E5CBBE] px-6 py-20">
+    <section id="about" className="bg-theme-background text-theme-text px-6 py-20">
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
         <h2 className="text-5xl font-extrabold mb-10 tracking-tight">
-          <span className="text-white">
+          <span className="text-theme-heading">
             A<span className="text-[#A58077]">B</span>OUT US
           </span>
         </h2>
 
         {/* Paragraphs */}
-        <div className="grid md:grid-cols-2 gap-10 text-[#d1d1d1] text-base leading-relaxed mb-12">
+        <div className="grid md:grid-cols-2 gap-10 text-theme-text-secondary text-base leading-relaxed mb-12">
           <p>
             Welcome to our interior Design. We are here to make the best furniture for you at prices that are better than the rest. We are keen to use the finest materials that will last with you for the longest possible time.
           </p>

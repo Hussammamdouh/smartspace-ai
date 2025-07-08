@@ -139,7 +139,7 @@ const SignUp = () => {
   const strength = passwordStrength(formData.password);
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
+    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}

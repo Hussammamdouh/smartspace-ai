@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  FaHeart, 
-  FaShoppingCart, 
-  FaTrash, 
-  FaEye,
-  FaArrowLeft,
-  FaStar,
-  FaSpinner,
-  FaGift,
-  FaShare,
-  FaCheck
+  FaShoppingCart
 } from "react-icons/fa";
 import axiosInstance from "../utils/axiosInstance";
 import Loader from "../components/Loader";
@@ -21,8 +12,6 @@ const WishlistPage = () => {
   const [wishlist, setWishlist] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [removingItem, setRemovingItem] = useState(null);
-  const [addingToCart, setAddingToCart] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const navigate = useNavigate();
   const { addToCart } = useCart();
@@ -45,7 +34,7 @@ const WishlistPage = () => {
         setLoading(true);
         const { data } = await axiosInstance.get('/inventory', {
           params: {
-            ids: wishlist.join(',')
+            ids: wishlist
           }
         });
         setProducts(data.data || []);
@@ -59,48 +48,12 @@ const WishlistPage = () => {
     fetchWishlistProducts();
   }, [wishlist]);
 
-  const removeFromWishlist = async (productId) => {
-    setRemovingItem(productId);
-    try {
-      const newWishlist = wishlist.filter(id => id !== productId);
-      setWishlist(newWishlist);
-      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
-      setProducts(prev => prev.filter(product => product._id !== productId));
-      setSelectedItems(prev => prev.filter(id => id !== productId));
-      toast.success('Removed from wishlist');
-    } catch (error) {
-      console.error('Remove from wishlist error:', error);
-      toast.error('Failed to remove item from wishlist');
-    } finally {
-      setRemovingItem(null);
-    }
-  };
-
-  const handleAddToCart = async (product) => {
-    if (product.stock === 0) {
-      toast.error('This item is out of stock');
-      return;
-    }
-
-    setAddingToCart(product._id);
-    try {
-      await addToCart(product);
-      toast.success('Added to cart successfully!');
-    } catch (error) {
-      console.error('Add to cart error:', error);
-      toast.error('Failed to add to cart');
-    } finally {
-      setAddingToCart(null);
-    }
-  };
-
   const handleAddSelectedToCart = async () => {
     if (selectedItems.length === 0) {
       toast.error('Please select items to add to cart');
       return;
     }
 
-    setAddingToCart('bulk');
     try {
       const selectedProducts = products.filter(product => selectedItems.includes(product._id));
       for (const product of selectedProducts) {
@@ -113,8 +66,6 @@ const WishlistPage = () => {
     } catch (error) {
       console.error('Add to cart error:', error);
       toast.error('Failed to add items to cart');
-    } finally {
-      setAddingToCart(null);
     }
   };
 
@@ -130,14 +81,6 @@ const WishlistPage = () => {
     }
   };
 
-  const toggleSelectItem = (productId) => {
-    setSelectedItems(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
-  };
-
   const selectAll = () => {
     if (selectedItems.length === products.length) {
       setSelectedItems([]);
@@ -150,6 +93,21 @@ const WishlistPage = () => {
     return (
       <div className="min-h-screen bg-[#181818] flex items-center justify-center">
         <Loader size={80} />
+      </div>
+    );
+  }
+
+  if (!loading && wishlist.length > 0 && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#181818] flex flex-col items-center justify-center text-[#E5CBBE] pt-24 pb-16">
+        <h2 className="text-3xl font-bold mb-4">No products found in your wishlist</h2>
+        <p className="text-lg text-[#A58077] mb-8">Some items may have been removed or are unavailable.</p>
+        <button
+          onClick={clearWishlist}
+          className="px-6 py-3 text-sm border border-red-400 text-red-400 rounded-lg hover:bg-red-400 hover:text-white transition-all duration-300"
+        >
+          Clear Wishlist
+        </button>
       </div>
     );
   }
@@ -213,14 +171,9 @@ const WishlistPage = () => {
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={handleAddSelectedToCart}
-                    disabled={addingToCart === 'bulk'}
                     className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-lg hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 disabled:opacity-50"
                   >
-                    {addingToCart === 'bulk' ? (
-                      <FaSpinner className="animate-spin" />
-                    ) : (
-                      <FaShoppingCart />
-                    )}
+                    <FaShoppingCart />
                     <span>Add {selectedItems.length} to Cart</span>
                   </button>
                 </div>
@@ -244,7 +197,7 @@ const WishlistPage = () => {
                 onClick={() => navigate('/products')}
                 className="px-8 py-4 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                <FaGift className="inline mr-2" />
+                <FaShoppingCart className="inline mr-2" />
                 Browse Products
               </button>
               <button
@@ -257,113 +210,18 @@ const WishlistPage = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <div
-                key={product._id}
-                className="bg-[#2C2C2C] rounded-2xl overflow-hidden border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group"
-              >
-                {/* Product Image */}
-                <div className="relative">
-                  <div className="aspect-square bg-[#1e1e1e] flex items-center justify-center overflow-hidden">
-                    <img
-                      src={product.image || product.filePath}
-                      alt={product.name}
-                      className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/300x300/2C2C2C/A58077?text=No+Image';
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Selection Checkbox */}
-                  <div className="absolute top-3 left-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(product._id)}
-                      onChange={() => toggleSelectItem(product._id)}
-                      className="w-5 h-5 bg-[#1e1e1e] border-[#3C3C3C] rounded focus:ring-[#A58077] focus:ring-2"
-                    />
-                  </div>
-                  
-                  {/* Remove from Wishlist Button */}
-                  <button
-                    className="absolute top-3 right-3 bg-[#1e1e1e] text-[#A58077] p-2 rounded-lg shadow-lg hover:bg-red-500 hover:text-white transition-all duration-300 z-10 hover:scale-110"
-                    onClick={() => removeFromWishlist(product._id)}
-                    disabled={removingItem === product._id}
-                    aria-label="Remove from Wishlist"
-                  >
-                    {removingItem === product._id ? (
-                      <FaSpinner className="animate-spin" />
-                    ) : (
-                      <FaTrash />
-                    )}
-                  </button>
-
-                  {/* Stock Status */}
-                  {product.stock <= 5 && product.stock > 0 && (
-                    <div className="absolute bottom-3 left-3 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                      Low Stock
-                    </div>
-                  )}
-                  {product.stock === 0 && (
-                    <div className="absolute bottom-3 left-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                      Out of Stock
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Info */}
-                <div className="p-4">
-                  <h3 className="font-semibold text-[#E5CBBE] mb-2 line-clamp-2 group-hover:text-white transition-colors duration-200">
-                    {product.name}
-                  </h3>
-                  
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="flex items-center space-x-1">
-                      <FaStar className="text-yellow-400 text-sm" />
-                      <span className="text-sm text-[#A58077]">4.8</span>
-                    </div>
-                    <span className="text-sm text-[#A58077]">•</span>
-                    <span className="text-sm text-[#A58077] capitalize">{product.category}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xl font-bold text-[#A58077]">
-                      ${product.price?.toFixed(2)}
-                    </span>
-                    <span className="text-sm text-[#A58077]">
-                      Stock: {product.stock || 0}
-                    </span>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => navigate(`/product/${product._id}`)}
-                      className="flex-1 flex items-center justify-center space-x-2 py-2 bg-[#1e1e1e] text-[#E5CBBE] rounded-lg hover:bg-[#A58077] hover:text-white transition-all duration-300 border border-[#3C3C3C] hover:border-[#A58077]"
-                    >
-                      <FaEye />
-                      <span className="text-sm">View</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      disabled={product.stock === 0 || addingToCart === product._id}
-                      className="flex-1 flex items-center justify-center space-x-2 py-2 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-lg hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {addingToCart === product._id ? (
-                        <FaSpinner className="animate-spin" />
-                      ) : (
-                        <FaShoppingCart />
-                      )}
-                      <span className="text-sm">
-                        {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map(product => (
+              <div key={product._id} className="bg-[#2C2C2C] rounded-xl p-6 border border-[#3C3C3C] flex flex-col items-center">
+                <img
+                  src={product.image || 'https://via.placeholder.com/128x128/2C2C2C/A58077?text=No+Image'}
+                  alt={product.name}
+                  className="w-24 h-24 object-cover rounded-lg shadow mb-4"
+                  onError={e => { e.target.src = 'https://via.placeholder.com/128x128/2C2C2C/A58077?text=No+Image'; }}
+                />
+                <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+                <p className="text-[#A58077] mb-2">${product.price?.toFixed(2) ?? 'N/A'}</p>
+                {/* Add more product details as needed */}
               </div>
             ))}
           </div>
@@ -381,7 +239,7 @@ const WishlistPage = () => {
                 onClick={() => navigate('/products')}
                 className="px-8 py-4 bg-[#2C2C2C] text-[#E5CBBE] rounded-xl hover:bg-[#A58077] hover:text-white transition-all duration-300 font-semibold border border-[#3C3C3C] hover:border-[#A58077]"
               >
-                <FaArrowLeft className="inline mr-2" />
+                <FaShoppingCart className="inline mr-2" />
                 Discover More Products
               </button>
             </div>

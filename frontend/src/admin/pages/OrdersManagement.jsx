@@ -11,8 +11,8 @@ const OrdersManagement = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const { data } = await axiosInstance.get('/orders');
-      setOrders(data.orders || []);
+      const { data } = await axiosInstance.get('/orders/admin/all');
+      setOrders(data.data || []);
     } catch {
       toast.error('Failed to fetch orders');
     } finally {

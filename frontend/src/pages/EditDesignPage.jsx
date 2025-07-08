@@ -46,6 +46,9 @@ const EditDesignPage = () => {
   });
   const [editHistory, setEditHistory] = useState([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [customPromptLoading, setCustomPromptLoading] = useState(false);
+  const [customPromptError, setCustomPromptError] = useState("");
 
   const navigate = useNavigate();
   const categories = ["living room", "bedroom", "kitchen", "bathroom", "child bedroom"];
@@ -65,15 +68,46 @@ const EditDesignPage = () => {
 
   useEffect(() => {
     // Load design data from localStorage if available
-    const savedDesignData = localStorage.getItem('designToEdit');
+    const savedDesignData = localStorage.getItem('editDesignData');
     if (savedDesignData) {
       try {
         const parsedData = JSON.parse(savedDesignData);
         setDesignData(parsedData);
-        setOriginalImage(parsedData.imageUrl || "/images/empty-room.jpg");
-        localStorage.removeItem('designToEdit'); // Clear after loading
+        console.log('Loaded design data:', parsedData);
+        
+        if (parsedData.imageUrl) {
+          setOriginalImage(parsedData.imageUrl);
+          console.log('Setting image URL:', parsedData.imageUrl);
+        } else {
+          setOriginalImage("/images/empty-room.jpg");
+        }
+        
+        localStorage.removeItem('editDesignData'); // Clear after loading
       } catch (error) {
         console.error('Error parsing design data:', error);
+        setOriginalImage("/images/empty-room.jpg");
+      }
+    } else {
+      // If no design data, try to load from editDesignData (alternative key)
+      const alternativeData = localStorage.getItem('designToEdit');
+      if (alternativeData) {
+        try {
+          const parsedData = JSON.parse(alternativeData);
+          setDesignData(parsedData);
+          console.log('Loaded alternative design data:', parsedData);
+          
+          if (parsedData.imageUrl) {
+            setOriginalImage(parsedData.imageUrl);
+            console.log('Setting alternative image URL:', parsedData.imageUrl);
+          } else {
+            setOriginalImage("/images/empty-room.jpg");
+          }
+          
+          localStorage.removeItem('designToEdit');
+        } catch (error) {
+          console.error('Error parsing alternative design data:', error);
+          setOriginalImage("/images/empty-room.jpg");
+        }
       }
     }
 
@@ -323,8 +357,41 @@ const EditDesignPage = () => {
      item.description?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Handler for custom prompt
+  const handleCustomPromptSubmit = async (e) => {
+    e.preventDefault();
+    if (!customPrompt.trim()) {
+      toast.error("Please enter a prompt.");
+      return;
+    }
+    try {
+      setCustomPromptLoading(true);
+      setCustomPromptError("");
+      setLoading(true); // show loader on image
+      const response = await axiosInstance.post('/ai/generate-image', {
+        prompt: customPrompt.trim(),
+        style: styleChanges.style,
+        size: '1024x1024'
+      });
+      if (response.data.status === 'success') {
+        const newImageUrl = response.data.data.imageUrl;
+        setOriginalImage(newImageUrl);
+        toast.success('Design generated from your prompt!');
+        setCustomPrompt("");
+      } else {
+        throw new Error(response.data.message || "Failed to generate design");
+      }
+    } catch (err) {
+      setCustomPromptError("Failed to generate design from prompt.");
+      toast.error("Failed to generate design from prompt.");
+    } finally {
+      setCustomPromptLoading(false);
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="h-screen bg-gradient-to-br from-[#181818] via-[#1a1a1a] to-[#1e1e1e] text-[#E5CBBE] flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#181818] via-[#1a1a1a] to-[#1e1e1e] text-[#E5CBBE] flex flex-col overflow-hidden pb-32">
       {/* Header */}
       <header className="bg-[#2C2C2C]/80 backdrop-blur-sm border-b border-[#3C3C3C] z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -373,26 +440,39 @@ const EditDesignPage = () => {
               </button>
               
               <button
-                onClick={generateFinalDesign}
-                disabled={!hasUnsavedChanges || loading}
-                className="px-6 py-3 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-lg hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl"
+                onClick={handleDownload}
+                disabled={originalImage === "/images/empty-room.jpg"}
+                className="px-4 py-2 bg-[#2C2C2C] text-[#A58077] rounded-lg hover:bg-[#A58077] hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? (
-                  <>
-                    <Loader size={16} />
-                    <span>Generating...</span>
-                  </>
-                ) : (
-                  <>
-                    <FaMagic />
-                    <span>Generate Design</span>
-                  </>
-                )}
+                <FaDownload size={16} />
               </button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Floating Action Button for Generate Design */}
+      {hasUnsavedChanges && (
+        <div className="fixed bottom-8 right-8 z-50">
+          <button
+            onClick={generateFinalDesign}
+            disabled={loading}
+            className="px-8 py-4 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-full hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 font-semibold shadow-2xl hover:shadow-3xl hover:scale-105"
+          >
+            {loading ? (
+              <>
+                <Loader size={20} />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <FaMagic size={20} />
+                <span>Send Updated Design</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
@@ -549,8 +629,7 @@ const EditDesignPage = () => {
           {/* Canvas Area */}
           <div className="flex-1 bg-gradient-to-br from-[#2C2C2C] to-[#1e1e1e] rounded-2xl mx-6 mb-6 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-[#A58077]/5 to-transparent"></div>
-            
-            <div className="relative h-full flex items-center justify-center p-6">
+            <div className="relative h-full flex flex-col items-center justify-center p-6">
               <img
                 src={originalImage}
                 alt="Room Canvas"
@@ -559,7 +638,28 @@ const EditDesignPage = () => {
                   e.target.src = '/images/empty-room.jpg';
                 }}
               />
-              
+              {/* Custom Prompt Input */}
+              <form onSubmit={handleCustomPromptSubmit} className="w-full max-w-xl mt-8 flex flex-col gap-2 bg-[#232323] p-4 rounded-lg shadow-lg border border-[#3C3C3C]">
+                <label htmlFor="customPrompt" className="text-[#A58077] text-sm font-medium mb-1">Send a custom prompt to the AI model:</label>
+                <textarea
+                  id="customPrompt"
+                  value={customPrompt}
+                  onChange={e => setCustomPrompt(e.target.value)}
+                  rows={2}
+                  placeholder="Describe your new idea or request..."
+                  className="w-full p-3 bg-[#2C2C2C] text-white rounded-lg border border-[#3C3C3C] focus:border-[#A58077] focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-200 text-sm resize-none"
+                  disabled={customPromptLoading || loading}
+                />
+                {customPromptError && <div className="text-red-400 text-xs">{customPromptError}</div>}
+                <button
+                  type="submit"
+                  disabled={customPromptLoading || loading || !customPrompt.trim()}
+                  className="self-end px-6 py-2 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-lg hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-200 font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {customPromptLoading || loading ? 'Sending...' : 'Send Prompt'}
+                </button>
+              </form>
+              {/* End Custom Prompt Input */}
               {loading && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-xl flex items-center justify-center">
                   <div className="text-center">

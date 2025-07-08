@@ -17,14 +17,98 @@ import {
   FaTruck,
   FaGift,
   FaBox,
-  FaCalendarAlt,
   FaEnvelope,
   FaGlobe,
-  FaHome
+  FaHome,
+  FaEye,
+  FaEyeSlash
 } from "react-icons/fa";
+import PropTypes from 'prop-types';
+
+// Credit Card Component
+const CreditCard = ({ cardData, isFlipped }) => {
+  const { cardNumber, cardHolder, expiry, cvv } = cardData;
+  
+  const formatCardNumber = (number) => {
+    if (!number) return "•••• •••• •••• ••••";
+    return number.replace(/(\d{4})/g, '$1 ').trim();
+  };
+
+  const formatExpiry = (exp) => {
+    if (!exp) return "MM/YY";
+    return exp.replace(/(\d{2})(\d{2})/, '$1/$2');
+  };
+
+  return (
+    <div className={`credit-card-container relative w-full max-w-sm mx-auto mb-6 ${isFlipped ? 'flipped' : ''}`}>
+      {/* Front of card */}
+      <div className="credit-card-front absolute w-full h-56 bg-gradient-to-br from-[#667eea] to-[#764ba2] rounded-2xl p-6 shadow-2xl">
+        {/* Card header */}
+        <div className="flex justify-between items-start mb-8">
+          <div className="text-white">
+            <div className="text-sm opacity-80">Credit Card</div>
+            <div className="text-lg font-semibold">VISA</div>
+          </div>
+          <div className="w-12 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-6 bg-white/30 rounded"></div>
+          </div>
+        </div>
+        
+        {/* Card number */}
+        <div className="mb-6">
+          <div className="text-white text-2xl font-mono tracking-wider">
+            {formatCardNumber(cardNumber)}
+          </div>
+        </div>
+        
+        {/* Card details */}
+        <div className="flex justify-between items-end">
+          <div className="text-white">
+            <div className="text-xs opacity-80 mb-1">Card Holder</div>
+            <div className="text-sm font-semibold">
+              {cardHolder || "YOUR NAME"}
+            </div>
+          </div>
+          <div className="text-white">
+            <div className="text-xs opacity-80 mb-1">Expires</div>
+            <div className="text-sm font-semibold">
+              {formatExpiry(expiry)}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Back of card */}
+      <div className="credit-card-back absolute w-full h-56 bg-gradient-to-br from-[#667eea] to-[#764ba2] rounded-2xl p-6 shadow-2xl">
+        <div className="w-full h-12 bg-black/20 mt-4 mb-6"></div>
+        <div className="flex justify-between items-center">
+          <div className="w-16 h-10 bg-white/20 rounded flex items-center justify-center">
+            <div className="text-white text-xs font-mono">
+              {cvv || "•••"}
+            </div>
+          </div>
+          <div className="text-white text-xs opacity-80">
+            CVV
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// PropTypes for CreditCard component
+CreditCard.propTypes = {
+  cardData: PropTypes.shape({
+    cardNumber: PropTypes.string,
+    cardHolder: PropTypes.string,
+    expiry: PropTypes.string,
+    cvv: PropTypes.string,
+  }).isRequired,
+  isFlipped: PropTypes.bool.isRequired,
+};
 
 const CheckoutPage = () => {
-  const { cart, clearCart, validateCartItems } = useContext(CartContext);
+  const { cart, clearCart, validateCartItems, addToCart } = useContext(CartContext);
   const navigate = useNavigate();
   const [address, setAddress] = useState({
     name: "",
@@ -35,8 +119,21 @@ const CheckoutPage = () => {
     phone: "",
     email: ""
   });
+  
+  // Credit card state
+  const [cardData, setCardData] = useState({
+    cardNumber: "",
+    cardHolder: "",
+    expiry: "",
+    cvv: ""
+  });
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [showCvv, setShowCvv] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cash-on-delivery");
+  
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState({});
+  const [cardErrors, setCardErrors] = useState({});
   const [cartValidation, setCartValidation] = useState(null);
   const [validatingCart, setValidatingCart] = useState(true);
 
@@ -95,7 +192,10 @@ const CheckoutPage = () => {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const addressValid = Object.keys(newErrors).length === 0;
+    const cardValid = validateCard();
+    
+    return addressValid && cardValid;
   };
 
   const handleChange = (e) => {
@@ -106,6 +206,69 @@ const CheckoutPage = () => {
     if (errors[name]) {
       setErrors({ ...errors, [name]: "" });
     }
+  };
+
+  const handleCardChange = (e) => {
+    const { name, value } = e.target;
+    let formattedValue = value;
+    
+    // Format card number with spaces
+    if (name === 'cardNumber') {
+      formattedValue = value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
+      if (formattedValue.length > 19) return; // Max 16 digits + 3 spaces
+    }
+    
+    // Format expiry date
+    if (name === 'expiry') {
+      formattedValue = value.replace(/\D/g, '').slice(0, 4);
+      if (formattedValue.length >= 2) {
+        const month = parseInt(formattedValue.slice(0, 2));
+        if (month > 12) return;
+      }
+    }
+    
+    // Format CVV
+    if (name === 'cvv') {
+      formattedValue = value.replace(/\D/g, '').slice(0, 3);
+    }
+    
+    setCardData({ ...cardData, [name]: formattedValue });
+    
+    // Clear error when user starts typing
+    if (cardErrors[name]) {
+      setCardErrors({ ...cardErrors, [name]: "" });
+    }
+  };
+
+  const validateCard = () => {
+    const newErrors = {};
+    
+    if (paymentMethod === 'card') {
+      if (!cardData.cardNumber.replace(/\s/g, '')) {
+        newErrors.cardNumber = "Card number is required";
+      } else if (cardData.cardNumber.replace(/\s/g, '').length !== 16) {
+        newErrors.cardNumber = "Card number must be 16 digits";
+      }
+      
+      if (!cardData.cardHolder.trim()) {
+        newErrors.cardHolder = "Card holder name is required";
+      }
+      
+      if (!cardData.expiry) {
+        newErrors.expiry = "Expiry date is required";
+      } else if (cardData.expiry.length !== 4) {
+        newErrors.expiry = "Expiry date must be MMYY format";
+      }
+      
+      if (!cardData.cvv) {
+        newErrors.cvv = "CVV is required";
+      } else if (cardData.cvv.length !== 3) {
+        newErrors.cvv = "CVV must be 3 digits";
+      }
+    }
+    
+    setCardErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -142,8 +305,14 @@ const CheckoutPage = () => {
         subtotal,
         shippingCost,
         discount,
-        paymentMethod: "cash-on-delivery",
+        paymentMethod: paymentMethod,
         shippingAddress: address,
+        ...(paymentMethod === 'card' && {
+          cardInfo: {
+            last4: cardData.cardNumber.replace(/\s/g, '').slice(-4),
+            cardType: 'visa' // You can detect this based on card number
+          }
+        })
       };
 
       const response = await axiosInstance.post('/orders', orderData);
@@ -176,6 +345,38 @@ const CheckoutPage = () => {
     }
   };
 
+  // Debug information
+  console.log('Cart state:', cart);
+  console.log('Cart length:', cart.length);
+  console.log('Validating cart:', validatingCart);
+  console.log('Cart validation:', cartValidation);
+
+  // Test function to add sample items to cart
+  const addTestItems = () => {
+    const testItems = [
+      {
+        _id: 'test1',
+        name: 'Test Chair',
+        price: 199.99,
+        quantity: 1,
+        image: 'https://via.placeholder.com/150x150/2C2C2C/A58077?text=Chair'
+      },
+      {
+        _id: 'test2',
+        name: 'Test Table',
+        price: 299.99,
+        quantity: 1,
+        image: 'https://via.placeholder.com/150x150/2C2C2C/A58077?text=Table'
+      }
+    ];
+    
+    testItems.forEach(item => {
+      addToCart(item);
+    });
+    
+    toast.success('Test items added to cart!');
+  };
+
   if (validatingCart) {
     return (
       <div className="min-h-screen bg-[#181818] text-[#E5CBBE] flex items-center justify-center">
@@ -189,7 +390,7 @@ const CheckoutPage = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
+      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-16">
             <div className="text-8xl mb-6">🛒</div>
@@ -215,6 +416,13 @@ const CheckoutPage = () => {
                 <FaArrowLeft className="inline mr-2" />
                 View Cart
               </button>
+              {/* Debug button */}
+              <button
+                onClick={addTestItems}
+                className="px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300 font-semibold"
+              >
+                Add Test Items (Debug)
+              </button>
             </div>
           </div>
         </div>
@@ -227,7 +435,7 @@ const CheckoutPage = () => {
   const priceChangedItems = cartValidation?.filter(result => result.priceChanged) || [];
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
+    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
@@ -295,14 +503,15 @@ const CheckoutPage = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[#E5CBBE]">Full Name</label>
+                    <label htmlFor="name" className="block text-sm font-medium mb-1">Full Name</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <FaUser className="text-[#A58077]" />
                       </div>
                       <input
-                        type="text"
+                        id="name"
                         name="name"
+                        type="text"
                         value={address.name}
                         onChange={handleChange}
                         className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
@@ -315,14 +524,15 @@ const CheckoutPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[#E5CBBE]">Email Address</label>
+                    <label htmlFor="email" className="block text-sm font-medium mb-1">Email Address</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <FaEnvelope className="text-[#A58077]" />
                       </div>
                       <input
-                        type="email"
+                        id="email"
                         name="email"
+                        type="email"
                         value={address.email}
                         onChange={handleChange}
                         className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
@@ -336,12 +546,13 @@ const CheckoutPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-[#E5CBBE]">Address</label>
+                  <label htmlFor="address" className="block text-sm font-medium mb-1">Address</label>
                   <div className="relative">
                     <div className="absolute top-3 left-4 flex items-center pointer-events-none">
                       <FaHome className="text-[#A58077]" />
                     </div>
                     <textarea
+                      id="address"
                       name="address"
                       value={address.address}
                       onChange={handleChange}
@@ -357,10 +568,11 @@ const CheckoutPage = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[#E5CBBE]">City</label>
+                    <label htmlFor="city" className="block text-sm font-medium mb-1">City</label>
                     <input
-                      type="text"
+                      id="city"
                       name="city"
+                      type="text"
                       value={address.city}
                       onChange={handleChange}
                       className={`w-full px-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
@@ -372,10 +584,11 @@ const CheckoutPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[#E5CBBE]">Postal Code</label>
+                    <label htmlFor="postalCode" className="block text-sm font-medium mb-1">Postal Code</label>
                     <input
-                      type="text"
+                      id="postalCode"
                       name="postalCode"
+                      type="text"
                       value={address.postalCode}
                       onChange={handleChange}
                       className={`w-full px-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
@@ -387,14 +600,15 @@ const CheckoutPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[#E5CBBE]">Country</label>
+                    <label htmlFor="country" className="block text-sm font-medium mb-1">Country</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <FaGlobe className="text-[#A58077]" />
                       </div>
                       <input
-                        type="text"
+                        id="country"
                         name="country"
+                        type="text"
                         value={address.country}
                         onChange={handleChange}
                         className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
@@ -408,14 +622,15 @@ const CheckoutPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-[#E5CBBE]">Phone Number (Optional)</label>
+                  <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone Number (Optional)</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <FaPhone className="text-[#A58077]" />
                     </div>
                     <input
-                      type="tel"
+                      id="phone"
                       name="phone"
+                      type="tel"
                       value={address.phone}
                       onChange={handleChange}
                       className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
@@ -441,13 +656,15 @@ const CheckoutPage = () => {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4 p-4 bg-[#1e1e1e] rounded-xl border border-[#3C3C3C]">
+              <div className="space-y-6">
+                {/* Cash on Delivery Option */}
+                <div className="flex items-center space-x-4 p-4 bg-[#1e1e1e] rounded-xl border border-[#3C3C3C] hover:border-[#A58077] transition-colors duration-200">
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="cash-on-delivery"
-                    defaultChecked
+                    checked={paymentMethod === "cash-on-delivery"}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
                     className="w-4 h-4 bg-[#1e1e1e] border-[#3C3C3C] text-[#A58077] focus:ring-[#A58077] focus:ring-2"
                   />
                   <div className="flex items-center space-x-3">
@@ -458,6 +675,123 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Credit Card Option */}
+                <div className="flex items-center space-x-4 p-4 bg-[#1e1e1e] rounded-xl border border-[#3C3C3C] hover:border-[#A58077] transition-colors duration-200">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="card"
+                    checked={paymentMethod === "card"}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-4 h-4 bg-[#1e1e1e] border-[#3C3C3C] text-[#A58077] focus:ring-[#A58077] focus:ring-2"
+                  />
+                  <div className="flex items-center space-x-3">
+                    <FaCreditCard className="text-[#A58077]" />
+                    <div>
+                      <p className="font-semibold text-[#E5CBBE]">Credit/Debit Card</p>
+                      <p className="text-sm text-[#A58077]">Pay securely with your card</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Credit Card Form */}
+                {paymentMethod === "card" && (
+                  <div className="mt-6 p-6 bg-[#1e1e1e] rounded-xl border border-[#3C3C3C]">
+                    {/* Credit Card Display */}
+                    <CreditCard cardData={cardData} isFlipped={isCardFlipped} />
+                    
+                    {/* Card Input Fields */}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label htmlFor="cardNumber" className="block text-sm font-medium mb-1">Card Number</label>
+                        <input
+                          id="cardNumber"
+                          name="cardNumber"
+                          type="text"
+                          value={cardData.cardNumber}
+                          onChange={handleCardChange}
+                          className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 font-mono ${
+                            cardErrors.cardNumber ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                          }`}
+                          placeholder="1234 5678 9012 3456"
+                          maxLength="19"
+                        />
+                        {cardErrors.cardNumber && <p className="text-red-400 text-sm">{cardErrors.cardNumber}</p>}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="cardHolder" className="block text-sm font-medium mb-1">Card Holder Name</label>
+                        <input
+                          id="cardHolder"
+                          name="cardHolder"
+                          type="text"
+                          value={cardData.cardHolder}
+                          onChange={handleCardChange}
+                          className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
+                            cardErrors.cardHolder ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                          }`}
+                          placeholder="JOHN DOE"
+                        />
+                        {cardErrors.cardHolder && <p className="text-red-400 text-sm">{cardErrors.cardHolder}</p>}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label htmlFor="expiry" className="block text-sm font-medium mb-1">Expiry Date</label>
+                          <input
+                            id="expiry"
+                            name="expiry"
+                            type="text"
+                            value={cardData.expiry}
+                            onChange={handleCardChange}
+                            className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 font-mono ${
+                              cardErrors.expiry ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                            }`}
+                            placeholder="MMYY"
+                            maxLength="4"
+                          />
+                          {cardErrors.expiry && <p className="text-red-400 text-sm">{cardErrors.expiry}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="cvv" className="block text-sm font-medium mb-1">CVV</label>
+                          <div className="relative">
+                            <input
+                              id="cvv"
+                              name="cvv"
+                              type={showCvv ? "text" : "password"}
+                              value={cardData.cvv}
+                              onChange={handleCardChange}
+                              onFocus={() => setIsCardFlipped(true)}
+                              onBlur={() => setIsCardFlipped(false)}
+                              className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 font-mono pr-12 ${
+                                cardErrors.cvv ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                              }`}
+                              placeholder="123"
+                              maxLength="3"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowCvv(!showCvv)}
+                              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200"
+                            >
+                              {showCvv ? <FaEyeSlash /> : <FaEye />}
+                            </button>
+                          </div>
+                          {cardErrors.cvv && <p className="text-red-400 text-sm">{cardErrors.cvv}</p>}
+                        </div>
+                      </div>
+
+                      {/* Security Info */}
+                      <div className="flex items-center justify-center mt-4 text-sm text-[#A58077]">
+                        <FaShieldAlt className="mr-2" />
+                        <span>Your payment information is secure and encrypted</span>
+                        <FaLock className="ml-2" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

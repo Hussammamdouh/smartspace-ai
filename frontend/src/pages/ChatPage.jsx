@@ -164,13 +164,36 @@ const ChatPage = () => {
       }
 
       if (response.data.status === 'success') {
-        const assistantMessage = {
-          role: "assistant",
-          content: response.data.data.message,
-          timestamp: new Date(),
-          type: chatMode === 'image' ? 'image' : 'text',
-          imageUrl: response.data.data.imageUrl
-        };
+        console.log('Response data:', response.data);
+        console.log('Response data.data:', response.data.data);
+        console.log('Response data.data.response:', response.data.data.response);
+        
+        let assistantMessage;
+        
+        if (chatMode === 'image') {
+          // For image generation, the response contains the image URL
+          console.log('Creating image message with URL:', response.data.data.response);
+          assistantMessage = {
+            role: "assistant",
+            content: `Generated interior design image based on: ${newMessage}`,
+            timestamp: new Date(),
+            type: 'image',
+            imageUrl: response.data.data.response, // The imageUrl is in response field
+            designData: response.data.data.designData
+          };
+          console.log('Image message created:', assistantMessage);
+          console.log('Image URL in message:', assistantMessage.imageUrl);
+        } else {
+          // For chat, the response contains the text message
+          assistantMessage = {
+            role: "assistant",
+            content: response.data.data.response,
+            timestamp: new Date(),
+            type: 'text'
+          };
+        }
+        
+        console.log('Adding message to state:', assistantMessage);
         setMessages(prev => [...prev, assistantMessage]);
         
         // Reload conversations to show the new one
@@ -178,8 +201,21 @@ const ChatPage = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      setError("Failed to send message. Please try again.");
-      toast.error("Failed to send message");
+      
+      // More specific error messages
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        setError(error.response.data.message || "Failed to send message. Please try again.");
+        toast.error(error.response.data.message || "Failed to send message");
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+        setError("No response from server. Please check your connection.");
+        toast.error("No response from server. Please check your connection.");
+      } else {
+        console.error('Error setting up request:', error.message);
+        setError("Failed to send message. Please try again.");
+        toast.error("Failed to send message");
+      }
     } finally {
       setIsLoading(false);
       setIsGeneratingImage(false);
@@ -188,10 +224,15 @@ const ChatPage = () => {
 
   const downloadImage = async (imageUrl, designName = 'generated-design') => {
     try {
-      const response = await axiosInstance.get(`/design/download-image?url=${encodeURIComponent(imageUrl)}`, {
+      console.log('Downloading image:', imageUrl);
+      const response = await axiosInstance.post('/design/download-image', {
+        imageUrl: imageUrl,
+        filename: `${designName}-${Date.now()}.png`
+      }, {
         responseType: 'blob'
       });
       
+      console.log('Download response:', response);
       const blob = new Blob([response.data], { type: 'image/png' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -205,6 +246,7 @@ const ChatPage = () => {
       toast.success('Image downloaded successfully!');
     } catch (error) {
       console.error('Error downloading image:', error);
+      console.error('Error response:', error.response);
       toast.error('Failed to download image');
     }
   };
@@ -239,20 +281,25 @@ const ChatPage = () => {
 
   const purchaseDesign = async (imageUrl, messageContent) => {
     try {
+      console.log('Extracting items for:', { imageUrl, messageContent });
       const response = await axiosInstance.post('/design/extract-items', {
+        imageUrl: imageUrl,
         prompt: messageContent
       });
       
-      if (response.data.status === 'success' && response.data.data.length > 0) {
-        response.data.data.forEach(item => {
+      console.log('Extract items response:', response.data);
+      
+      if (response.data.status === 'success' && response.data.data.items && response.data.data.items.length > 0) {
+        response.data.data.items.forEach(item => {
           addToCart(item);
         });
-        toast.success(`${response.data.data.length} items added to cart!`);
+        toast.success(`${response.data.data.items.length} items added to cart!`);
       } else {
         toast.info('No specific items found in this design');
       }
     } catch (error) {
       console.error('Error extracting items:', error);
+      console.error('Error response:', error.response);
       toast.error('Failed to extract items from design');
     }
   };
@@ -266,245 +313,254 @@ const ChatPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-5rem)] bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0f0f0f] text-[#E5CBBE] overflow-hidden pt-16 lg:pt-20">
+      <div className="h-full flex flex-col">
         
         {/* Header */}
-        <div className="mb-8">
-          <nav className="flex items-center space-x-2 text-sm text-[#A58077] mb-4">
-            <span>Home</span>
-            <span>/</span>
-            <span className="text-[#E5CBBE]">AI Chat</span>
-          </nav>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-2">
-            AI Design
-            <span className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] bg-clip-text text-transparent"> Assistant</span>
-          </h1>
-          <p className="text-[#A58077] text-lg">
-            Get personalized design advice and generate stunning interiors
-          </p>
+        <div className="bg-[#1a1a1a]/80 backdrop-blur-xl border-b border-[#2a2a2a] px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-xl flex items-center justify-center shadow-lg">
+                <FaComments className="text-white text-lg" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  AI Design
+                  <span className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] bg-clip-text text-transparent"> Studio</span>
+                </h1>
+                <p className="text-[#A58077] text-sm">Your personal AI design assistant</p>
+              </div>
+            </div>
+            
+            {/* Mode Toggle */}
+            <div className="flex bg-[#2a2a2a] rounded-xl p-1">
+              <button
+                onClick={() => setChatMode('chat')}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  chatMode === 'chat' 
+                    ? 'bg-[#A58077] text-white shadow-lg' 
+                    : 'text-[#A58077] hover:text-white hover:bg-[#3a3a3a]'
+                }`}
+              >
+                <FaComments className="text-sm" />
+                <span>Chat</span>
+              </button>
+              <button
+                onClick={() => setChatMode('image')}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  chatMode === 'image' 
+                    ? 'bg-[#A58077] text-white shadow-lg' 
+                    : 'text-[#A58077] hover:text-white hover:bg-[#3a3a3a]'
+                }`}
+              >
+                <FaImage className="text-sm" />
+                <span>Generate</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
+        <div className="flex-1 flex min-h-0">
           
           {/* Sidebar - Conversations */}
-          <div className="lg:col-span-1">
-            <div className="bg-[#2C2C2C] rounded-xl border border-[#3C3C3C] h-full flex flex-col">
+          <div className="w-80 bg-[#1a1a1a]/60 backdrop-blur-sm border-r border-[#2a2a2a] flex flex-col">
+            
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-[#2a2a2a]">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-white">Conversations</h2>
+                <button
+                  onClick={startNewConversation}
+                  className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  <FaPlus className="text-sm" />
+                </button>
+              </div>
               
-              {/* Sidebar Header */}
-              <div className="p-4 border-b border-[#3C3C3C]">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-[#E5CBBE]">Conversations</h2>
-                  <button
-                    onClick={startNewConversation}
-                    className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-300"
-                  >
-                    <FaPlus />
-                  </button>
-                </div>
-                
-                {/* Mode Toggle */}
-                <div className="flex bg-[#1e1e1e] rounded-lg p-1">
-                  <button
-                    onClick={() => setChatMode('chat')}
-                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-300 ${
-                      chatMode === 'chat' 
-                        ? 'bg-[#A58077] text-white' 
-                        : 'text-[#A58077] hover:text-[#E5CBBE]'
-                    }`}
-                  >
-                    <FaComments className="inline mr-1" />
-                    Chat
-                  </button>
-                  <button
-                    onClick={() => setChatMode('image')}
-                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-300 ${
-                      chatMode === 'image' 
-                        ? 'bg-[#A58077] text-white' 
-                        : 'text-[#A58077] hover:text-[#E5CBBE]'
-                    }`}
-                  >
-                    <FaImage className="inline mr-1" />
-                    Generate
-                  </button>
-                </div>
+              <div className="text-xs text-[#A58077] bg-[#2a2a2a] rounded-lg p-2">
+                {chatMode === 'chat' 
+                  ? "💬 Ask questions and get design advice"
+                  : "🎨 Generate stunning interior designs"
+                }
               </div>
+            </div>
 
-              {/* Conversations List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                {conversations.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FaComments className="text-4xl text-[#A58077] mx-auto mb-4" />
-                    <p className="text-[#A58077] text-sm">No conversations yet</p>
-                    <p className="text-[#A58077] text-xs">Start a new chat to begin</p>
+            {/* Conversations List */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {conversations.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-[#2a2a2a] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaComments className="text-2xl text-[#A58077]" />
                   </div>
-                ) : (
-                  conversations.map((conversation) => (
-                    <div
-                      key={conversation._id}
-                      className={`p-3 rounded-lg cursor-pointer transition-all duration-300 group ${
-                        currentConversationId === conversation._id
-                          ? 'bg-[#A58077] text-white'
-                          : 'bg-[#1e1e1e] hover:bg-[#3C3C3C] text-[#E5CBBE]'
-                      }`}
-                      onClick={() => loadConversation(conversation._id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">
-                            {conversation.title || 'New Conversation'}
-                          </p>
-                          <p className="text-xs opacity-70 truncate">
-                            {new Date(conversation.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteConversation(conversation._id);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-300 transition-all duration-300"
-                        >
-                          <FaTrash className="text-xs" />
-                        </button>
+                  <h3 className="text-white font-medium mb-2">No conversations yet</h3>
+                  <p className="text-[#A58077] text-sm">Start a new chat to begin your design journey</p>
+                </div>
+              ) : (
+                conversations.map((conversation) => (
+                  <div
+                    key={conversation._id}
+                    className={`p-3 rounded-xl cursor-pointer transition-all duration-300 group ${
+                      currentConversationId === conversation._id
+                        ? 'bg-[#A58077] text-white shadow-lg'
+                        : 'bg-[#2a2a2a] hover:bg-[#3a3a3a] text-[#E5CBBE] hover:text-white'
+                    }`}
+                    onClick={() => loadConversation(conversation._id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate text-sm">
+                          {conversation.title || 'New Conversation'}
+                        </p>
+                        <p className="text-xs opacity-70 truncate mt-1">
+                          {new Date(conversation.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteConversation(conversation._id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-300 transition-all duration-300"
+                      >
+                        <FaTrash className="text-xs" />
+                      </button>
                     </div>
-                  ))
-                )}
-              </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
           {/* Main Chat Area */}
-          <div className="lg:col-span-3">
-            <div className="bg-[#2C2C2C] rounded-xl border border-[#3C3C3C] h-full flex flex-col">
-              
-              {/* Chat Header */}
-              <div className="p-4 border-b border-[#3C3C3C]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#E5CBBE]">
-                      {currentConversationId ? 'Current Conversation' : 'New Conversation'}
-                    </h3>
-                    <p className="text-sm text-[#A58077]">
-                      {chatMode === 'chat' ? 'AI Design Assistant' : 'AI Image Generator'}
-                    </p>
+          <div className="flex-1 flex flex-col bg-[#0f0f0f]">
+            
+            {/* Chat Header */}
+            <div className="p-4 border-b border-[#2a2a2a] bg-[#1a1a1a]/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    {currentConversationId ? 'Current Conversation' : 'New Conversation'}
+                  </h3>
+                  <p className="text-[#A58077] text-sm">
+                    {chatMode === 'chat' ? 'AI Design Assistant' : 'AI Image Generator'}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {chatMode === 'image' && (
+                    <div className="flex items-center space-x-2 bg-[#A58077]/20 text-[#A58077] px-3 py-1 rounded-full text-sm">
+                      <FaMagic className="text-xs" />
+                      <span>Image Mode</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-[#0f0f0f] to-[#1a1a1a]">
+              {messages.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-24 h-24 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                    <div className="text-4xl">🤖</div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {chatMode === 'image' && (
-                      <div className="flex items-center space-x-1 text-[#A58077] text-sm">
-                        <FaMagic />
-                        <span>Image Mode</span>
+                  <h3 className="text-2xl font-bold text-white mb-3">
+                    Welcome to AI Design Studio
+                  </h3>
+                  <p className="text-[#A58077] mb-8 max-w-md mx-auto text-lg leading-relaxed">
+                    {chatMode === 'chat' 
+                      ? "Ask me anything about interior design, get personalized advice, or discuss your design ideas."
+                      : "Describe the room you want to design and I'll generate a stunning interior for you."
+                    }
+                  </p>
+                  
+                  {/* Quick Prompts */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                    {quickPrompts.map((prompt, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setNewMessage(prompt)}
+                        className="p-4 bg-[#2a2a2a] text-[#E5CBBE] rounded-xl hover:bg-[#A58077] hover:text-white transition-all duration-300 text-left border border-[#3a3a3a] hover:border-[#A58077] group"
+                      >
+                        <FaLightbulb className="inline mr-2 text-[#A58077] group-hover:text-white transition-colors" />
+                        <span className="text-sm">{prompt}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                messages.map((message, index) => (
+                  <MessageBubble
+                    key={index}
+                    message={message}
+                    onDownload={downloadImage}
+                    onShare={shareImage}
+                    onEdit={editDesign}
+                    onPurchase={purchaseDesign}
+                  />
+                ))
+              )}
+              
+              {/* Loading Indicator */}
+              {isLoading && (
+                <div className="flex items-center space-x-4 p-4 bg-[#2a2a2a] rounded-xl border border-[#3a3a3a] shadow-lg">
+                  <div className="w-8 h-8 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-full flex items-center justify-center shadow-lg">
+                    <FaRobot className="text-white text-sm" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-white font-medium">AI is thinking</span>
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-[#A58077] rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-[#A58077] rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-2 h-2 bg-[#A58077] rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                       </div>
+                    </div>
+                    {isGeneratingImage && (
+                      <p className="text-[#A58077] text-sm mt-1">
+                        Generating your design... This may take a moment
+                      </p>
                     )}
                   </div>
                 </div>
-              </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
 
-              {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="text-6xl mb-4">🤖</div>
-                    <h3 className="text-xl font-semibold text-[#E5CBBE] mb-2">
-                      Welcome to AI Design Assistant
-                    </h3>
-                    <p className="text-[#A58077] mb-6 max-w-md mx-auto">
-                      {chatMode === 'chat' 
-                        ? "Ask me anything about interior design, get personalized advice, or discuss your design ideas."
-                        : "Describe the room you want to design and I'll generate a stunning interior for you."
-                      }
-                    </p>
-                    
-                    {/* Quick Prompts */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
-                      {quickPrompts.map((prompt, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setNewMessage(prompt)}
-                          className="p-3 bg-[#1e1e1e] text-[#E5CBBE] rounded-lg hover:bg-[#A58077] hover:text-white transition-all duration-300 text-left text-sm border border-[#3C3C3C] hover:border-[#A58077]"
-                        >
-                          <FaLightbulb className="inline mr-2 text-[#A58077]" />
-                          {prompt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  messages.map((message, index) => (
-                    <MessageBubble
-                      key={index}
-                      message={message}
-                      onDownload={downloadImage}
-                      onShare={shareImage}
-                      onEdit={editDesign}
-                      onPurchase={purchaseDesign}
-                    />
-                  ))
-                )}
-                
-                {/* Loading Indicator */}
-                {isLoading && (
-                  <div className="flex items-center space-x-3 p-4 bg-[#1e1e1e] rounded-lg">
-                    <div className="w-8 h-8 bg-[#A58077] rounded-full flex items-center justify-center">
-                      <FaRobot className="text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-1">
-                        <span className="text-[#E5CBBE]">AI is thinking</span>
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-[#A58077] rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-[#A58077] rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                          <div className="w-2 h-2 bg-[#A58077] rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                        </div>
-                      </div>
-                      {isGeneratingImage && (
-                        <p className="text-sm text-[#A58077] mt-1">
-                          Generating your design... This may take a moment
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input Area */}
-              <div className="p-4 border-t border-[#3C3C3C]">
-                <form onSubmit={handleSubmit} className="flex space-x-3">
-                  <div className="flex-1 relative">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder={chatMode === 'chat' 
-                        ? "Ask about interior design, get advice, or discuss ideas..." 
-                        : "Describe the room you want to design..."
-                      }
-                      className="w-full px-4 py-3 bg-[#1e1e1e] text-[#E5CBBE] border border-[#3C3C3C] rounded-lg focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-300 placeholder-[#A58077]"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={!newMessage.trim() || isLoading}
-                    className="px-6 py-3 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    {isLoading ? (
-                      <FaSpinner className="animate-spin" />
-                    ) : (
-                      <FaPaperPlane />
-                    )}
-                    <span className="hidden sm:inline">Send</span>
-                  </button>
-                </form>
-                
-                {error && (
-                  <p className="text-red-400 text-sm mt-2">{error}</p>
-                )}
-              </div>
+            {/* Input Area */}
+            <div className="p-6 bg-[#1a1a1a]/80 backdrop-blur-sm border-t border-[#2a2a2a]">
+              <form onSubmit={handleSubmit} className="flex space-x-3">
+                <div className="flex-1 relative">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder={chatMode === 'chat' 
+                      ? "Ask about interior design, get advice, or discuss ideas..." 
+                      : "Describe the room you want to design..."
+                    }
+                    className="w-full px-4 py-3 bg-[#2a2a2a] text-white border border-[#3a3a3a] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-300 placeholder-[#A58077] text-sm"
+                    disabled={isLoading}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim() || isLoading}
+                  className="px-6 py-3 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 font-medium shadow-lg hover:shadow-xl"
+                >
+                  {isLoading ? (
+                    <FaSpinner className="animate-spin" />
+                  ) : (
+                    <FaPaperPlane />
+                  )}
+                  <span>Send</span>
+                </button>
+              </form>
+              
+              {error && (
+                <p className="text-red-400 text-sm mt-3 bg-red-900/20 border border-red-500/30 rounded-lg p-2">{error}</p>
+              )}
             </div>
           </div>
         </div>
@@ -518,79 +574,103 @@ const MessageBubble = ({ message, onDownload, onShare, onEdit, onPurchase }) => 
   const isUser = message.role === 'user';
   const isImage = message.type === 'image';
 
+  // Debug logging
+  console.log('MessageBubble render:', { 
+    message, 
+    isImage, 
+    imageUrl: message.imageUrl,
+    messageType: message.type,
+    hasImageUrl: !!message.imageUrl
+  });
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex items-start space-x-3 max-w-3xl ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
         
         {/* Avatar */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-          isUser ? 'bg-[#A58077]' : 'bg-[#8B6B63]'
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
+          isUser 
+            ? 'bg-gradient-to-br from-[#A58077] to-[#8B6B63]' 
+            : 'bg-gradient-to-br from-[#2a2a2a] to-[#3a3a3a] border border-[#4a4a4a]'
         }`}>
-          {isUser ? <FaUser className="text-white text-sm" /> : <FaRobot className="text-white text-sm" />}
+          {isUser ? (
+            <FaUser className="text-white text-sm" />
+          ) : (
+            <FaRobot className="text-[#A58077] text-sm" />
+          )}
         </div>
 
         {/* Message Content */}
         <div className={`flex-1 ${isUser ? 'text-right' : 'text-left'}`}>
-          <div className={`inline-block p-4 rounded-2xl ${
+          <div className={`inline-block p-4 rounded-2xl shadow-lg ${
             isUser 
-              ? 'bg-[#A58077] text-white' 
-              : 'bg-[#1e1e1e] text-[#E5CBBE] border border-[#3C3C3C]'
+              ? 'bg-gradient-to-br from-[#A58077] to-[#8B6B63] text-white' 
+              : 'bg-[#2a2a2a] text-[#E5CBBE] border border-[#3a3a3a]'
           }`}>
             
             {/* Text Content */}
             {message.content && (
               <div className="mb-3">
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
               </div>
             )}
 
-            {/* Image Content */}
+            {/* Image Content - Fixed Size Container */}
             {isImage && message.imageUrl && (
               <div className="mb-3">
-                <div className="relative group">
+                <div className="relative group w-80 h-60 bg-[#1a1a1a] rounded-xl overflow-hidden border border-[#3a3a3a] shadow-xl">
                   <img
                     src={message.imageUrl}
                     alt="Generated design"
-                    className="w-full max-w-md rounded-lg shadow-lg"
+                    className="w-full h-full object-cover"
+                    onLoad={() => console.log('Image loaded successfully:', message.imageUrl)}
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/400x300/2C2C2C/A58077?text=Generated+Design';
+                      console.error('Image failed to load:', message.imageUrl, e);
+                      e.target.src = 'https://via.placeholder.com/320x240/2C2C2C/A58077?text=Generated+Design';
                     }}
                   />
                   
                   {/* Image Actions Overlay */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                     <div className="flex space-x-2">
                       <button
                         onClick={() => onDownload(message.imageUrl, 'design')}
-                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-colors duration-200"
+                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-200 shadow-lg hover:shadow-xl"
                         title="Download"
                       >
-                        <FaDownload />
+                        <FaDownload className="text-sm" />
                       </button>
                       <button
                         onClick={() => onShare(message.imageUrl)}
-                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-colors duration-200"
+                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-200 shadow-lg hover:shadow-xl"
                         title="Share"
                       >
-                        <FaShare />
+                        <FaShare className="text-sm" />
                       </button>
                       <button
                         onClick={() => onEdit(message.imageUrl, message.content)}
-                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-colors duration-200"
+                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-200 shadow-lg hover:shadow-xl"
                         title="Edit Design"
                       >
-                        <FaEdit />
+                        <FaEdit className="text-sm" />
                       </button>
                       <button
                         onClick={() => onPurchase(message.imageUrl, message.content)}
-                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-colors duration-200"
+                        className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-200 shadow-lg hover:shadow-xl"
                         title="Purchase Items"
                       >
-                        <FaShoppingCart />
+                        <FaShoppingCart className="text-sm" />
                       </button>
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Debug info for image messages */}
+            {isImage && !message.imageUrl && (
+              <div className="mb-3 p-3 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400 text-sm">
+                Debug: Image message but no imageUrl found. Message: {JSON.stringify(message)}
               </div>
             )}
 

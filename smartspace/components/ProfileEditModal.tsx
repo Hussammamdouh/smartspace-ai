@@ -62,7 +62,6 @@ export default function ProfileEditModal({
         Alert.alert('Error', response.error || 'Failed to update profile');
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile');
     } finally {
       setLoading(false);

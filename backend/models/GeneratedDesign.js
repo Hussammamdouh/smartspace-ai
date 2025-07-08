@@ -15,6 +15,10 @@ const GeneratedDesignSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  public_id: {
+    type: String,
+    required: false,
+  },
   relatedProducts: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'InventoryItem',

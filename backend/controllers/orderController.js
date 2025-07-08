@@ -74,6 +74,9 @@ const updateStockLevels = async (products) => {
         { $inc: { stock: -item.quantity } },
         { new: true }
       );
+      if (!result) {
+        return { success: false, productId: item.productId, error: 'Product not found during stock update' };
+      }
       return { success: true, productId: item.productId, newStock: result.stock };
     } catch (error) {
       return { success: false, productId: item.productId, error: error.message };
@@ -85,26 +88,24 @@ const updateStockLevels = async (products) => {
 
 // Create a new order
 exports.createOrder = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { products, total, paymentMethod, shippingAddress } = req.body;
 
-    if (!products || products.length === 0) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        status: 'error',
-        message: "No products provided" 
-      });
+    // Defensive checks for required fields
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ status: 'error', message: "No products provided" });
+    }
+    if (typeof total !== 'number' || total <= 0) {
+      return res.status(400).json({ status: 'error', message: "Invalid total" });
+    }
+    if (!paymentMethod || !['card', 'cash-on-delivery'].includes(paymentMethod)) {
+      return res.status(400).json({ status: 'error', message: "Invalid payment method" });
     }
 
     // Validate stock availability
     const stockValidation = await validateOrderItems(products);
     const invalidItems = stockValidation.filter(item => !item.valid);
-    
     if (invalidItems.length > 0) {
-      await session.abortTransaction();
       return res.status(422).json({
         status: 'error',
         message: 'Some items are not available in the requested quantity',
@@ -115,9 +116,7 @@ exports.createOrder = async (req, res, next) => {
     // Update stock levels
     const stockUpdates = await updateStockLevels(products);
     const failedUpdates = stockUpdates.filter(update => !update.success);
-    
     if (failedUpdates.length > 0) {
-      await session.abortTransaction();
       return res.status(500).json({
         status: 'error',
         message: 'Failed to update stock levels',
@@ -136,9 +135,7 @@ exports.createOrder = async (req, res, next) => {
       paidAt: paymentMethod === 'card' ? new Date() : null,
     });
 
-    await newOrder.save({ session });
-
-    await session.commitTransaction();
+    await newOrder.save();
 
     res.status(201).json({ 
       status: 'success',
@@ -146,10 +143,8 @@ exports.createOrder = async (req, res, next) => {
       data: newOrder 
     });
   } catch (error) {
-    await session.abortTransaction();
+    console.error('Order creation error:', error);
     next(error);
-  } finally {
-    session.endSession();
   }
 };
 
@@ -255,6 +250,26 @@ exports.updateOrderStatus = async (req, res, next) => {
       status: 'success',
       message: "Order status updated", 
       data: order 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get all orders (admin only)
+exports.getAllOrders = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ status: 'error', message: 'Not authorized' });
+    }
+    const orders = await Order.find({})
+      .populate('products.productId')
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 });
+    res.status(200).json({
+      status: 'success',
+      message: 'All orders retrieved successfully',
+      data: orders
     });
   } catch (error) {
     next(error);

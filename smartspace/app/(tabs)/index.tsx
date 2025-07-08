@@ -5,271 +5,366 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
   Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { router, useRouter } from 'expo-router';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Button } from '../../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { ApiTest } from '../../components/ApiTest';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const { user, logout } = useAuth();
+  const { colors } = useTheme();
+  const router = useRouter();
 
-  const features = [
-    {
-      id: 1,
-      title: 'AI Design Generator',
-      description: 'Create stunning interior designs with AI',
-      icon: 'sparkles-outline',
-      color: '#A58077',
-    },
-    {
-      id: 2,
-      title: 'Product Catalog',
-      description: 'Browse furniture and decor items',
-      icon: 'grid-outline',
-      color: '#E5CBBE',
-    },
-    {
-      id: 3,
-      title: 'Design History',
-      description: 'View your saved designs',
-      icon: 'time-outline',
-      color: '#FCF3E8',
-    },
-    {
-      id: 4,
-      title: 'Chat Assistant',
-      description: 'Get design advice from AI',
-      icon: 'chatbubble-outline',
-      color: '#A58077',
-    },
+  const stats = [
+    { number: '10K+', label: 'Happy Clients' },
+    { number: '50K+', label: 'Designs Created' },
+    { number: '4.9★', label: 'User Rating' },
   ];
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const containerStyle = {
+    flex: 1,
+    backgroundColor: colors.background,
   };
 
-  return (
-    <LinearGradient
-      colors={['#181818', '#2C2C2C', '#181818']}
-      style={styles.container}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color="#A58077" />
-          </TouchableOpacity>
-        </View>
+  const textStyle = {
+    color: colors.text,
+  };
 
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>Transform Your Space</Text>
-            <Text style={styles.heroSubtitle}>
-              Create beautiful interior designs with the power of AI
+  const subtitleStyle = {
+    color: colors.textSecondary,
+  };
+
+
+
+  return (
+    <ScrollView style={containerStyle} showsVerticalScrollIndicator={false}>
+      {/* Hero Section */}
+      <View style={styles.heroSection}>
+        <View style={styles.heroContent}>
+          <Text style={[styles.heroTitle, textStyle]}>
+            Transform Your{'\n'}
+            <Text style={[styles.heroTitleAccent, { color: colors.primary }]}>
+              Living Space
             </Text>
-            <TouchableOpacity style={styles.ctaButton}>
-              <Text style={styles.ctaButtonText}>Start Designing</Text>
-              <Ionicons name="arrow-forward" size={20} color="#181818" />
+            {'\n'}with SmartSpace.AI
+          </Text>
+          <Text style={[styles.heroSubtitle, subtitleStyle]}>
+            Experience the future of interior design with our cutting-edge AI technology. 
+            Create stunning, personalized spaces in minutes, not months.
+          </Text>
+          
+                    <View style={styles.heroButtons}>
+             <Button
+               title="Start Designing"
+               onPress={() => router.push('/ai-design')}
+               style={styles.primaryButton}
+             />
+             <Button
+               title="Explore Products"
+               onPress={() => router.push('/explore')}
+               variant="outline"
+               style={styles.secondaryButton}
+             />
+          </View>
+          
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={[styles.quickActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/cart')}
+            >
+              <Ionicons name="bag-outline" size={20} color={colors.primary} />
+              <Text style={[styles.quickActionText, textStyle]}>Cart</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.quickActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/wishlist')}
+            >
+              <Ionicons name="heart-outline" size={20} color={colors.primary} />
+              <Text style={[styles.quickActionText, textStyle]}>Wishlist</Text>
             </TouchableOpacity>
           </View>
         </View>
+      </View>
 
-        {/* Features Grid */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>What you can do</Text>
-          <View style={styles.featuresGrid}>
-            {features.map((feature) => (
-              <TouchableOpacity key={feature.id} style={styles.featureCard}>
-                <View style={[styles.featureIcon, { backgroundColor: feature.color }]}>
-                  <Ionicons name={feature.icon as any} size={24} color="#181818" />
-                </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      {/* Stats Section */}
+      <View style={[styles.statsSection, { backgroundColor: colors.surface }]}>
+        <View style={styles.statsGrid}>
+          {(stats || []).map((item, index) => (
+            <View
+              key={`stat-${index}`}
+              style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <Text style={[styles.statNumber, { color: colors.primary }]}>{item.number}</Text>
+              <Text style={[styles.statLabel, subtitleStyle]}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* AI Design Section */}
+      <View style={styles.aiSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, textStyle]}>AI-Powered Design</Text>
+          <Text style={[styles.sectionSubtitle, subtitleStyle]}>
+            Let our AI create the perfect design for your space
+          </Text>
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Your Activity</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Designs Created</Text>
+                  <TouchableOpacity
+            style={[styles.aiCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => router.push('/ai-design')}
+          >
+          <View style={styles.aiCardContent}>
+            <View style={[styles.aiIcon, { backgroundColor: colors.primary }]}>
+              <Ionicons name="sparkles" size={24} color="#FFFFFF" />
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Products Saved</Text>
+            <View style={styles.aiText}>
+              <Text style={[styles.aiTitle, textStyle]}>Generate Your Dream Space</Text>
+              <Text style={[styles.aiDescription, subtitleStyle]}>
+                Describe your room and let AI create stunning designs in seconds
+              </Text>
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Chat Sessions</Text>
-            </View>
+            <Ionicons name="arrow-forward" size={20} color={colors.primary} />
           </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Featured Products */}
+      <View style={styles.productsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, textStyle]}>Featured Products</Text>
+                     <TouchableOpacity onPress={() => router.push('/explore')}>
+             <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </LinearGradient>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+          {[1, 2, 3].map((item) => (
+                         <TouchableOpacity
+               key={item}
+               style={[styles.productCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+               onPress={() => router.push('/explore')}
+             >
+              <View style={[styles.productImage, { backgroundColor: colors.border }]}>
+                <Text style={[styles.productImageText, subtitleStyle]}>Product {item}</Text>
+              </View>
+              <View style={styles.productInfo}>
+                <Text style={[styles.productName, textStyle]}>Modern Chair</Text>
+                <Text style={[styles.productPrice, { color: colors.primary }]}>$299</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* API Test Section */}
+      <View style={styles.apiTestSection}>
+        <ApiTest />
+      </View>
+
+      {/* CTA Section */}
+      <View style={[styles.ctaSection, { backgroundColor: colors.primary }]}>
+        <Text style={styles.ctaTitle}>Ready to Transform Your Space?</Text>
+        <Text style={styles.ctaSubtitle}>
+          Join thousands of users who have already created their dream interiors
+        </Text>
+                 <Button
+           title="Get Started Now"
+           onPress={() => router.push('/ai-design')}
+           variant="secondary"
+           style={styles.ctaButton}
+         />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  welcomeSection: {
-    flex: 1,
-  },
-  welcomeText: {
-    fontSize: 16,
-    color: '#A58077',
-    marginBottom: 4,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#E5CBBE',
-  },
-  logoutButton: {
-    padding: 8,
-  },
   heroSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
+    padding: 24,
+    paddingTop: 40,
   },
   heroContent: {
-    backgroundColor: 'rgba(165, 128, 119, 0.1)',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#A58077',
+    alignItems: 'center',
   },
   heroTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#E5CBBE',
-    marginBottom: 8,
+    textAlign: 'center',
+    lineHeight: 40,
+    marginBottom: 16,
+  },
+  heroTitleAccent: {
+    fontWeight: 'bold',
   },
   heroSubtitle: {
     fontSize: 16,
-    color: '#A58077',
-    marginBottom: 20,
+    textAlign: 'center',
     lineHeight: 24,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
-  ctaButton: {
+  heroButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  primaryButton: {
+    flex: 1,
+  },
+  secondaryButton: {
+    flex: 1,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  quickActionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#A58077',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
   },
-  ctaButtonText: {
-    color: '#181818',
-    fontSize: 16,
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  statsSection: {
+    margin: 24,
+    borderRadius: 16,
+    padding: 24,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statCard: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginRight: 8,
+    marginBottom: 4,
   },
-  featuresSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
+  statLabel: {
+    fontSize: 14,
+  },
+  aiSection: {
+    padding: 24,
+  },
+  sectionHeader: {
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#E5CBBE',
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  sectionSubtitle: {
+    fontSize: 16,
   },
-  featureCard: {
-    width: (width - 60) / 2,
-    backgroundColor: '#2C2C2C',
+  aiCard: {
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#A58077',
   },
-  featureIcon: {
+  aiCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  aiIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginRight: 16,
   },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E5CBBE',
+  aiText: {
+    flex: 1,
+  },
+  aiTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     marginBottom: 4,
   },
-  featureDescription: {
-    fontSize: 12,
-    color: '#A58077',
-    lineHeight: 16,
+  aiDescription: {
+    fontSize: 14,
+    lineHeight: 20,
   },
-  statsSection: {
-    paddingHorizontal: 20,
+  productsSection: {
+    padding: 24,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  viewAllText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#2C2C2C',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 4,
-    alignItems: 'center',
+  productsScroll: {
+    marginLeft: -24,
+    paddingLeft: 24,
+  },
+  productCard: {
+    width: 160,
+    marginRight: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#A58077',
+    overflow: 'hidden',
   },
-  statNumber: {
+  productImage: {
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productImageText: {
+    fontSize: 14,
+  },
+  productInfo: {
+    padding: 12,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  productPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  ctaSection: {
+    margin: 24,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  ctaTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#A58077',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#E5CBBE',
+    color: '#FFFFFF',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  ctaSubtitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 24,
+    opacity: 0.9,
+  },
+  ctaButton: {
+    minWidth: 200,
+  },
+  apiTestSection: {
+    margin: 24,
   },
 });

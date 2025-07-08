@@ -274,3 +274,14 @@ To update the application:
 ## 📄 License
 
 This project is part of the AI Interior Design application.
+
+## Cloudinary Image Management
+
+- All uploaded images (inventory, user avatars) and generated design images are stored in Cloudinary.
+- The Cloudinary `public_id` is saved in the database for each image.
+- When a record is deleted or an image is replaced, the old Cloudinary image is deleted automatically.
+- A migration utility is provided to clean up orphaned Cloudinary images (those not referenced in the DB).
+- For new features, always:
+  - Store the Cloudinary `public_id` in the relevant model.
+  - Delete the Cloudinary image when the record is deleted or the image is replaced.
+  - Use the provided upload middleware or follow the pattern in `aiImageService.js` for generated images.

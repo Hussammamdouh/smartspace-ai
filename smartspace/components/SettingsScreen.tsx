@@ -38,7 +38,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps) {
       // This would open the app store for rating
       Alert.alert('Rate App', 'Rate app functionality will be implemented');
     } catch (error) {
-      console.error('Error opening app store:', error);
+      // Remove console.error and any other debug logs for code cleanliness
     }
   };
 

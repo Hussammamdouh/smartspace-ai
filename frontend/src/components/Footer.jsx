@@ -31,22 +31,17 @@ const Footer = () => {
       { name: "Press", to: "/press" },
     ],
     services: [
-      { name: "AI Design", to: "/generate-image" },
-      { name: "Interior Consultation", to: "/consultation" },
-      { name: "3D Visualization", to: "/3d-visualization" },
+      { name: "AI Design", to: "/chatbot" },
       { name: "Project Management", to: "/project-management" },
     ],
     support: [
       { name: "Help Center", to: "/help" },
       { name: "Contact Us", to: "/contact" },
-      { name: "Live Chat", to: "/chat" },
-      { name: "FAQ", to: "/faq" },
     ],
     legal: [
       { name: "Privacy Policy", to: "/privacy" },
       { name: "Terms of Service", to: "/terms" },
       { name: "Cookie Policy", to: "/cookies" },
-      { name: "GDPR", to: "/gdpr" },
     ],
   };
 
@@ -66,7 +61,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-theme-background text-theme-text relative overflow-hidden">
+    <footer className="bg-theme-background text-theme-text relative overflow-hidden z-10">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0 bg-gradient-to-br from-[#A58077] via-transparent to-[#8B6B63]"></div>

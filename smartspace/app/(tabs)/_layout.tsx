@@ -1,105 +1,88 @@
-import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useCart } from '../../contexts/CartContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
+  const { user } = useAuth();
+  const { items } = useCart();
+
+  const cartItemCount = items?.reduce((total, item) => total + item.quantity, 0) || 0;
+
+
+
+  // If user is not authenticated, still show tabs but they'll handle auth internally
+  // This allows users to browse products and see the app structure
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#A58077',
-        tabBarInactiveTintColor: '#666',
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#181818',
-          borderTopColor: '#2C2C2C',
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 90 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-          paddingTop: 10,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
+          fontWeight: '500',
         },
-        tabBarIconStyle: {
-          marginTop: 4,
-        },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'home' : 'home-outline'} 
-              size={24} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
+      
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'grid' : 'grid-outline'} 
-              size={24} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="search-outline" size={size} color={color} />
           ),
         }}
       />
+      
       <Tabs.Screen
         name="ai-design"
         options={{
           title: 'AI Design',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'sparkles' : 'sparkles-outline'} 
-              size={24} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles-outline" size={size} color={color} />
           ),
         }}
       />
+      
       <Tabs.Screen
-        name="chat"
+        name="wishlist"
         options={{
-          title: 'Chat',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'chatbubble' : 'chatbubble-outline'} 
-              size={24} 
-              color={color} 
-            />
+          title: 'Wishlist',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="heart-outline" size={size} color={color} />
           ),
         }}
       />
+      
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'person' : 'person-outline'} 
-              size={24} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />

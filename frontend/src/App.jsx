@@ -29,6 +29,17 @@ import Dashboard from "./admin/pages/Dashboard";
 import ProductsManagement from "./admin/pages/ProductsManagement";
 import UsersManagement from "./admin/pages/UsersManagement";
 import OrdersManagement from "./admin/pages/OrdersManagement";
+import About from './pages/About';
+import Team from './pages/Team';
+import Careers from './pages/Careers';
+import Press from './pages/Press';
+import ProjectManagement from './pages/ProjectManagement';
+import Help from './pages/Help';
+import Contact from './pages/Contact';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Cookies from './pages/Cookies';
+import Orders from './pages/Orders';
 
 // Lazy loaded pages
 const Home = lazy(() => import("./pages/Home"));
@@ -123,9 +134,9 @@ const AppContent = () => {
           {/* Core Pages */}
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/product/:id" element={<SingleProductPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/chatbot" element={<UnifiedChat />} />
+          <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+          <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+          <Route path="/chatbot" element={<ProtectedRoute><UnifiedChat /></ProtectedRoute>} />
           <Route path="/ai" element={<UnifiedChat />} />
 
           {/* AI Pages */}
@@ -166,6 +177,19 @@ const AppContent = () => {
               <Route path="orders" element={<OrdersManagement />} />
             </Route>
           </Route>
+
+          {/* New Pages */}
+          <Route path="/about" element={<About />} />
+          <Route path="/team" element={<Team />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/press" element={<Press />} />
+          <Route path="/project-management" element={<ProjectManagement />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
 
           {/* 404 Not Found */}
           <Route path="*" element={<NotFoundPage />} />

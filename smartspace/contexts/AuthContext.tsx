@@ -1,222 +1,219 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import api from '../services/api';
 
 interface User {
   _id: string;
   name: string;
   email: string;
-  role: string;
-  avatar?: string;
+  isVerified: boolean;
+  phone?: string;
+  [key: string]: any;
 }
 
-interface AuthContextType {
+interface AuthContextProps {
   user: User | null;
   token: string | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
+  loading: boolean;
+  isInitialized: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (data: { firstName: string; lastName: string; email: string; phone: string; password: string; passwordConfirm: string }) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (userData: Partial<User>) => void;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string, passwordConfirm: string) => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
+  updateProfile: (userData: Partial<User>) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-const API_BASE_URL = 'http://10.0.2.2:5000/api'; // For Android emulator
-// const API_BASE_URL = 'http://localhost:5000/api'; // For iOS simulator
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    loadStoredAuth();
+    const loadAuth = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('token');
+        if (storedToken) {
+          setToken(storedToken);
+          // Skip profile fetch on initial load to prevent hanging
+          // Profile will be fetched when needed
+          setIsInitialized(true);
+        } else {
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        setUser(null);
+        setToken(null);
+        await AsyncStorage.removeItem('token');
+        setIsInitialized(true);
+      }
+    };
+    loadAuth();
   }, []);
 
-  const loadStoredAuth = async () => {
-    try {
-      const [storedToken, storedUser] = await Promise.all([
-        AsyncStorage.getItem('authToken'),
-        AsyncStorage.getItem('user'),
-      ]);
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        // Verify token with backend
-        await verifyToken(storedToken);
-      }
-    } catch (error) {
-      console.error('Error loading stored auth:', error);
-      await clearAuth();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const verifyToken = async (authToken: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Token verification failed');
-      }
-
-      const data = await response.json();
-      if (data.success || data.status === 'success') {
-        const userData = data.data || data;
-        setUser(userData);
-        await AsyncStorage.setItem('user', JSON.stringify(userData));
-      } else {
-        throw new Error('Invalid token');
-      }
-    } catch (error) {
-      console.error('Token verification error:', error);
-      await clearAuth();
-    }
-  };
-
-  const clearAuth = async () => {
-    setUser(null);
-    setToken(null);
-    await Promise.all([
-      AsyncStorage.removeItem('authToken'),
-      AsyncStorage.removeItem('user'),
-    ]);
-  };
-
   const login = async (email: string, password: string) => {
+    setLoading(true);
     try {
-      setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Login failed');
+      const res = await api.login(email, password);
+      
+      if (!res.success) {
+        throw new Error(res.error || 'Login failed');
       }
-
-      if (data.success || data.status === 'success') {
-        const userData = data.data?.user || data.user || data.data;
-        const tokenData = data.data?.token || data.token;
-        
-        setUser(userData);
-        setToken(tokenData);
-        
-        await Promise.all([
-          AsyncStorage.setItem('authToken', tokenData),
-          AsyncStorage.setItem('user', JSON.stringify(userData)),
-        ]);
-
-        router.replace('/(tabs)');
-      } else {
-        throw new Error(data.message || data.error || 'Login failed');
+      
+      // Extract token and user from the response
+      const { token: newToken, user: userData } = res.data as { token: string; user: User };
+      
+      if (!newToken) {
+        throw new Error('No token received from server');
       }
+      
+      setToken(newToken);
+      setUser(userData);
+      await AsyncStorage.setItem('token', newToken);
     } catch (error) {
-      console.error('Login error:', error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (data: { firstName: string; lastName: string; email: string; phone: string; password: string; passwordConfirm: string }) => {
+    setLoading(true);
     try {
-      setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Registration failed');
-      }
-
-      if (data.success || data.status === 'success') {
-        const userData = data.data?.user || data.user || data.data;
-        const tokenData = data.data?.token || data.token;
-        
-        setUser(userData);
-        setToken(tokenData);
-        
-        await Promise.all([
-          AsyncStorage.setItem('authToken', tokenData),
-          AsyncStorage.setItem('user', JSON.stringify(userData)),
-        ]);
-
-        router.replace('/(tabs)');
-      } else {
-        throw new Error(data.message || data.error || 'Registration failed');
+      const res = await api.register(data);
+      if (!res.success) {
+        throw new Error(res.error || 'Registration failed');
       }
     } catch (error) {
-      console.error('Registration error:', error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      await clearAuth();
-      router.replace('/');
+      // Call backend logout endpoint
+      await api.logout();
+      setUser(null);
+      setToken(null);
+      await AsyncStorage.removeItem('token');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Even if backend call fails, clear local state
+      setUser(null);
+      setToken(null);
+      await AsyncStorage.removeItem('token');
     }
   };
 
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+  const forgotPassword = async (email: string) => {
+    setLoading(true);
+    try {
+      const res = await api.forgotPassword(email);
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to send reset email');
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const value: AuthContextType = {
-    user,
-    token,
-    isLoading,
-    isAuthenticated: !!user && !!token,
-    login,
-    register,
-    logout,
-    updateUser,
+  const resetPassword = async (token: string, password: string, passwordConfirm: string) => {
+    setLoading(true);
+    try {
+      const res = await api.resetPassword(token, password, passwordConfirm);
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to reset password');
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    setLoading(true);
+    try {
+      const res = await api.verifyEmail(token);
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to verify email');
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProfile = async (userData: Partial<User>) => {
+    setLoading(true);
+    try {
+      const res = await api.updateProfile(userData);
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to update profile');
+      }
+      
+      if (res.data) {
+        setUser(res.data as User);
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshUser = async () => {
+    if (!token) return;
+    
+    try {
+      const res = await api.getProfile();
+      if (res.success && res.data) {
+        setUser(res.data as User);
+      } else {
+        // Token might be invalid, clear it
+        setUser(null);
+        setToken(null);
+        await AsyncStorage.removeItem('token');
+      }
+    } catch (error) {
+      // Clear invalid token
+      setUser(null);
+      setToken(null);
+      await AsyncStorage.removeItem('token');
+    }
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      isInitialized,
+      login, 
+      register, 
+      logout, 
+      forgotPassword, 
+      resetPassword, 
+      verifyEmail,
+      updateProfile,
+      refreshUser
+    }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
 }; 

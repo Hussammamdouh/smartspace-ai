@@ -29,6 +29,11 @@ interface Message {
   type: 'text' | 'image';
 }
 
+// Helper function to generate unique IDs
+const generateUniqueId = () => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export default function ChatScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -36,7 +41,7 @@ export default function ChatScreen() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const flatListRef = useRef<FlatList<Message>>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   const containerStyle = {
     flex: 1,
@@ -58,7 +63,17 @@ export default function ChatScreen() {
   };
 
   useEffect(() => {
-    loadChatHistory();
+    // Initialize with welcome message if no messages exist
+    if (messages.length === 0) {
+      const welcomeMessage: Message = {
+        _id: generateUniqueId(),
+        content: "Hello! I'm your AI design assistant. How can I help you with your interior design project today?",
+        sender: 'ai',
+        timestamp: new Date(),
+        type: 'text',
+      };
+      setMessages([welcomeMessage]);
+    }
   }, []);
 
   useEffect(() => {
@@ -70,25 +85,6 @@ export default function ChatScreen() {
     }, 100);
   }, [messages]);
 
-  const loadChatHistory = async () => {
-    if (!user) return;
-
-    try {
-      const response = await api.getChatHistory();
-      if (response.success && response.data) {
-        // Backend returns chat history as array of conversations
-        const chatHistory = response.data as any[];
-        // Convert to messages format if needed
-        const messages = (Array.isArray(chatHistory) ? chatHistory : []).flatMap((conversation: any) =>
-          Array.isArray(conversation?.conversation) ? conversation.conversation : []
-        );
-        setMessages(messages);
-      }
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
@@ -98,7 +94,7 @@ export default function ChatScreen() {
     }
 
     const userMessage: Message = {
-      _id: Date.now().toString(),
+      _id: generateUniqueId(),
       content: inputMessage.trim(),
       sender: 'user',
       timestamp: new Date(),
@@ -111,22 +107,26 @@ export default function ChatScreen() {
     setIsTyping(true);
 
     try {
-      const response = await api.sendMessage(inputMessage.trim());
+      // Use the new OpenAI unified endpoint for chat
+      const messages = [
+        { role: 'user', content: inputMessage.trim() }
+      ];
+      const response = await api.unifiedAIChat(messages, 'chat');
       
-              if (response.success && response.data) {
-          const responseData = response.data as any;
-          const aiMessage: Message = {
-            _id: (Date.now() + 1).toString(),
-            content: responseData.message || responseData.content || 'I understand your question. Let me help you with that.',
-            sender: 'ai',
-            timestamp: new Date(),
-            type: 'text',
-          };
-          setMessages(prev => [...prev, aiMessage]);
-        } else {
+      if (response.success && response.data) {
+        const responseData = response.data as any;
+        const aiMessage: Message = {
+          _id: generateUniqueId(),
+          content: responseData.content || responseData.message || 'I understand your question. Let me help you with that.',
+          sender: 'ai',
+          timestamp: new Date(),
+          type: 'text',
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
         // Add a fallback AI message
         const aiMessage: Message = {
-          _id: (Date.now() + 1).toString(),
+          _id: generateUniqueId(),
           content: "I'm here to help you with interior design questions! What would you like to know about creating your perfect space?",
           sender: 'ai',
           timestamp: new Date(),
@@ -138,7 +138,7 @@ export default function ChatScreen() {
       console.error('Send message error:', error);
       // Add error message
       const errorMessage: Message = {
-        _id: (Date.now() + 1).toString(),
+        _id: generateUniqueId(),
         content: "I'm sorry, I'm having trouble responding right now. Please try again in a moment.",
         sender: 'ai',
         timestamp: new Date(),

@@ -9,7 +9,7 @@ const getApiBaseUrl = () => {
       // For Android emulator:
       // return 'http://10.0.2.2:5000/api';
       // For physical device, use your computer's LAN IP:
-      return 'http://192.168.1.13:5000/api'; // <-- replace with your actual IP
+      return 'http://10.132.240.56:5000/api'; // <-- replace with your actual IP
     } else if (Platform.OS === 'ios') {
       return 'http://localhost:5000/api'; // iOS simulator
     } else {
@@ -248,20 +248,20 @@ class ApiService {
 
   async logout() {
     return this.authenticatedRequest('/auth/logout', {
-      method: 'POST',
+      method: 'GET',
     });
   }
 
   async forgotPassword(email: string) {
-    return this.makeRequest('/auth/forgot-password', {
+    return this.makeRequest('/auth/forgotPassword', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
   }
 
   async resetPassword(token: string, password: string, passwordConfirm: string) {
-    return this.makeRequest(`/auth/reset-password/${token}`, {
-      method: 'POST',
+    return this.makeRequest(`/auth/resetPassword/${token}`, {
+      method: 'PATCH',
       body: JSON.stringify({ password, passwordConfirm }),
     });
   }
@@ -280,7 +280,7 @@ class ApiService {
   }
 
   async getProfile() {
-    return this.authenticatedRequest('/auth/profile');
+    return this.authenticatedRequest('/users/profile');
   }
 
   async updateProfile(userData: {
@@ -288,7 +288,7 @@ class ApiService {
     email?: string;
     phone?: string;
   }) {
-    return this.authenticatedRequest('/auth/profile', {
+    return this.authenticatedRequest('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
@@ -363,7 +363,7 @@ class ApiService {
 
   async addToCart(productId: string, quantity: number = 1) {
     try {
-      const response = await this.authenticatedRequest('/cart/add', {
+      const response = await this.authenticatedRequest('/cart', {
         method: 'POST',
         body: JSON.stringify({ productId, quantity }),
       });
@@ -375,7 +375,7 @@ class ApiService {
 
   async updateCartItem(itemId: string, quantity: number) {
     try {
-      const response = await this.authenticatedRequest(`/cart/items/${itemId}`, {
+      const response = await this.authenticatedRequest(`/cart/${itemId}`, {
         method: 'PUT',
         body: JSON.stringify({ quantity }),
       });
@@ -387,7 +387,7 @@ class ApiService {
 
   async removeFromCart(itemId: string) {
     try {
-      const response = await this.authenticatedRequest(`/cart/items/${itemId}`, {
+      const response = await this.authenticatedRequest(`/cart/${itemId}`, {
         method: 'DELETE',
       });
       return this.normalizeResponse(response);
@@ -419,7 +419,7 @@ class ApiService {
 
   async addToWishlist(productId: string) {
     try {
-      const response = await this.authenticatedRequest('/wishlist/add', {
+      const response = await this.authenticatedRequest('/wishlist', {
         method: 'POST',
         body: JSON.stringify({ productId }),
       });
@@ -431,7 +431,7 @@ class ApiService {
 
   async removeFromWishlist(productId: string) {
     try {
-      const response = await this.authenticatedRequest(`/wishlist/remove/${productId}`, {
+      const response = await this.authenticatedRequest(`/wishlist/${productId}`, {
         method: 'DELETE',
       });
       return this.normalizeResponse(response);
@@ -501,8 +501,9 @@ class ApiService {
 
   async cancelOrder(orderId: string) {
     try {
-      const response = await this.authenticatedRequest(`/orders/${orderId}/cancel`, {
-        method: 'PUT',
+      const response = await this.authenticatedRequest(`/orders/${orderId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'cancelled' }),
       });
       return this.normalizeResponse(response);
     } catch (error) {
@@ -511,35 +512,47 @@ class ApiService {
   }
 
   // Design endpoints
-  async generateDesign(designData: {
-    roomType: string;
-    style: string;
-    description: string;
-    preferences?: string[];
-  }) {
-    try {
-      const response = await this.authenticatedRequest('/designs/generate-simple', {
-        method: 'POST',
-        body: JSON.stringify(designData),
-      });
-      return this.normalizeResponse(response);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
   async getDesigns() {
     try {
-      const response = await this.authenticatedRequest('/designs/user');
-      return this.normalizeResponse(response);
+      const response = await this.authenticatedRequest('/design/user-designs');
+      const normalizedResponse = this.normalizeResponse(response);
+      
+      // Ensure we always return an array in the data field
+      if (normalizedResponse.success && normalizedResponse.data) {
+        // If data is already an array, return as is
+        if (Array.isArray(normalizedResponse.data)) {
+          return normalizedResponse;
+        }
+        // If data is an object with a data property, extract it
+        if (normalizedResponse.data.data && Array.isArray(normalizedResponse.data.data)) {
+          return {
+            ...normalizedResponse,
+            data: normalizedResponse.data.data
+          };
+        }
+        // If data is an object but not an array, return empty array
+        return {
+          ...normalizedResponse,
+          data: []
+        };
+      }
+      
+      // If the request failed, return empty array
+      return {
+        success: true,
+        data: []
+      };
     } catch (error) {
-      return this.handleError(error);
+      return {
+        success: true,
+        data: []
+      };
     }
   }
 
   async getDesign(id: string) {
     try {
-      const response = await this.authenticatedRequest(`/designs/${id}`);
+      const response = await this.authenticatedRequest(`/design/${id}`);
       return this.normalizeResponse(response);
     } catch (error) {
       return this.handleError(error);
@@ -550,52 +563,41 @@ class ApiService {
     description: string;
     style?: string;
   }) {
-    try {
-      const response = await this.authenticatedRequest(`/designs/${designId}/edit`, {
-        method: 'PUT',
-        body: JSON.stringify(editData),
-      });
-      return this.normalizeResponse(response);
-    } catch (error) {
-      return this.handleError(error);
-    }
+    return this.authenticatedRequest(`/design/${designId}`, {
+      method: 'PUT',
+      body: JSON.stringify(editData),
+    });
   }
 
-  // Chat endpoints
-  async sendMessage(message: string) {
-    try {
-      const response = await this.authenticatedRequest('/chat/send', {
-        method: 'POST',
-        body: JSON.stringify({ message }),
-      });
-      return this.normalizeResponse(response);
-    } catch (error) {
-      return this.handleError(error);
-    }
+  // Unified OpenAI AI endpoint
+  async unifiedAIChat(messages: Array<{ role: string; content: string }>, model: 'chat' | 'image' = 'image') {
+    return this.authenticatedRequest('/chatbot/unified', {
+      method: 'POST',
+      body: JSON.stringify({ messages, model }),
+    });
   }
 
-  async getChatHistory() {
-    try {
-      const response = await this.authenticatedRequest('/chat/history');
-      return this.normalizeResponse(response);
-    } catch (error) {
-      return this.handleError(error);
-    }
+  // Replace generateDesign to use OpenAI endpoint
+  async generateDesign(prompt: string) {
+    // For image generation, use model: 'image'
+    const messages = [
+      { role: 'user', content: prompt }
+    ];
+    return this.unifiedAIChat(messages, 'image');
   }
 
-  // File upload
+  // File upload - using user profile avatar upload endpoint
   async uploadImage(imageUri: string, type: 'profile' | 'design' = 'profile') {
     try {
       const formData = new FormData();
-      formData.append('image', {
+      formData.append('avatar', {
         uri: imageUri,
         type: 'image/jpeg',
         name: 'upload.jpg',
       } as any);
-      formData.append('type', type);
 
-      const response = await this.authenticatedRequest('/upload/image', {
-        method: 'POST',
+      const response = await this.authenticatedRequest('/users/avatar', {
+        method: 'PATCH',
         body: formData,
         headers: {
           'Content-Type': 'multipart/form-data',

@@ -237,6 +237,52 @@ const { designSchema } = require('../utils/validationSchemas');
 /**
  * @swagger
  * /api/design/{id}:
+ *   put:
+ *     summary: Update a design by ID
+ *     tags: [Designs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - roomType
+ *               - style
+ *               - colorPalette
+ *             properties:
+ *               roomType: { type: string }
+ *               style: { type: string }
+ *               colorPalette: 
+ *                 type: array
+ *                 items: { type: string }
+ *               dimensions: { type: string }
+ *               budget: { type: number }
+ *               additionalNotes: { type: string }
+ *     responses:
+ *       200:
+ *         description: Design updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *                 design:
+ *                   $ref: '#/components/schemas/GeneratedDesign'
+ *       400:
+ *         description: Invalid design preferences
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Design not found
+ */
+
+/**
+ * @swagger
+ * /api/design/{id}:
  *   delete:
  *     summary: Delete a design
  *     tags: [Designs]
@@ -267,6 +313,7 @@ router.get('/user-designs', protect, designController.getUserDesigns);
 router.get('/', protect, designController.getDesigns);
 router.post('/', protect, validate(designSchema), designController.createDesign);
 router.get('/:id', protect, designController.getDesign);
+router.put('/:id', protect, designController.updateDesign);
 router.delete('/:id', protect, designController.deleteDesign);
 
 // 🔥 AI Design Routes

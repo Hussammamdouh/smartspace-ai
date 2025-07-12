@@ -57,16 +57,13 @@ export default function AIDesignScreen() {
 
     setIsGenerating(true);
     try {
-      const response = await api.generateDesign({
-        roomType: 'living-room',
-        style: 'modern',
-        description: prompt.trim(),
-      });
+      // Use the new OpenAI unified endpoint
+      const response = await api.generateDesign(prompt.trim());
 
       if (response.success && response.data) {
         // Backend returns design data with imageUrl
         const designData = response.data as any;
-        setGeneratedImage(designData.imageUrl || 'https://example.com/generated-image.jpg');
+        setGeneratedImage(designData.imageUrl || designData.content || 'https://example.com/generated-image.jpg');
         Alert.alert('Success', 'Your design has been generated!');
       } else {
         Alert.alert('Error', response.error || 'Failed to generate image');
@@ -191,7 +188,7 @@ export default function AIDesignScreen() {
             'Include lighting preferences (natural, warm, cool)',
             'Describe the overall mood you want to achieve',
           ].map((tip, index) => (
-            <View key={index} style={styles.tipItem}>
+            <View key={`tip-${index}-${tip.substring(0, 10)}`} style={styles.tipItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
               <Text style={[styles.tipText, subtitleStyle]}>{tip}</Text>
             </View>

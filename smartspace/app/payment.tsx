@@ -200,7 +200,7 @@ export default function PaymentScreen() {
   );
 
   const renderOrderItem = (item: any, index: number) => (
-    <View key={index} style={styles.orderItem}>
+    <View key={`order-item-${index}-${item.name?.substring(0, 10) || 'item'}`} style={styles.orderItem}>
       <View style={styles.itemInfo}>
         <Text style={[styles.itemName, textStyle]}>{item.name}</Text>
         <Text style={[styles.itemQuantity, subtitleStyle]}>Qty: {item.quantity}</Text>

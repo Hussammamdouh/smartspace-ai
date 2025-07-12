@@ -295,7 +295,7 @@ export default function ProductDetailScreen() {
               <Text style={[styles.sectionTitle, textStyle]}>Tags</Text>
               <View style={styles.tagsContainer}>
                 {product.tags.map((tag, index) => (
-                  <View key={index} style={[styles.tag, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <View key={`tag-${index}-${tag}`} style={[styles.tag, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <Text style={[styles.tagText, textStyle]}>{tag}</Text>
                   </View>
                 ))}

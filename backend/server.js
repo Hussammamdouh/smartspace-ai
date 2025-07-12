@@ -12,6 +12,19 @@ const { errorHandler, notFound } = require('./middlewares/errorHandler');
 const requestLogger = require('./middlewares/requestLogger');
 const mongoose = require('mongoose');
 
+// Load environment variables
+require('dotenv').config();
+
+// Debug environment variables
+console.log('🔧 Environment Check:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('MONGO_URI:', process.env.MONGO_URI ? '✅ Set' : '❌ Missing');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? '✅ Set' : '❌ Missing');
+console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 
+  `✅ Set (${process.env.OPENAI_API_KEY.substring(0, 10)}...)` : '❌ Missing');
+console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? '✅ Set' : '❌ Missing');
+
 const authRoutes = require('./routes/authRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const designRoutes = require('./routes/designRoutes');

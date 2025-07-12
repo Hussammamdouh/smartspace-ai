@@ -86,6 +86,40 @@ exports.deleteDesign = async (req, res, next) => {
   }
 };
 
+exports.updateDesign = async (req, res, next) => {
+  try {
+    const { description, style } = req.body;
+    
+    const design = await GeneratedDesign.findById(req.params.id);
+    if (!design) {
+      return next(new APIError('Design not found', 404));
+    }
+    
+    if (design.user.toString() !== req.user.id.toString()) {
+      return next(new APIError('Unauthorized to update this design', 403));
+    }
+    
+    // Update the design preference if it exists
+    if (design.preference) {
+      const updates = {};
+      if (description) updates.additionalNotes = description;
+      if (style) updates.style = style;
+      
+      if (Object.keys(updates).length > 0) {
+        await DesignPreference.findByIdAndUpdate(design.preference, updates);
+      }
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      data: design,
+      message: 'Design updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.savePreferences = async (req, res, next) => {
   try {
     const { roomType, style, colorPalette, budget, dimensions, additionalNotes } = req.body;

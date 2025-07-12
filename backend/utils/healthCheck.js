@@ -41,11 +41,26 @@ const checkOpenAIHealth = async () => {
       };
     }
 
-    // Simple health check - could be enhanced with actual API call
-    return {
-      status: 'configured',
-      message: 'OpenAI API key is configured'
-    };
+    // Test the API key with a simple request
+    const { OpenAI } = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    
+    try {
+      // Make a simple test call
+      const response = await openai.models.list();
+      return {
+        status: 'healthy',
+        message: 'OpenAI API key is valid and working',
+        models: response.data.length
+      };
+    } catch (apiError) {
+      logger.error('OpenAI API test failed:', apiError.message);
+      return {
+        status: 'unhealthy',
+        error: apiError.message,
+        message: 'OpenAI API key is invalid or has insufficient permissions'
+      };
+    }
   } catch (error) {
     logger.error('OpenAI health check failed:', error);
     return {

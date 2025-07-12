@@ -98,12 +98,25 @@ export default function ProfileScreen() {
 
   const loadDesigns = async () => {
     try {
+      console.log('Loading designs...');
       const response = await api.getDesigns();
+      console.log('Designs API response:', response);
+      
       if (response.success && response.data) {
-        setDesigns(response.data as Design[]);
+        // Ensure we always set an array, even if the response is unexpected
+        const designsData = Array.isArray(response.data) ? response.data : [];
+        console.log('Setting designs data:', designsData);
+        setDesigns(designsData);
+      } else {
+        // If the API call fails, set empty array
+        console.log('API call failed, setting empty array');
+        setDesigns([]);
+        console.error('Failed to load designs:', response.error);
       }
     } catch (error) {
       console.error('Error loading designs:', error);
+      // Ensure we always have an array even on error
+      setDesigns([]);
     }
   };
 
@@ -140,7 +153,8 @@ export default function ProfileScreen() {
   };
 
   const handleViewDesign = (design: Design) => {
-    Alert.alert('Design Details', `Title: ${design.title}\nStyle: ${design.style}\nRoom: ${design.roomType}`);
+    // Navigate to Edit Design screen
+    router.push(`/edit-design/${design._id}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -229,7 +243,7 @@ export default function ProfileScreen() {
             <Text style={[styles.statLabel, subtitleStyle]}>Orders</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{designs.length}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{Array.isArray(designs) ? designs.length : 0}</Text>
             <Text style={[styles.statLabel, subtitleStyle]}>Designs</Text>
           </View>
           <View style={styles.statItem}>
@@ -342,7 +356,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {(designs || []).length === 0 ? (
+        {(!designs || !Array.isArray(designs) || designs.length === 0) ? (
           <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="images-outline" size={48} color={colors.textSecondary} />
             <Text style={[styles.emptyText, textStyle]}>No designs yet</Text>
@@ -351,7 +365,7 @@ export default function ProfileScreen() {
             </Text>
           </View>
         ) : (
-          (designs || []).slice(0, 3).map((design) => (
+          designs.slice(0, 3).map((design) => (
             <TouchableOpacity
               key={design._id}
               style={[styles.designCard, { backgroundColor: colors.surface, borderColor: colors.border }]}

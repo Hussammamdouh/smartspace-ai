@@ -79,6 +79,7 @@ function AppContent() {
         <Stack.Screen name="checkout" options={{ headerShown: false }} />
         <Stack.Screen name="payment" options={{ headerShown: false }} />
         <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="edit-design/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="wishlist" options={{ headerShown: false }} />
         <Stack.Screen name="search" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />

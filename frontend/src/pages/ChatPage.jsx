@@ -28,7 +28,7 @@ const imageAxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // 60 second timeout for image generation
+  timeout: 180000, // 3 minutes timeout for image generation (DALL-E + Cloudinary upload)
 });
 
 // Add auth interceptor to image axios instance
@@ -50,6 +50,7 @@ const ChatPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generationStep, setGenerationStep] = useState('');
   const [error, setError] = useState("");
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
@@ -134,6 +135,10 @@ const ChatPage = () => {
     // Set specific loading state for image generation
     if (chatMode === 'image') {
       setIsGeneratingImage(true);
+      toast.loading('Generating your design... This may take up to 2-3 minutes.', {
+        duration: 180000, // 3 minutes
+        id: 'image-generation'
+      });
     }
 
     try {
@@ -198,12 +203,22 @@ const ChatPage = () => {
         
         // Reload conversations to show the new one
         loadConversations();
+        
+        // Dismiss loading toast and show success
+        if (chatMode === 'image') {
+          toast.dismiss('image-generation');
+          toast.success('Design generated successfully!');
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
       
       // More specific error messages
-      if (error.response) {
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        console.error('Request timed out:', error.message);
+        setError("Image generation is taking longer than expected. Please try again.");
+        toast.error("Image generation timed out. Please try again.");
+      } else if (error.response) {
         console.error('Error response:', error.response.data);
         setError(error.response.data.message || "Failed to send message. Please try again.");
         toast.error(error.response.data.message || "Failed to send message");
@@ -215,6 +230,11 @@ const ChatPage = () => {
         console.error('Error setting up request:', error.message);
         setError("Failed to send message. Please try again.");
         toast.error("Failed to send message");
+      }
+      
+      // Dismiss loading toast on error
+      if (chatMode === 'image') {
+        toast.dismiss('image-generation');
       }
     } finally {
       setIsLoading(false);
@@ -516,9 +536,17 @@ const ChatPage = () => {
                       </div>
                     </div>
                     {isGeneratingImage && (
-                      <p className="text-[#A58077] text-sm mt-1">
-                        Generating your design... This may take a moment
-                      </p>
+                      <div className="mt-2">
+                        <p className="text-[#A58077] text-sm mb-2">
+                          🎨 Generating your design... This may take 2-3 minutes
+                        </p>
+                        <div className="w-full bg-[#3a3a3a] rounded-full h-2">
+                          <div className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                        </div>
+                        <p className="text-[#A58077] text-xs mt-1">
+                          {generationStep || 'Step 1: Creating design with AI... ⏳'}
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>

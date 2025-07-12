@@ -2,6 +2,7 @@ const GeneratedDesign = require('../models/GeneratedDesign');
 const InventoryItem = require('../models/InventoryItem');
 const { generateImageWithDalle } = require('../services/openaiService');
 const { APIError } = require('../middlewares/errorHandler');
+const { downloadAndUploadToCloudinary } = require('../services/openaiService');
 
 // Get design for editing
 exports.getDesignForEdit = async (req, res, next) => {
@@ -96,28 +97,37 @@ exports.editDesign = async (req, res, next) => {
       return next(new APIError('No valid furniture items found', 400));
     }
 
-    // Create edit prompt
+    // Create edit prompt that preserves background and lighting
     let editPrompt = prompt || `Edit the room design to `;
     
     if (action === 'add') {
       const itemNames = items.map(item => item.name).join(', ');
-      editPrompt += `add ${itemNames} to the room. Make sure the new furniture fits well with the existing design and style.`;
+      editPrompt += `add ${itemNames} to the room. IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only add the new furniture items in appropriate positions within the existing room layout. Maintain the same camera angle, lighting conditions, and architectural elements. The new furniture should blend seamlessly with the existing design.`;
     } else if (action === 'remove') {
       const itemNames = items.map(item => item.name).join(', ');
-      editPrompt += `remove ${itemNames} from the room and replace with appropriate alternatives.`;
+      editPrompt += `remove ${itemNames} from the room. IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only remove the specified furniture items and leave the space empty or replace with minimal alternatives. Maintain the same camera angle, lighting conditions, and architectural elements.`;
+    }
+
+    // Add preservation instructions to any custom prompt
+    if (prompt && !prompt.includes('Keep the exact same background')) {
+      editPrompt += ` IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only modify the furniture as specified. Maintain the same camera angle, lighting conditions, and architectural elements.`;
     }
 
     // Generate new image with the edit
-    const { imageUrl, designId: newDesignId, prompt: generatedPrompt, usedItems } = await generateImageWithDalle(
+    const { imageUrl: dalleImageUrl, designId: newDesignId, prompt: generatedPrompt, usedItems } = await generateImageWithDalle(
       editPrompt,
       req.user.id
     );
+
+    // Upload the edited image to Cloudinary if available
+    const { url: imageUrl, public_id: cloudinaryPublicId } = await downloadAndUploadToCloudinary(dalleImageUrl, 'ai-interior-design-edits');
 
     // Create a new design entry for the edited version
     const editedDesign = await GeneratedDesign.create({
       user: req.user.id,
       preference: originalDesign.preference,
       imageUrl,
+      public_id: cloudinaryPublicId, // Store Cloudinary public ID
       relatedProducts: usedItems.map(item => item._id),
       modelUsed: 'DALL·E 3 (Edited)',
       status: 'success',

@@ -4,10 +4,45 @@ const GeneratedDesign = require("../models/GeneratedDesign");
 const DesignPreference = require("../models/DesignPreference");
 const { extractPromptContext } = require("../utils/promptParser");
 const logger = require("../utils/logger");
+const { uploadToCloudinary, isCloudinaryAvailable } = require("../config/cloudinary");
+const axios = require("axios");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const MAX_RETRIES = 3;
+
+// Helper function to download image from URL and upload to Cloudinary
+const downloadAndUploadToCloudinary = async (imageUrl, folder = 'ai-interior-design') => {
+  try {
+    if (!isCloudinaryAvailable()) {
+      logger.warn('Cloudinary not available, returning original URL');
+      return { url: imageUrl, public_id: null };
+    }
+
+    // Download the image
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000
+    });
+
+    // Create a temporary file path
+    const tempPath = `/tmp/ai-design-${Date.now()}.png`;
+    const fs = require('fs');
+    fs.writeFileSync(tempPath, response.data);
+
+    // Upload to Cloudinary
+    const uploadResult = await uploadToCloudinary({ path: tempPath }, folder);
+
+    // Clean up temporary file
+    fs.unlinkSync(tempPath);
+
+    return uploadResult;
+  } catch (error) {
+    logger.error('Error uploading to Cloudinary:', error);
+    // Fallback to original URL
+    return { url: imageUrl, public_id: null };
+  }
+};
 
 exports.chatWithGPT = async (messages) => {
   for (let i = 0; i < MAX_RETRIES; i++) {
@@ -137,8 +172,12 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
       n: 1,
     });
 
-    const imageUrl = response.data[0].url;
-    logger.info('Image generated successfully');
+    const dalleImageUrl = response.data[0].url;
+    logger.info('Image generated successfully from DALL-E');
+
+    // Upload to Cloudinary if available
+    const { url: imageUrl, public_id: cloudinaryPublicId } = await downloadAndUploadToCloudinary(dalleImageUrl);
+    logger.info('Image uploaded to Cloudinary:', cloudinaryPublicId ? 'Yes' : 'No');
 
     // Create design preference for this generation
     const designPreference = await DesignPreference.create({
@@ -156,6 +195,7 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
       user: userId,
       preference: designPreference._id,
       imageUrl,
+      public_id: cloudinaryPublicId, // Store Cloudinary public ID for future management
       relatedProducts: selectedItems.map(i => i._id),
       modelUsed: 'DALL·E 3',
       status: 'success',
@@ -167,7 +207,8 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
         colorScheme: context.color,
         originalPrompt: userPrompt,
         enhancedPrompt: augmentedPrompt,
-        imageSize: size
+        imageSize: size,
+        cloudinaryPublicId
       }
     });
 
@@ -192,3 +233,6 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
     throw error;
   }
 };
+
+// Export the helper function for use in other modules
+exports.downloadAndUploadToCloudinary = downloadAndUploadToCloudinary;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Loader from "../components/Loader";
 import { toast } from "react-hot-toast";
@@ -18,6 +19,29 @@ import {
   FaCog,
   FaLayerGroup
 } from "react-icons/fa";
+
+// Custom axios instance for image generation with longer timeout
+const imageAxiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 180000, // 3 minutes timeout for image generation (DALL-E + Cloudinary upload)
+});
+
+// Add auth interceptor to image axios instance
+imageAxiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const EditDesignPage = () => {
   const [furniture, setFurniture] = useState([]);
@@ -67,6 +91,16 @@ const EditDesignPage = () => {
   };
 
   useEffect(() => {
+    // Check authentication status
+    const token = localStorage.getItem('authToken');
+    console.log('Auth token exists:', !!token);
+    if (!token) {
+      console.error('No auth token found, redirecting to login');
+      toast.error('Please log in to access the edit design page');
+      navigate('/login');
+      return;
+    }
+
     // Load design data from localStorage if available
     const savedDesignData = localStorage.getItem('editDesignData');
     if (savedDesignData) {
@@ -107,6 +141,14 @@ const EditDesignPage = () => {
         } catch (error) {
           console.error('Error parsing alternative design data:', error);
           setOriginalImage("/images/empty-room.jpg");
+        }
+      } else {
+        // If no design data in localStorage, try to get from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const designId = urlParams.get('id');
+        if (designId) {
+          console.log('Found design ID in URL:', designId);
+          // You could fetch the design data here if needed
         }
       }
     }
@@ -243,62 +285,111 @@ const EditDesignPage = () => {
       setLoading(true);
       setError("");
 
+      // Show loading toast for image generation
+      toast.loading('Generating your design... This may take 2-3 minutes.', {
+        duration: 180000, // 3 minutes
+        id: 'design-generation'
+      });
+
       // Build comprehensive prompt from all changes
       const furnitureList = selectedFurniture.map(item => item.name).join(', ');
       const removedList = removedFurniture.map(item => item.name).join(', ');
       
-      let prompt = `Create a new interior design for a ${selectedCategory} with the following specifications:\n\n`;
+      let prompt = `Edit the existing room design with the following furniture changes:\n\n`;
       
       if (selectedFurniture.length > 0) {
-        prompt += `Furniture to include: ${furnitureList}\n`;
+        prompt += `ADD these furniture items: ${furnitureList}\n`;
       }
       
       if (removedFurniture.length > 0) {
-        prompt += `Furniture to remove: ${removedList}\n`;
+        prompt += `REMOVE these furniture items: ${removedList}\n`;
       }
       
-      prompt += `\nStyle specifications:\n`;
+      prompt += `\nIMPORTANT PRESERVATION REQUIREMENTS:\n`;
+      prompt += `- Keep the EXACT same background, walls, flooring, and architectural elements\n`;
+      prompt += `- Maintain the SAME lighting conditions and camera angle\n`;
+      prompt += `- Preserve the overall room structure and layout\n`;
+      prompt += `- Only modify the furniture as specified above\n`;
+      prompt += `- The new furniture should blend seamlessly with the existing design\n`;
+      
+      prompt += `\nStyle context (for furniture selection):\n`;
       prompt += `- Design style: ${styleChanges.style}\n`;
       prompt += `- Color scheme: ${styleChanges.colorScheme}\n`;
       prompt += `- Lighting: ${styleChanges.lighting}\n`;
       prompt += `- Mood: ${styleChanges.mood}\n`;
       
-      prompt += `\nRoom specifications:\n`;
+      prompt += `\nRoom context:\n`;
       prompt += `- Layout: ${roomChanges.layout}\n`;
       prompt += `- Size: ${roomChanges.size}\n`;
       prompt += `- Windows: ${roomChanges.windows}\n`;
       
-      prompt += `\nRequirements:\n`;
+      prompt += `\nQuality requirements:\n`;
       prompt += `- Photorealistic quality with natural lighting\n`;
       prompt += `- Professional interior design photography style\n`;
       prompt += `- High-end, magazine-quality appearance\n`;
-      prompt += `- Proper furniture placement and room layout\n`;
-      prompt += `- Make it look cohesive and well-designed`;
+      prompt += `- Proper furniture placement within existing room layout`;
 
-      const response = await axiosInstance.post('/ai/generate-image', { 
-        prompt: prompt.trim(),
-        style: styleChanges.style,
-        size: '1024x1024'
-      });
-      
-      if (response.data.status === 'success') {
-        const newImageUrl = response.data.data.imageUrl;
-        setOriginalImage(newImageUrl);
+      // If we have a design ID, use the edit design endpoint
+      if (designData?._id) {
+        const response = await imageAxiosInstance.post(`/edit-design/${designData._id}/edit`, {
+          action: 'add',
+          furnitureItems: selectedFurniture.map(item => item._id),
+          prompt: prompt.trim(),
+          originalImageUrl: originalImage
+        });
         
-        // Clear all changes after successful generation
-        setSelectedFurniture([]);
-        setRemovedFurniture([]);
-        setEditHistory([]);
-        setHasUnsavedChanges(false);
-        
-        toast.success('Design generated successfully!');
+        if (response.data.success) {
+          const newImageUrl = response.data.data.newImageUrl;
+          setOriginalImage(newImageUrl);
+          
+          // Clear all changes after successful generation
+          setSelectedFurniture([]);
+          setRemovedFurniture([]);
+          setEditHistory([]);
+          setHasUnsavedChanges(false);
+          
+          toast.success('Design edited successfully!');
+        } else {
+          throw new Error(response.data.message || "Failed to edit design");
+        }
       } else {
-        throw new Error(response.data.message || "Failed to generate design");
+        // Fallback to regular image generation
+        const response = await imageAxiosInstance.post('/ai/generate-image', { 
+          prompt: prompt.trim(),
+          style: styleChanges.style,
+          size: '1024x1024'
+        });
+        
+        if (response.data.status === 'success') {
+          const newImageUrl = response.data.data.imageUrl;
+          setOriginalImage(newImageUrl);
+          
+          // Clear all changes after successful generation
+          setSelectedFurniture([]);
+          setRemovedFurniture([]);
+          setEditHistory([]);
+          setHasUnsavedChanges(false);
+          
+          toast.success('Design generated successfully!');
+        } else {
+          throw new Error(response.data.message || "Failed to generate design");
+        }
       }
+      
+      // Dismiss loading toast on success
+      toast.dismiss('design-generation');
     } catch (err) {
       console.error('Error generating design:', err);
       
-      if (err.response?.status === 429) {
+      if (err.response?.status === 401) {
+        setError("Authentication required. Please log in again.");
+        toast.error("Please log in again to continue.");
+        // Redirect to login
+        navigate('/login');
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+        setError("Image generation is taking longer than expected. Please try again.");
+        toast.error("Image generation timed out. Please try again.");
+      } else if (err.response?.status === 429) {
         setError("Rate limit exceeded. Please wait before trying again.");
         toast.error("Too many requests. Please wait before trying again.");
       } else if (err.response?.status === 400) {
@@ -311,6 +402,9 @@ const EditDesignPage = () => {
         setError("Failed to generate design. Please try again.");
         toast.error("Failed to generate design. Please try again.");
       }
+      
+      // Dismiss loading toast on error
+      toast.dismiss('design-generation');
     } finally {
       setLoading(false);
     }
@@ -318,14 +412,17 @@ const EditDesignPage = () => {
 
   const handleSaveDesign = async () => {
     try {
-      // Save design preferences
-      await axiosInstance.post('/design/preferences', {
-        roomType: selectedCategory,
-        style: styleChanges.style,
-        colorPalette: [styleChanges.colorScheme],
-        budget: 0,
-        dimensions: roomChanges.size,
-        additionalNotes: 'AI edited design with custom specifications'
+      if (!designData?._id) {
+        toast.error('No design to save');
+        return;
+      }
+
+      // Save design edit preferences using the edit design endpoint
+      await axiosInstance.post(`/edit-design/${designData._id}/preferences`, {
+        furniturePreferences: selectedFurniture.map(item => item._id),
+        stylePreferences: styleChanges,
+        colorPreferences: { colorScheme: styleChanges.colorScheme },
+        notes: 'AI edited design with custom specifications'
       });
       
       toast.success('Design saved successfully!');
@@ -368,22 +465,73 @@ const EditDesignPage = () => {
       setCustomPromptLoading(true);
       setCustomPromptError("");
       setLoading(true); // show loader on image
-      const response = await axiosInstance.post('/ai/generate-image', {
-        prompt: customPrompt.trim(),
-        style: styleChanges.style,
-        size: '1024x1024'
+      
+      // Show loading toast for image generation
+      toast.loading('Generating your design... This may take 2-3 minutes.', {
+        duration: 180000, // 3 minutes
+        id: 'custom-prompt-generation'
       });
-      if (response.data.status === 'success') {
-        const newImageUrl = response.data.data.imageUrl;
-        setOriginalImage(newImageUrl);
-        toast.success('Design generated from your prompt!');
-        setCustomPrompt("");
+      
+      // If we have a design ID, use the edit design endpoint
+      if (designData?._id) {
+        // Add preservation instructions to custom prompt if not already present
+        let enhancedPrompt = customPrompt.trim();
+        if (!enhancedPrompt.includes('Keep the exact same background')) {
+          enhancedPrompt += ` IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only modify the furniture as specified. Maintain the same camera angle, lighting conditions, and architectural elements.`;
+        }
+        
+        const response = await imageAxiosInstance.post(`/edit-design/${designData._id}/edit`, {
+          action: 'add',
+          furnitureItems: [],
+          prompt: enhancedPrompt,
+          originalImageUrl: originalImage
+        });
+        
+        if (response.data.success) {
+          const newImageUrl = response.data.data.newImageUrl;
+          setOriginalImage(newImageUrl);
+          toast.success('Design edited from your prompt!');
+          setCustomPrompt("");
+        } else {
+          throw new Error(response.data.message || "Failed to edit design");
+        }
       } else {
-        throw new Error(response.data.message || "Failed to generate design");
+        // Fallback to regular image generation
+        const response = await imageAxiosInstance.post('/ai/generate-image', {
+          prompt: customPrompt.trim(),
+          style: styleChanges.style,
+          size: '1024x1024'
+        });
+        
+        if (response.data.status === 'success') {
+          const newImageUrl = response.data.data.imageUrl;
+          setOriginalImage(newImageUrl);
+          toast.success('Design generated from your prompt!');
+          setCustomPrompt("");
+        } else {
+          throw new Error(response.data.message || "Failed to generate design");
+        }
       }
+      
+      // Dismiss loading toast on success
+      toast.dismiss('custom-prompt-generation');
     } catch (err) {
-      setCustomPromptError("Failed to generate design from prompt.");
-      toast.error("Failed to generate design from prompt.");
+      console.error('Error generating design from prompt:', err);
+      
+      if (err.response?.status === 401) {
+        setCustomPromptError("Authentication required. Please log in again.");
+        toast.error("Please log in again to continue.");
+        navigate('/login');
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+        setCustomPromptError("Image generation timed out. Please try again.");
+        toast.error("Image generation timed out. Please try again.");
+      } else {
+        setCustomPromptError("Failed to generate design from prompt.");
+        toast.error("Failed to generate design from prompt.");
+      }
+      
+      // Dismiss loading toast on error
+      toast.dismiss('custom-prompt-generation');
     } finally {
       setCustomPromptLoading(false);
       setLoading(false);
@@ -467,7 +615,7 @@ const EditDesignPage = () => {
             ) : (
               <>
                 <FaMagic size={20} />
-                <span>Send Updated Design</span>
+                <span>Update Furniture</span>
               </>
             )}
           </button>
@@ -587,8 +735,8 @@ const EditDesignPage = () => {
                 <h2 className="text-2xl font-bold text-[#E5CBBE] mb-2">Design Canvas</h2>
                 <p className="text-[#A58077] text-sm">
                   {hasUnsavedChanges 
-                    ? `${editHistory.length} changes pending - Click "Generate Design" when ready`
-                    : "Make your changes and generate the final design"
+                    ? `${editHistory.length} furniture changes pending - Background and lighting will be preserved`
+                    : "Add or remove furniture - Background and lighting will be preserved"
                   }
                 </p>
                 {designData?.prompt && (
@@ -640,13 +788,13 @@ const EditDesignPage = () => {
               />
               {/* Custom Prompt Input */}
               <form onSubmit={handleCustomPromptSubmit} className="w-full max-w-xl mt-8 flex flex-col gap-2 bg-[#232323] p-4 rounded-lg shadow-lg border border-[#3C3C3C]">
-                <label htmlFor="customPrompt" className="text-[#A58077] text-sm font-medium mb-1">Send a custom prompt to the AI model:</label>
+                <label htmlFor="customPrompt" className="text-[#A58077] text-sm font-medium mb-1">Custom furniture edit prompt (background preserved):</label>
                 <textarea
                   id="customPrompt"
                   value={customPrompt}
                   onChange={e => setCustomPrompt(e.target.value)}
                   rows={2}
-                  placeholder="Describe your new idea or request..."
+                  placeholder="Describe furniture changes you want to make (background will be preserved)..."
                   className="w-full p-3 bg-[#2C2C2C] text-white rounded-lg border border-[#3C3C3C] focus:border-[#A58077] focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-200 text-sm resize-none"
                   disabled={customPromptLoading || loading}
                 />

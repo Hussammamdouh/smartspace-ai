@@ -159,10 +159,16 @@ exports.sendMessage = async (req, res, next) => {
 
     } else if (model === 'image') {
       // Generate image
+      logger.info(`Starting image generation for user ${req.user.id}: ${message.substring(0, 100)}...`);
+      const startTime = Date.now();
+      
       const { imageUrl, designId, prompt, usedItems, totalCost, furnitureCount, metadata } = await generateImageWithDalle(
         message,
         req.user.id
       );
+      
+      const endTime = Date.now();
+      logger.info(`Image generation completed in ${endTime - startTime}ms for user ${req.user.id}`);
 
       aiResponse = imageUrl;
       responseType = 'image';

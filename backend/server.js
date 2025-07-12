@@ -45,6 +45,14 @@ const app = express();
 // ✅ Connect to DB
 connectDB();
 
+// ✅ Set server timeout for long-running requests (like image generation)
+app.use((req, res, next) => {
+  // Set timeout to 5 minutes for all requests
+  req.setTimeout(300000); // 5 minutes
+  res.setTimeout(300000); // 5 minutes
+  next();
+});
+
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)

@@ -25,7 +25,7 @@ export default function EditDesignScreen() {
   const fetchDesign = async () => {
     setLoading(true);
     try {
-      const response = await api.getDesign(id as string);
+      const response = await api.getDesignForEdit(id as string);
       if (response.success && response.data) {
         setDesign(response.data);
         setTitle(response.data.title || '');
@@ -47,20 +47,21 @@ export default function EditDesignScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await api.editDesign(id as string, {
-        description,
-        style,
-        // Add other fields as needed
+      // Use the edit design preferences endpoint
+      const response = await api.saveEditDesignPreferences(id as string, {
+        stylePreferences: { style },
+        notes: description
       });
+      
       if (response.success) {
-        Alert.alert('Success', 'Design updated successfully!', [
+        Alert.alert('Success', 'Design preferences saved successfully!', [
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
-        Alert.alert('Error', response.error || 'Failed to update design');
+        Alert.alert('Error', response.error || 'Failed to save design preferences');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update design');
+      Alert.alert('Error', 'Failed to save design preferences');
     } finally {
       setSaving(false);
     }

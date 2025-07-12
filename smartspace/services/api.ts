@@ -559,6 +559,15 @@ class ApiService {
     }
   }
 
+  async getDesignForEdit(id: string) {
+    try {
+      const response = await this.authenticatedRequest(`/edit-design/${id}`);
+      return this.normalizeResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
   async editDesign(designId: string, editData: {
     description: string;
     style?: string;
@@ -567,6 +576,23 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(editData),
     });
+  }
+
+  async saveEditDesignPreferences(designId: string, preferences: {
+    furniturePreferences?: string[];
+    stylePreferences?: any;
+    colorPreferences?: any;
+    notes?: string;
+  }) {
+    try {
+      const response = await this.authenticatedRequest(`/edit-design/${designId}/preferences`, {
+        method: 'POST',
+        body: JSON.stringify(preferences),
+      });
+      return this.normalizeResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
   // Unified OpenAI AI endpoint

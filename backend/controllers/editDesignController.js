@@ -97,53 +97,163 @@ exports.editDesign = async (req, res, next) => {
       return next(new APIError('No valid furniture items found', 400));
     }
 
-    // Create edit prompt that preserves background and lighting
+    // Create edit prompt with STRICT preservation rules
     let editPrompt = prompt || `Edit the room design to `;
     
     if (action === 'add') {
       const itemNames = items.map(item => item.name).join(', ');
-      editPrompt += `add ${itemNames} to the room. IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only add the new furniture items in appropriate positions within the existing room layout. Maintain the same camera angle, lighting conditions, and architectural elements. The new furniture should blend seamlessly with the existing design.`;
+      editPrompt += `add ${itemNames} to the room. `;
     } else if (action === 'remove') {
       const itemNames = items.map(item => item.name).join(', ');
-      editPrompt += `remove ${itemNames} from the room. IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only remove the specified furniture items and leave the space empty or replace with minimal alternatives. Maintain the same camera angle, lighting conditions, and architectural elements.`;
+      editPrompt += `remove ${itemNames} from the room. `;
     }
 
-    // Add preservation instructions to any custom prompt
-    if (prompt && !prompt.includes('Keep the exact same background')) {
-      editPrompt += ` IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only modify the furniture as specified. Maintain the same camera angle, lighting conditions, and architectural elements.`;
-    }
+    // STRICT PRESERVATION INSTRUCTIONS (CONCISE)
+    editPrompt += `
 
-    // Generate new image with the edit
+STRICT EDITING RULES: This is inpainting, NOT new generation. Preserve EVERYTHING except specified furniture changes.
+
+DO NOT CHANGE: Background, walls, floor, lighting, shadows, windows, doors, ceiling, camera angle, room layout, architectural details, color palette, textures, mood, or any decor not specified.
+
+ONLY modify furniture pixels. ALL other pixels must remain 100% identical. Use exact same camera, lighting, and perspective. If background would change, DO NOT make the change.
+
+NEGATIVE: No background changes, no new elements, no style/lighting changes, no camera movement.
+`;
+
+    // Generate new image with the edit using preservation mode
+    const originalImageContext = {
+      roomType: originalDesign.metadata?.roomType || 'living room',
+      style: originalDesign.metadata?.style || 'modern',
+      colorScheme: originalDesign.metadata?.colorScheme || 'neutral',
+      lighting: originalDesign.metadata?.lighting || 'natural'
+    };
+    
     const { imageUrl: dalleImageUrl, designId: newDesignId, prompt: generatedPrompt, usedItems } = await generateImageWithDalle(
       editPrompt,
-      req.user.id
+      req.user.id,
+      {
+        preserveOriginal: true,
+        originalImageContext: originalImageContext
+      }
     );
 
     // Upload the edited image to Cloudinary if available
     const { url: imageUrl, public_id: cloudinaryPublicId } = await downloadAndUploadToCloudinary(dalleImageUrl, 'ai-interior-design-edits');
 
-    // Create a new design entry for the edited version
-    const editedDesign = await GeneratedDesign.create({
-      user: req.user.id,
-      preference: originalDesign.preference,
-      imageUrl,
-      public_id: cloudinaryPublicId, // Store Cloudinary public ID
-      relatedProducts: usedItems.map(item => item._id),
-      modelUsed: 'DALL·E 3 (Edited)',
-      status: 'success',
-      originalDesign: designId, // Reference to the original design
-      editHistory: [{
-        action,
-        furnitureItems: items.map(item => item._id),
-        prompt: editPrompt,
-        timestamp: new Date()
-      }]
+    // Update the existing design instead of creating a new one
+    originalDesign.imageUrl = imageUrl;
+    originalDesign.public_id = cloudinaryPublicId;
+    originalDesign.modelUsed = 'DALL·E 3 (Edited)';
+    originalDesign.relatedProducts = usedItems.map(item => item._id);
+    
+    // Add to edit history
+    if (!originalDesign.editHistory) {
+      originalDesign.editHistory = [];
+    }
+    originalDesign.editHistory.push({
+      action,
+      furnitureItems: items.map(item => item._id),
+      prompt: editPrompt,
+      timestamp: new Date()
     });
 
-    res.status(201).json({
+    await originalDesign.save();
+
+    res.status(200).json({
       success: true,
       data: {
-        editedDesign,
+        editedDesign: originalDesign,
+        originalDesign: originalDesign._id,
+        editPrompt,
+        newImageUrl: imageUrl
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Custom prompt edit - doesn't require furniture items
+exports.editDesignWithCustomPrompt = async (req, res, next) => {
+  try {
+    const { designId } = req.params;
+    const { 
+      prompt, // custom prompt for the edit
+      originalImageUrl // URL of the original image to edit
+    } = req.body;
+
+    if (!prompt) {
+      return next(new APIError('Prompt is required', 400));
+    }
+
+    // Get the original design
+    const originalDesign = await GeneratedDesign.findOne({
+      _id: designId,
+      user: req.user.id
+    }).populate('relatedProducts');
+
+    if (!originalDesign) {
+      return next(new APIError('Design not found', 404));
+    }
+
+    // Create edit prompt with STRICT preservation rules
+    let editPrompt = prompt.trim();
+    
+    // STRICT PRESERVATION INSTRUCTIONS (CONCISE)
+    editPrompt += `
+
+STRICT EDITING RULES: This is inpainting, NOT new generation. Preserve EVERYTHING except specified furniture changes.
+
+DO NOT CHANGE: Background, walls, floor, lighting, shadows, windows, doors, ceiling, camera angle, room layout, architectural details, color palette, textures, mood, or any decor not specified.
+
+ONLY modify furniture pixels. ALL other pixels must remain 100% identical. Use exact same camera, lighting, and perspective. If background would change, DO NOT make the change.
+
+NEGATIVE: No background changes, no new elements, no style/lighting changes, no camera movement.
+`;
+
+    // Generate new image with the edit using preservation mode
+    const originalImageContext = {
+      roomType: originalDesign.metadata?.roomType || 'living room',
+      style: originalDesign.metadata?.style || 'modern',
+      colorScheme: originalDesign.metadata?.colorScheme || 'neutral',
+      lighting: originalDesign.metadata?.lighting || 'natural'
+    };
+    
+    const { imageUrl: dalleImageUrl, designId: newDesignId, prompt: generatedPrompt, usedItems } = await generateImageWithDalle(
+      editPrompt,
+      req.user.id,
+      {
+        preserveOriginal: true,
+        originalImageContext: originalImageContext
+      }
+    );
+
+    // Upload the edited image to Cloudinary if available
+    const { url: imageUrl, public_id: cloudinaryPublicId } = await downloadAndUploadToCloudinary(dalleImageUrl, 'ai-interior-design-edits');
+
+    // Update the existing design instead of creating a new one
+    originalDesign.imageUrl = imageUrl;
+    originalDesign.public_id = cloudinaryPublicId;
+    originalDesign.modelUsed = 'DALL·E 3 (Custom Edit)';
+    originalDesign.relatedProducts = usedItems.map(item => item._id);
+    
+    // Add to edit history
+    if (!originalDesign.editHistory) {
+      originalDesign.editHistory = [];
+    }
+    originalDesign.editHistory.push({
+      action: 'custom_prompt',
+      furnitureItems: [],
+      prompt: editPrompt,
+      timestamp: new Date()
+    });
+
+    await originalDesign.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        editedDesign: originalDesign,
         originalDesign: originalDesign._id,
         editPrompt,
         newImageUrl: imageUrl

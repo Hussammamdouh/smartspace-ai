@@ -50,7 +50,6 @@ const ChatPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [generationStep, setGenerationStep] = useState('');
   const [error, setError] = useState("");
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
@@ -99,7 +98,10 @@ const ChatPage = () => {
   const loadConversation = async (conversationId) => {
     try {
       const response = await axiosInstance.get(`/chat/conversation/${conversationId}`);
-      setMessages(response.data.data.conversation || []);
+      const conversation = response.data.data.conversation || [];
+      
+      console.log('Loaded conversation messages:', conversation);
+      setMessages(conversation);
       setCurrentConversationId(conversationId);
       setChatMode(response.data.data.type || 'chat');
     } catch (error) {
@@ -178,6 +180,9 @@ const ChatPage = () => {
         if (chatMode === 'image') {
           // For image generation, the response contains the image URL
           console.log('Creating image message with URL:', response.data.data.response);
+          console.log('Design data from response:', response.data.data.designData);
+          console.log('Full response data:', response.data.data);
+          
           assistantMessage = {
             role: "assistant",
             content: `Generated interior design image based on: ${newMessage}`,
@@ -188,6 +193,7 @@ const ChatPage = () => {
           };
           console.log('Image message created:', assistantMessage);
           console.log('Image URL in message:', assistantMessage.imageUrl);
+          console.log('Design data in message:', assistantMessage.designData);
         } else {
           // For chat, the response contains the text message
           assistantMessage = {
@@ -289,14 +295,39 @@ const ChatPage = () => {
     }
   };
 
-  const editDesign = (imageUrl, messageContent) => {
-    const designData = {
+  const editDesign = (imageUrl, messageContent, designData = null) => {
+    console.log('editDesign called with:', { imageUrl, messageContent, designData });
+    
+    const editData = {
       imageUrl,
       prompt: messageContent,
       timestamp: new Date().toISOString()
     };
-    localStorage.setItem('editDesignData', JSON.stringify(designData));
-    navigate('/edit-design');
+    
+    // If we have design data from the message, use it
+    if (designData && designData.designId) {
+      editData._id = designData.designId;
+      editData.style = designData.metadata?.style || 'modern';
+      editData.roomType = designData.metadata?.roomType || 'living room';
+      editData.totalCost = designData.totalCost;
+      editData.furnitureCount = designData.furnitureCount;
+      editData.usedItems = designData.usedItems;
+      console.log('Using design data from message:', designData);
+    } else {
+      console.log('No design data available, using basic data');
+    }
+    
+    console.log('Final edit data to be stored:', editData);
+    localStorage.setItem('editDesignData', JSON.stringify(editData));
+    
+    // Navigate with design ID if available, otherwise just to edit-design
+    if (editData._id) {
+      console.log('Navigating with design ID:', editData._id);
+      navigate(`/edit-design?id=${editData._id}`);
+    } else {
+      console.log('Navigating without design ID');
+      navigate('/edit-design');
+    }
   };
 
   const purchaseDesign = async (imageUrl, messageContent) => {
@@ -544,7 +575,7 @@ const ChatPage = () => {
                           <div className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
                         </div>
                         <p className="text-[#A58077] text-xs mt-1">
-                          {generationStep || 'Step 1: Creating design with AI... ⏳'}
+                          Step 1: Creating design with AI... ⏳
                         </p>
                       </div>
                     )}
@@ -676,7 +707,11 @@ const MessageBubble = ({ message, onDownload, onShare, onEdit, onPurchase }) => 
                         <FaShare className="text-sm" />
                       </button>
                       <button
-                        onClick={() => onEdit(message.imageUrl, message.content)}
+                        onClick={() => {
+                          console.log('Edit button clicked with message:', message);
+                          console.log('Message designData:', message.designData);
+                          onEdit(message.imageUrl, message.content, message.designData);
+                        }}
                         className="p-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-200 shadow-lg hover:shadow-xl"
                         title="Edit Design"
                       >

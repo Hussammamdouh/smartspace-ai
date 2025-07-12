@@ -25,16 +25,30 @@ const downloadAndUploadToCloudinary = async (imageUrl, folder = 'ai-interior-des
       timeout: 30000
     });
 
-    // Create a temporary file path
-    const tempPath = `/tmp/ai-design-${Date.now()}.png`;
+    // Use cross-platform temporary directory
+    const os = require('os');
+    const path = require('path');
     const fs = require('fs');
+    
+    // Create temp directory if it doesn't exist
+    const tempDir = path.join(os.tmpdir(), 'ai-interior-design');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    
+    // Create a temporary file path
+    const tempPath = path.join(tempDir, `ai-design-${Date.now()}.png`);
     fs.writeFileSync(tempPath, response.data);
 
     // Upload to Cloudinary
     const uploadResult = await uploadToCloudinary({ path: tempPath }, folder);
 
     // Clean up temporary file
-    fs.unlinkSync(tempPath);
+    try {
+      fs.unlinkSync(tempPath);
+    } catch (cleanupError) {
+      logger.warn('Failed to cleanup temp file:', cleanupError.message);
+    }
 
     return uploadResult;
   } catch (error) {
@@ -64,9 +78,10 @@ exports.chatWithGPT = async (messages) => {
 
 exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
   try {
-    const { style: customStyle, size = '1024x1024' } = options;
+    const { style: customStyle, size = '1024x1024', preserveOriginal = false, originalImageContext = null } = options;
     const context = extractPromptContext(userPrompt);
     logger.info('Extracted context:', context);
+    logger.info('Preservation mode:', preserveOriginal);
 
     // Build comprehensive filter for furniture selection
     const filter = { 
@@ -143,23 +158,64 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
     const finalStyle = customStyle || context.style || 'modern';
 
     // Create enhanced prompt with specific furniture details
-    const augmentedPrompt = `
-      Create a photorealistic interior design image for: ${userPrompt.trim()}.
-      
-      Include these specific furniture items: ${itemNames}.
-      
-      Style requirements:
-      - Room type: ${context.category || 'living room'}
-      - Design style: ${finalStyle}
-      - Color scheme: ${context.color || 'neutral'}
-      
-      Image requirements:
-      - Photorealistic quality with natural lighting
-      - Professional interior design photography style
-      - No cartoon, 3D-rendered, or artificial styles
-      - High-end, magazine-quality appearance
-      - Proper furniture placement and room layout
-    `;
+    let augmentedPrompt;
+    
+    if (preserveOriginal && originalImageContext) {
+      // STRICT PRESERVATION MODE - for editing existing designs
+      augmentedPrompt = `
+        EDIT the existing interior design image with these changes: ${userPrompt.trim()}
+        
+        CRITICAL PRESERVATION REQUIREMENTS - DO NOT CHANGE ANY OF THESE:
+        1. EXACT SAME BACKGROUND: Keep the exact same wall color, texture, and material
+        2. EXACT SAME FLOORING: Keep the exact same floor material, color, and pattern
+        3. EXACT SAME LIGHTING: Keep the exact same light sources, shadows, and brightness
+        4. EXACT SAME CAMERA ANGLE: Maintain the exact same perspective and composition
+        5. EXACT SAME ROOM DIMENSIONS: Keep the exact same room size and proportions
+        6. EXACT SAME WINDOWS/DOORS: Keep the exact same window and door positions
+        7. EXACT SAME ARCHITECTURAL ELEMENTS: Keep all moldings, baseboards, ceiling details
+        8. EXACT SAME SHADOWS: Maintain the exact same shadow positions and intensities
+        9. EXACT SAME COLOR TEMPERATURE: Keep the exact same warm/cool lighting balance
+        10. EXACT SAME ATMOSPHERE: Maintain the exact same mood and ambiance
+        
+        ORIGINAL IMAGE CONTEXT:
+        - Room type: ${originalImageContext.roomType || 'living room'}
+        - Design style: ${originalImageContext.style || 'modern'}
+        - Color scheme: ${originalImageContext.colorScheme || 'neutral'}
+        - Lighting: ${originalImageContext.lighting || 'natural'}
+        
+        ONLY MODIFY: The specific changes requested above. Everything else must remain identical.
+        
+        TECHNICAL REQUIREMENTS:
+        - Use the exact same camera position and focal length
+        - Maintain identical lighting setup and exposure
+        - Preserve all architectural details exactly as they are
+        - Keep the same color palette and material textures
+        - Ensure seamless integration of changes with existing elements
+        - Photorealistic quality with natural lighting
+        - Professional interior design photography style
+        - No cartoon, 3D-rendered, or artificial styles
+        - High-end, magazine-quality appearance
+      `;
+    } else {
+      // NEW GENERATION MODE - for creating new designs
+      augmentedPrompt = `
+        Create a photorealistic interior design image for: ${userPrompt.trim()}.
+        
+        Include these specific furniture items: ${itemNames}.
+        
+        Style requirements:
+        - Room type: ${context.category || 'living room'}
+        - Design style: ${finalStyle}
+        - Color scheme: ${context.color || 'neutral'}
+        
+        Image requirements:
+        - Photorealistic quality with natural lighting
+        - Professional interior design photography style
+        - No cartoon, 3D-rendered, or artificial styles
+        - High-end, magazine-quality appearance
+        - Proper furniture placement and room layout
+      `;
+    }
 
     logger.info('Generated prompt:', augmentedPrompt);
 

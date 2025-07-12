@@ -78,7 +78,10 @@ const GenerateImage = () => {
     if (!image) return;
     
     try {
-      const response = await axiosInstance.get(`/design/download-image?url=${encodeURIComponent(image)}`, {
+      const response = await axiosInstance.post('/design/download-image', {
+        imageUrl: image,
+        filename: `ai-design-${Date.now()}.png`
+      }, {
         responseType: 'blob'
       });
       
@@ -130,7 +133,12 @@ const GenerateImage = () => {
       timestamp: new Date().toISOString()
     };
     localStorage.setItem('editDesignData', JSON.stringify(designData));
-    navigate('/edit-design');
+    // Navigate with design ID if available, otherwise just to edit-design
+    if (designData._id) {
+      navigate(`/edit-design?id=${designData._id}`);
+    } else {
+      navigate('/edit-design');
+    }
   };
 
   const handlePurchaseItems = async () => {

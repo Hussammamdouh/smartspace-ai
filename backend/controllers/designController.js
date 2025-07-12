@@ -10,17 +10,23 @@ const { deleteFromCloudinary } = require('../config/cloudinary');
 // Get user designs for dashboard
 exports.getUserDesigns = async (req, res, next) => {
   try {
+    console.log('getUserDesigns called for user:', req.user.id);
+    
     const designs = await GeneratedDesign.find({ user: req.user.id })
       .populate('preference')
       .populate('relatedProducts')
       .sort({ createdAt: -1 })
       .limit(10); // Limit to recent 10 designs for dashboard
     
+    console.log('Found designs:', designs.length);
+    console.log('Designs:', designs);
+    
     res.status(200).json({
       status: 'success',
       data: designs
     });
   } catch (error) {
+    console.error('Error in getUserDesigns:', error);
     next(error);
   }
 };

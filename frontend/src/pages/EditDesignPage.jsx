@@ -116,7 +116,13 @@ const EditDesignPage = () => {
           setOriginalImage("/images/empty-room.jpg");
         }
         
-        localStorage.removeItem('editDesignData'); // Clear after loading
+        // Update URL with design ID for better persistence
+        if (parsedData._id) {
+          updateURLWithDesignId(parsedData._id);
+        }
+        
+        // Only clear localStorage after URL is updated
+        localStorage.removeItem('editDesignData');
       } catch (error) {
         console.error('Error parsing design data:', error);
         setOriginalImage("/images/empty-room.jpg");
@@ -137,6 +143,11 @@ const EditDesignPage = () => {
             setOriginalImage("/images/empty-room.jpg");
           }
           
+          // Update URL with design ID for better persistence
+          if (parsedData._id) {
+            updateURLWithDesignId(parsedData._id);
+          }
+          
           localStorage.removeItem('designToEdit');
         } catch (error) {
           console.error('Error parsing alternative design data:', error);
@@ -148,7 +159,17 @@ const EditDesignPage = () => {
         const designId = urlParams.get('id');
         if (designId) {
           console.log('Found design ID in URL:', designId);
-          // You could fetch the design data here if needed
+          fetchDesignFromBackend(designId);
+        } else {
+          // If no design ID, try to get from path params
+          const pathParts = window.location.pathname.split('/');
+          const lastPart = pathParts[pathParts.length - 1];
+          if (lastPart && lastPart !== 'edit-design') {
+            console.log('Found design ID in path:', lastPart);
+            fetchDesignFromBackend(lastPart);
+          } else {
+            setOriginalImage("/images/empty-room.jpg");
+          }
         }
       }
     }
@@ -169,6 +190,57 @@ const EditDesignPage = () => {
     fetchInventory();
   }, []);
 
+  // Function to fetch design data from backend
+  const fetchDesignFromBackend = async (designId) => {
+    try {
+      setLoading(true);
+      console.log('Fetching design from backend with ID:', designId);
+      
+      const response = await axiosInstance.get(`/edit-design/${designId}`);
+      console.log('Backend response:', response.data);
+      
+      if (response.data.success && response.data.data) {
+        const design = response.data.data;
+        setDesignData(design);
+        
+        if (design.imageUrl) {
+          setOriginalImage(design.imageUrl);
+          console.log('Fetched design from backend:', design);
+          console.log('Setting image URL:', design.imageUrl);
+        } else {
+          console.log('No image URL in design data');
+          setOriginalImage("/images/empty-room.jpg");
+        }
+        
+        // Persist the fetched design data
+        localStorage.setItem('editDesignData', JSON.stringify(design));
+        console.log('Persisted design data to localStorage');
+        
+        // Update URL to include design ID for better persistence
+        updateURLWithDesignId(designId);
+      } else {
+        console.error('Failed to fetch design from backend - no success or data');
+        setOriginalImage("/images/empty-room.jpg");
+        toast.error('Failed to load design data');
+      }
+    } catch (error) {
+      console.error('Error fetching design from backend:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      setOriginalImage("/images/empty-room.jpg");
+      toast.error('Failed to load design data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to update URL with design ID
+  const updateURLWithDesignId = (designId) => {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('id', designId);
+    window.history.replaceState({}, '', currentUrl.toString());
+  };
+
   // Track changes for unsaved changes indicator
   useEffect(() => {
     const hasChanges = selectedFurniture.length > 0 || 
@@ -176,6 +248,26 @@ const EditDesignPage = () => {
                       editHistory.length > 0;
     setHasUnsavedChanges(hasChanges);
   }, [selectedFurniture, removedFurniture, editHistory]);
+
+  // Handle page refresh - check for design ID in URL and fetch latest data
+  useEffect(() => {
+    const handlePageRefresh = () => {
+      // Check if we have a design ID in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const designId = urlParams.get('id');
+      
+      if (designId && designData?._id === designId) {
+        // If we have the same design ID, fetch the latest data from backend
+        fetchDesignFromBackend(designId);
+      } else if (designId && !designData) {
+        // If we have a design ID but no design data, fetch it
+        fetchDesignFromBackend(designId);
+      }
+    };
+
+    // Check on mount and when designData changes
+    handlePageRefresh();
+  }, [designData?._id]);
 
   const addFurnitureToDesign = (item) => {
     setSelectedFurniture(prev => [...prev, item]);
@@ -340,7 +432,19 @@ const EditDesignPage = () => {
         
         if (response.data.success) {
           const newImageUrl = response.data.data.newImageUrl;
+          const updatedDesign = response.data.data.editedDesign;
+          
+          // Update both the image and the design data
           setOriginalImage(newImageUrl);
+          setDesignData(updatedDesign);
+          
+          // Persist the updated design data
+          localStorage.setItem('editDesignData', JSON.stringify(updatedDesign));
+          
+          // Update URL with design ID for better persistence
+          if (updatedDesign._id) {
+            updateURLWithDesignId(updatedDesign._id);
+          }
           
           // Clear all changes after successful generation
           setSelectedFurniture([]);
@@ -354,26 +458,15 @@ const EditDesignPage = () => {
         }
       } else {
         // Fallback to regular image generation
-        const response = await imageAxiosInstance.post('/ai/generate-image', { 
-          prompt: prompt.trim(),
-          style: styleChanges.style,
-          size: '1024x1024'
-        });
+        await createNewDesign(prompt.trim(), styleChanges.style);
         
-        if (response.data.status === 'success') {
-          const newImageUrl = response.data.data.imageUrl;
-          setOriginalImage(newImageUrl);
-          
-          // Clear all changes after successful generation
-          setSelectedFurniture([]);
-          setRemovedFurniture([]);
-          setEditHistory([]);
-          setHasUnsavedChanges(false);
-          
-          toast.success('Design generated successfully!');
-        } else {
-          throw new Error(response.data.message || "Failed to generate design");
-        }
+        // Clear all changes after successful generation
+        setSelectedFurniture([]);
+        setRemovedFurniture([]);
+        setEditHistory([]);
+        setHasUnsavedChanges(false);
+        
+        toast.success('Design generated successfully!');
       }
       
       // Dismiss loading toast on success
@@ -407,6 +500,39 @@ const EditDesignPage = () => {
       toast.dismiss('design-generation');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to create a new design
+  const createNewDesign = async (prompt, style) => {
+    try {
+      const response = await imageAxiosInstance.post('/ai/generate-image', { 
+        prompt: prompt.trim(),
+        style: style,
+        size: '1024x1024'
+      });
+      
+      if (response.data.status === 'success') {
+        const newImageUrl = response.data.data.imageUrl;
+        const newDesignData = {
+          imageUrl: newImageUrl,
+          prompt: prompt,
+          style: style,
+          timestamp: new Date().toISOString(),
+          _id: response.data.data.designId || `temp-${Date.now()}`
+        };
+        
+        setOriginalImage(newImageUrl);
+        setDesignData(newDesignData);
+        localStorage.setItem('editDesignData', JSON.stringify(newDesignData));
+        
+        return newDesignData;
+      } else {
+        throw new Error(response.data.message || "Failed to generate design");
+      }
+    } catch (error) {
+      console.error('Error creating new design:', error);
+      throw error;
     }
   };
 
@@ -472,59 +598,99 @@ const EditDesignPage = () => {
         id: 'custom-prompt-generation'
       });
       
-      // If we have a design ID, use the edit design endpoint
-      if (designData?._id) {
-        // Add preservation instructions to custom prompt if not already present
-        let enhancedPrompt = customPrompt.trim();
-        if (!enhancedPrompt.includes('Keep the exact same background')) {
-          enhancedPrompt += ` IMPORTANT: Keep the exact same background, walls, flooring, lighting, and overall room structure. Only modify the furniture as specified. Maintain the same camera angle, lighting conditions, and architectural elements.`;
-        }
-        
-        const response = await imageAxiosInstance.post(`/edit-design/${designData._id}/edit`, {
-          action: 'add',
-          furnitureItems: [],
+      // For custom prompts, we need to handle existing designs differently
+      let enhancedPrompt = customPrompt.trim();
+      
+      // If we have an existing design, use the custom prompt endpoint
+      if (designData?._id && originalImage !== "/images/empty-room.jpg") {
+        // Use the new custom prompt endpoint that doesn't require furniture items
+        const response = await imageAxiosInstance.post(`/edit-design/${designData._id}/custom-prompt`, {
           prompt: enhancedPrompt,
           originalImageUrl: originalImage
         });
         
         if (response.data.success) {
           const newImageUrl = response.data.data.newImageUrl;
+          const updatedDesign = response.data.data.editedDesign;
+          
+          // Update both the image and the design data
           setOriginalImage(newImageUrl);
+          setDesignData(updatedDesign);
+          
+          // Persist the updated design data
+          localStorage.setItem('editDesignData', JSON.stringify(updatedDesign));
+          
+          // Update URL with design ID for better persistence
+          if (updatedDesign._id) {
+            updateURLWithDesignId(updatedDesign._id);
+          }
+          
           toast.success('Design edited from your prompt!');
           setCustomPrompt("");
+          return; // Exit early
         } else {
           throw new Error(response.data.message || "Failed to edit design");
         }
-      } else {
-        // Fallback to regular image generation
-        const response = await imageAxiosInstance.post('/ai/generate-image', {
-          prompt: customPrompt.trim(),
+      }
+      
+      // For new designs or when no existing design, use the AI generation endpoint
+      const response = await imageAxiosInstance.post('/ai/generate-image', { 
+        prompt: enhancedPrompt,
+        style: styleChanges.style,
+        size: '1024x1024'
+      });
+      
+      if (response.data.status === 'success') {
+        const newImageUrl = response.data.data.imageUrl;
+        const newDesignData = {
+          imageUrl: newImageUrl,
+          prompt: enhancedPrompt,
           style: styleChanges.style,
-          size: '1024x1024'
-        });
+          timestamp: new Date().toISOString(),
+          _id: response.data.data.designId || `temp-${Date.now()}`
+        };
         
-        if (response.data.status === 'success') {
-          const newImageUrl = response.data.data.imageUrl;
-          setOriginalImage(newImageUrl);
-          toast.success('Design generated from your prompt!');
-          setCustomPrompt("");
-        } else {
-          throw new Error(response.data.message || "Failed to generate design");
+        // Update both the image and the design data
+        setOriginalImage(newImageUrl);
+        setDesignData(newDesignData);
+        
+        // Persist the updated design data
+        localStorage.setItem('editDesignData', JSON.stringify(newDesignData));
+        
+        // Update URL with design ID for better persistence
+        if (newDesignData._id) {
+          updateURLWithDesignId(newDesignData._id);
         }
+        
+        toast.success('Design generated from your prompt!');
+        setCustomPrompt("");
+      } else {
+        throw new Error(response.data.message || "Failed to generate design");
       }
       
       // Dismiss loading toast on success
       toast.dismiss('custom-prompt-generation');
     } catch (err) {
       console.error('Error generating design from prompt:', err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
       
       if (err.response?.status === 401) {
         setCustomPromptError("Authentication required. Please log in again.");
         toast.error("Please log in again to continue.");
         navigate('/login');
+      } else if (err.response?.status === 400) {
+        setCustomPromptError("Invalid prompt. Please try a different description.");
+        toast.error("Invalid prompt. Please try a different description.");
+      } else if (err.response?.status === 429) {
+        setCustomPromptError("Rate limit exceeded. Please wait before trying again.");
+        toast.error("Too many requests. Please wait before trying again.");
       } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
         setCustomPromptError("Image generation timed out. Please try again.");
         toast.error("Image generation timed out. Please try again.");
+      } else if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
+        setCustomPromptError("Network error. Please check your connection and try again.");
+        toast.error("Network error. Please check your connection and try again.");
       } else {
         setCustomPromptError("Failed to generate design from prompt.");
         toast.error("Failed to generate design from prompt.");

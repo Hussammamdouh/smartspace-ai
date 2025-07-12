@@ -205,6 +205,12 @@ function Dashboard() {
                   {stats.totalDesigns}
                 </p>
                 <p className="text-xs text-[#A58077] mt-1">Generated designs</p>
+                <button
+                  onClick={() => navigate('/designs')}
+                  className="text-xs text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200 mt-2 underline"
+                >
+                  View All Designs
+                </button>
               </div>
               <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <FaPalette className="text-white text-2xl" />

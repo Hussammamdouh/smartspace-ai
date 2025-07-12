@@ -72,7 +72,7 @@ const GeneratedDesignSchema = new mongoose.Schema({
   editHistory: [{
     action: {
       type: String,
-      enum: ['add', 'remove', 'modify'],
+      enum: ['add', 'remove', 'modify', 'custom_prompt'],
     },
     furnitureItems: [{
       type: mongoose.Schema.Types.ObjectId,

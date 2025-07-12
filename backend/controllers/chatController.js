@@ -193,6 +193,22 @@ exports.sendMessage = async (req, res, next) => {
         imageUrl,
         designId,
         timestamp: new Date(),
+        designData: {
+          designId,
+          totalCost,
+          furnitureCount,
+          usedItems: usedItems.map(item => ({
+            id: item._id,
+            name: item.name,
+            category: item.category,
+            price: item.price
+          })),
+          metadata: {
+            roomType: metadata?.roomType,
+            style: metadata?.style,
+            colorScheme: metadata?.colorScheme
+          }
+        },
         metadata: {
           totalCost,
           furnitureCount,
@@ -211,6 +227,7 @@ exports.sendMessage = async (req, res, next) => {
     await conversation.save();
 
     logger.info(`Message sent in conversation ${conversationId}, response type: ${responseType}`);
+    logger.info(`Design data being sent: ${JSON.stringify(designData)}`);
 
     res.status(200).json({
       status: 'success',

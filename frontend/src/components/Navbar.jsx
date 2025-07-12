@@ -65,7 +65,8 @@ const Navbar = () => {
   const navLinks = [
     { to: "/", label: "Home", icon: FaHome },
     { to: "/products", label: "Products", icon: FaStore },
-    { to: "/Chatbot", label: "AI Design", icon: FaPalette }
+    { to: "/Chatbot", label: "AI Design", icon: FaPalette },
+    { to: "/designs", label: "My Designs", icon: FaPalette }
   ];
 
   return (
@@ -194,6 +195,15 @@ const Navbar = () => {
                         >
                           <FaStore className="text-sm group-hover:scale-110 transition-transform duration-200" />
                           <span>My Orders</span>
+                        </Link>
+                        
+                        <Link
+                          to="/designs"
+                          className="flex items-center space-x-3 px-4 py-3 text-theme-text hover:bg-[#A58077]/20 hover:text-white transition-all duration-200 rounded-lg mx-2 group"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <FaPalette className="text-sm group-hover:scale-110 transition-transform duration-200" />
+                          <span>My Designs</span>
                         </Link>
                         
                         {user.role === 'admin' && (

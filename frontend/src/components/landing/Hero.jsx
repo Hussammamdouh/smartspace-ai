@@ -83,7 +83,7 @@ const Hero = () => {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
-                to="/generate-image"
+                to="/chatbot"
                 className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white font-semibold rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 hover:-translate-y-1"
               >
                 <FaPalette className="mr-3 text-lg" />

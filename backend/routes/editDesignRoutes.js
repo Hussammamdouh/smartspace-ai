@@ -5,6 +5,7 @@ const {
   getDesignForEdit,
   getAvailableFurniture,
   editDesign,
+  editDesignWithCustomPrompt,
   getDesignEditHistory,
   saveEditPreferences,
   exportDesign
@@ -92,6 +93,34 @@ const {
 
 /**
  * @swagger
+ * /api/edit-design/{designId}/custom-prompt:
+ *   post:
+ *     summary: Edit design using custom prompt (preserves background)
+ *     tags: [Edit Design]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: designId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prompt
+ *             properties:
+ *               prompt: { type: string, description: Custom prompt for editing }
+ *               originalImageUrl: { type: string }
+ *     responses:
+ *       200: { description: Design edited successfully with custom prompt }
+ */
+
+/**
+ * @swagger
  * /api/edit-design/{designId}/history:
  *   get:
  *     summary: Get design edit history
@@ -159,6 +188,7 @@ const {
 router.get('/:designId', protect, getDesignForEdit);
 router.get('/furniture', protect, getAvailableFurniture);
 router.post('/:designId/edit', protect, editDesign);
+router.post('/:designId/custom-prompt', protect, editDesignWithCustomPrompt);
 router.get('/:designId/history', protect, getDesignEditHistory);
 router.post('/:designId/preferences', protect, saveEditPreferences);
 router.get('/:designId/export', protect, exportDesign);

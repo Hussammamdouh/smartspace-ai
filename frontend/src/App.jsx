@@ -52,6 +52,7 @@ const UserDashboard = lazy(() => import("./pages/Dashboard"));
 const GenerateImage = lazy(() => import("./pages/GenerateImage"));
 const GeminiChat = lazy(() => import("./pages/GeminiChat"));
 const EditDesignPage = lazy(() => import("./pages/EditDesignPage"));
+const Designs = lazy(() => import("./pages/Designs"));
 
 // AppContent component that uses the theme
 const AppContent = () => {
@@ -161,6 +162,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <EditDesignPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/designs"
+            element={
+              <ProtectedRoute>
+                <Designs />
               </ProtectedRoute>
             }
           />

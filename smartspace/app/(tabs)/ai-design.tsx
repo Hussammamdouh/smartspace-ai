@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  Image,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../../components/ui/Button';
@@ -22,8 +23,10 @@ export default function AIDesignScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [designId, setDesignId] = useState<string | null>(null);
 
   const containerStyle = {
     flex: 1,
@@ -44,6 +47,15 @@ export default function AIDesignScreen() {
     color: colors.text,
   };
 
+  const designStyles = [
+    { name: 'Modern', description: 'Clean lines and contemporary design' },
+    { name: 'Traditional', description: 'Classic and timeless elegance' },
+    { name: 'Minimalist', description: 'Simple and uncluttered spaces' },
+    { name: 'Bohemian', description: 'Eclectic and artistic flair' },
+    { name: 'Scandinavian', description: 'Light, airy, and functional' },
+    { name: 'Industrial', description: 'Raw materials and urban feel' },
+  ];
+
   const handleGenerateImage = async () => {
     if (!prompt.trim()) {
       Alert.alert('Error', 'Please enter a description of your room');
@@ -57,13 +69,19 @@ export default function AIDesignScreen() {
 
     setIsGenerating(true);
     try {
-      // Use the new OpenAI unified endpoint
-      const response = await api.generateDesign(prompt.trim());
+      // Build the full prompt with style if selected
+      let fullPrompt = prompt.trim();
+      if (selectedStyle) {
+        fullPrompt = `${fullPrompt} in ${selectedStyle} style`;
+      }
+
+      // Use the generateDesign endpoint
+      const response = await api.generateDesign(fullPrompt);
 
       if (response.success && response.data) {
-        // Backend returns design data with imageUrl
         const designData = response.data as any;
-        setGeneratedImage(designData.imageUrl || designData.content || 'https://example.com/generated-image.jpg');
+        setGeneratedImage(designData.imageUrl || designData.content);
+        setDesignId(designData._id || designData.id);
         Alert.alert('Success', 'Your design has been generated!');
       } else {
         Alert.alert('Error', response.error || 'Failed to generate image');
@@ -77,14 +95,22 @@ export default function AIDesignScreen() {
   };
 
   const handleSaveDesign = async () => {
-    if (!generatedImage) return;
+    if (!generatedImage || !designId) return;
 
     try {
-      // For now, just show success message since we don't have a save design endpoint
+      // Navigate to edit design page to save preferences
       Alert.alert('Success', 'Design saved to your collection!');
     } catch (error: any) {
       console.error('Save design error:', error);
       Alert.alert('Error', 'Failed to save design');
+    }
+  };
+
+  const handleEditDesign = () => {
+    if (designId) {
+      // Navigate to edit design page
+      // router.push(`/edit-design/${designId}`);
+      Alert.alert('Edit Design', 'Edit design functionality coming soon!');
     }
   };
 
@@ -113,17 +139,25 @@ export default function AIDesignScreen() {
         />
         
         <View style={styles.styleOptions}>
-          <Text style={[styles.styleLabel, textStyle]}>Style:</Text>
+          <Text style={[styles.styleLabel, textStyle]}>Style (Optional):</Text>
           <View style={styles.styleButtons}>
-            {['Modern', 'Traditional', 'Minimalist', 'Bohemian'].map((style) => (
+            {designStyles.map((style) => (
               <TouchableOpacity
-                key={style}
+                key={style.name}
                 style={[
                   styles.styleButton,
-                  { backgroundColor: colors.surface, borderColor: colors.border }
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  selectedStyle === style.name && { backgroundColor: colors.primary }
                 ]}
+                onPress={() => setSelectedStyle(selectedStyle === style.name ? '' : style.name)}
               >
-                <Text style={[styles.styleButtonText, textStyle]}>{style}</Text>
+                <Text style={[
+                  styles.styleButtonText, 
+                  textStyle,
+                  selectedStyle === style.name && { color: '#FFFFFF' }
+                ]}>
+                  {style.name}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -144,6 +178,9 @@ export default function AIDesignScreen() {
           <Text style={[styles.loadingText, subtitleStyle]}>
             Creating your dream space...
           </Text>
+          <Text style={[styles.loadingSubtext, subtitleStyle]}>
+            This may take a few moments
+          </Text>
         </View>
       )}
 
@@ -152,11 +189,11 @@ export default function AIDesignScreen() {
           <Text style={[styles.sectionTitle, textStyle]}>Your Generated Design</Text>
           
           <View style={[styles.imageContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.imagePlaceholder, subtitleStyle]}>
-              Generated Image Here
-            </Text>
-            {/* In a real app, you would use Image component here */}
-            {/* <Image source={{ uri: generatedImage }} style={styles.generatedImage} /> */}
+            <Image 
+              source={{ uri: generatedImage }} 
+              style={styles.generatedImage}
+              resizeMode="cover"
+            />
           </View>
 
           <View style={styles.actionButtons}>
@@ -167,10 +204,18 @@ export default function AIDesignScreen() {
               style={styles.actionButton}
             />
             <Button
+              title="Edit Design"
+              onPress={handleEditDesign}
+              variant="outline"
+              style={styles.actionButton}
+            />
+            <Button
               title="Generate Another"
               onPress={() => {
                 setGeneratedImage(null);
+                setDesignId(null);
                 setPrompt('');
+                setSelectedStyle('');
               }}
               style={styles.actionButton}
             />
@@ -187,8 +232,10 @@ export default function AIDesignScreen() {
             'Mention the room type (living room, bedroom, kitchen)',
             'Include lighting preferences (natural, warm, cool)',
             'Describe the overall mood you want to achieve',
+            'Specify dimensions or size requirements',
+            'Mention any specific features (fireplace, balcony, etc.)',
           ].map((tip, index) => (
-            <View key={`tip-${index}-${tip.substring(0, 10)}`} style={styles.tipItem}>
+            <View key={`tip-${index}`} style={styles.tipItem}>
               <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
               <Text style={[styles.tipText, subtitleStyle]}>{tip}</Text>
             </View>
@@ -263,6 +310,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
+  loadingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+  },
   resultSection: {
     padding: 24,
   },
@@ -271,24 +322,21 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 16,
     borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
     marginBottom: 20,
-  },
-  imagePlaceholder: {
-    fontSize: 16,
   },
   generatedImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 16,
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   actionButton: {
     flex: 1,
+    minWidth: 100,
   },
   tipsSection: {
     padding: 24,

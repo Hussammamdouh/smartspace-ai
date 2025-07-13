@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useEcommerce, type Order } from '../../contexts/EcommerceContext';
 import { Button } from '../../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
@@ -19,20 +20,7 @@ import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
-interface Order {
-  _id: string;
-  orderNumber: string;
-  status: string;
-  total: number;
-  createdAt: string;
-  items: Array<{
-    product: {
-      name: string;
-      price: number;
-    };
-    quantity: number;
-  }>;
-}
+
 
 interface Design {
   _id: string;
@@ -47,7 +35,7 @@ interface Design {
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { orders, loadOrders } = useEcommerce();
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -85,16 +73,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const loadOrders = async () => {
-    try {
-      const response = await api.getOrders();
-      if (response.success && response.data) {
-        setOrders(response.data as Order[]);
-      }
-    } catch (error) {
-      console.error('Error loading orders:', error);
-    }
-  };
+
 
   const loadDesigns = async () => {
     try {
@@ -239,7 +218,7 @@ export default function ProfileScreen() {
       <View style={styles.statsSection}>
         <View style={[styles.statsGrid, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{orders.length}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{Array.isArray(orders) ? orders.length : 0}</Text>
             <Text style={[styles.statLabel, subtitleStyle]}>Orders</Text>
           </View>
           <View style={styles.statItem}>
@@ -324,7 +303,7 @@ export default function ProfileScreen() {
             </Text>
           </View>
         ) : (
-          (orders || []).slice(0, 3).map((order) => (
+          (Array.isArray(orders) ? orders : []).slice(0, 3).map((order) => (
             <TouchableOpacity
               key={order._id}
               style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -365,7 +344,7 @@ export default function ProfileScreen() {
             </Text>
           </View>
         ) : (
-          designs.slice(0, 3).map((design) => (
+          (Array.isArray(designs) ? designs : []).slice(0, 3).map((design) => (
             <TouchableOpacity
               key={design._id}
               style={[styles.designCard, { backgroundColor: colors.surface, borderColor: colors.border }]}

@@ -1,190 +1,183 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useTheme } from '../contexts/ThemeContext';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
-export const ApiTest: React.FC = () => {
-  const { colors } = useTheme();
-  const [testing, setTesting] = useState(false);
+export default function ApiTest() {
+  const { user } = useAuth();
   const [results, setResults] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const addResult = (result: string) => {
     setResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
-  };
-
-  const testApiConnection = async () => {
-    setTesting(true);
-    setResults([]);
-    addResult('Starting API connection tests...');
-    
-    try {
-      // Test 1: Health check
-      addResult('Testing health check endpoint...');
-      const healthResponse = await api.healthCheck();
-      if (healthResponse.success) {
-        addResult(`✅ Health check passed: ${healthResponse.data?.status || 'OK'}`);
-      } else {
-        addResult(`❌ Health check failed: ${healthResponse.error}`);
-      }
-      
-      // Test 2: Products endpoint
-      addResult('Testing products endpoint...');
-      const productsResponse = await api.getProducts({ limit: 5 });
-      if (productsResponse.success) {
-        const products = productsResponse.data as any;
-        const count = products.length || (products.products ? products.products.length : 0);
-        addResult(`✅ Products endpoint working! Found ${count} products`);
-      } else {
-        addResult(`❌ Products endpoint failed: ${productsResponse.error}`);
-      }
-
-      // Test 3: Categories endpoint
-      addResult('Testing categories endpoint...');
-      const categoriesResponse = await api.getCategories();
-      if (categoriesResponse.success) {
-        const categories = categoriesResponse.data as any;
-        const count = categories.length || 0;
-        addResult(`✅ Categories endpoint working! Found ${count} categories`);
-      } else {
-        addResult(`❌ Categories endpoint failed: ${categoriesResponse.error}`);
-      }
-
-      // Test 4: Auth endpoints (without authentication)
-      addResult('Testing auth endpoints...');
-      const authTestResponse = await api.login('test@example.com', 'password');
-      if (authTestResponse.success) {
-        addResult('✅ Auth endpoints working (unexpected success)');
-      } else {
-        addResult(`✅ Auth endpoints working (expected error: ${authTestResponse.error})`);
-      }
-
-      addResult('🎉 API connection tests completed!');
-      
-      // Show summary alert
-      const successCount = results.filter(r => r.includes('✅')).length;
-      const totalTests = 4;
-      Alert.alert(
-        'API Test Results', 
-        `Tests completed!\n\nSuccess: ${successCount}/${totalTests}\n\nCheck the results below for details.`
-      );
-      
-    } catch (error) {
-      console.error('🧪 Test failed:', error);
-      addResult(`❌ Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      Alert.alert('Error', 'API test failed. Check console for details.');
-    } finally {
-      setTesting(false);
-    }
   };
 
   const clearResults = () => {
     setResults([]);
   };
 
+  const testHealthCheck = async () => {
+    setLoading(true);
+    try {
+      addResult('Testing health check...');
+      const response = await api.healthCheck();
+      addResult(`Health check: ${response.success ? 'SUCCESS' : 'FAILED'} - ${response.error || response.message}`);
+    } catch (error) {
+      addResult(`Health check ERROR: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testGetCart = async () => {
+    setLoading(true);
+    try {
+      addResult('Testing get cart...');
+      const response = await api.getCart();
+      addResult(`Get cart: ${response.success ? 'SUCCESS' : 'FAILED'} - ${response.error || 'OK'}`);
+      if (response.success && response.data) {
+        addResult(`Cart items: ${response.data.items?.length || 0}`);
+      }
+    } catch (error) {
+      addResult(`Get cart ERROR: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testAddToCart = async () => {
+    setLoading(true);
+    try {
+      addResult('Testing add to cart...');
+      const response = await api.addToCart('507f1f77bcf86cd799439011', 1);
+      addResult(`Add to cart: ${response.success ? 'SUCCESS' : 'FAILED'} - ${response.error || 'OK'}`);
+    } catch (error) {
+      addResult(`Add to cart ERROR: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testGetProducts = async () => {
+    setLoading(true);
+    try {
+      addResult('Testing get products...');
+      const response = await api.getProducts({ limit: 5 });
+      addResult(`Get products: ${response.success ? 'SUCCESS' : 'FAILED'} - ${response.error || 'OK'}`);
+      if (response.success && response.data) {
+        const products = Array.isArray(response.data) ? response.data : response.data.data || response.data.products || [];
+        addResult(`Products count: ${products.length}`);
+      }
+    } catch (error) {
+      addResult(`Get products ERROR: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.text }]}>API Connection Test</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Test the connection to the backend server and verify all endpoints
-      </Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>API Test</Text>
+      <Text style={styles.subtitle}>User: {user ? user.email : 'Not logged in'}</Text>
       
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.testButton, { backgroundColor: colors.primary }]}
-          onPress={testApiConnection}
-          disabled={testing}
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={testHealthCheck}
+          disabled={loading}
         >
-          <Text style={styles.buttonText}>
-            {testing ? 'Testing...' : 'Run API Tests'}
-          </Text>
+          <Text style={styles.buttonText}>Health Check</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity
-          style={[styles.clearButton, { borderColor: colors.border }]}
-          onPress={clearResults}
-          disabled={testing}
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={testGetProducts}
+          disabled={loading}
         >
-          <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>
-            Clear Results
-          </Text>
+          <Text style={styles.buttonText}>Get Products</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={testGetCart}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>Get Cart</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={testAddToCart}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>Add to Cart</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.button, styles.clearButton]} 
+          onPress={clearResults}
+        >
+          <Text style={styles.buttonText}>Clear Results</Text>
         </TouchableOpacity>
       </View>
       
-      {results.length > 0 && (
-        <View style={[styles.resultsContainer, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.resultsTitle, { color: colors.text }]}>Test Results:</Text>
-          <ScrollView style={styles.resultsScroll} showsVerticalScrollIndicator={false}>
-            {results.map((result, index) => (
-              <Text key={index} style={[styles.resultText, { color: colors.text }]}>
-                {result}
-              </Text>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+      <ScrollView style={styles.resultsContainer}>
+        {results.map((result, index) => (
+          <Text key={index} style={styles.resultText}>{result}</Text>
+        ))}
+      </ScrollView>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 16,
+    backgroundColor: '#f0f0f0',
+    margin: 16,
+    borderRadius: 8,
+    maxHeight: 400,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
+    color: '#666',
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
   },
-  testButton: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 8,
+    borderRadius: 6,
+    minWidth: 80,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  buttonDisabled: {
+    backgroundColor: '#ccc',
   },
   clearButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
+    backgroundColor: '#FF3B30',
   },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+  buttonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
   },
   resultsContainer: {
-    padding: 16,
-    borderRadius: 8,
     maxHeight: 200,
-  },
-  resultsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  resultsScroll: {
-    flex: 1,
   },
   resultText: {
     fontSize: 12,
-    marginBottom: 4,
+    marginBottom: 2,
     fontFamily: 'monospace',
   },
 }); 

@@ -9,7 +9,16 @@ const getApiBaseUrl = () => {
       // For Android emulator:
       // return 'http://10.0.2.2:5000/api';
       // For physical device, use your computer's LAN IP:
-      return 'http://10.132.240.56:5000/api'; // <-- replace with your actual IP
+      // Try multiple IPs to find the correct one
+      const possibleIPs = [
+        'http://192.168.1.8:5000/api',
+        'http://10.0.2.2:5000/api', // Android emulator
+        'http://localhost:5000/api',
+        'http://127.0.0.1:5000/api',
+      ];
+      
+      // For now, use the first one, but we can implement IP detection later
+      return possibleIPs[0];
     } else if (Platform.OS === 'ios') {
       return 'http://localhost:5000/api'; // iOS simulator
     } else {
@@ -31,7 +40,6 @@ interface ApiResponse<T> {
 }
 
 class ApiService {
-  private abortController: AbortController | null = null;
 
   private async getAuthToken(): Promise<string | null> {
     try {
@@ -46,15 +54,6 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    // Cancel previous request if it exists
-    if (this.abortController) {
-      this.abortController.abort();
-    }
-
-    // Always create a new AbortController for each request
-    const abortController = new AbortController();
-    this.abortController = abortController;
-
     try {
       const token = await this.getAuthToken();
       const headers: Record<string, string> = {
@@ -67,17 +66,21 @@ class ApiService {
       }
 
       const url = `${API_BASE_URL}${endpoint}`;
+      console.log('Making request to:', url);
 
       const response = await fetch(url, {
         ...options,
         headers,
-        signal: abortController.signal,
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
       
       // Handle non-JSON responses
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
+        console.log('Non-JSON response:', text);
         return {
           success: false,
           error: `Invalid response format: ${response.status} - ${text}`,
@@ -85,6 +88,7 @@ class ApiService {
       }
       
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!response.ok) {
         return {
@@ -98,6 +102,8 @@ class ApiService {
         data: data,
       };
     } catch (error) {
+      console.error('Request error:', error);
+      
       // Enhanced error handling
       if (error instanceof TypeError && error.message.includes('fetch')) {
         return {
@@ -107,13 +113,6 @@ class ApiService {
       }
       
       if (error instanceof Error) {
-        // Check if request was aborted
-        if (error.name === 'AbortError') {
-          return {
-            success: false,
-            error: 'Request was cancelled',
-          };
-        }
         return {
           success: false,
           error: error.message || 'Network error occurred',
@@ -124,9 +123,6 @@ class ApiService {
         success: false,
         error: 'An unexpected error occurred',
       };
-    } finally {
-      // Clear the abort controller after request completes
-      this.abortController = null;
     }
   }
 
@@ -281,6 +277,10 @@ class ApiService {
 
   async getProfile() {
     return this.authenticatedRequest('/users/profile');
+  }
+
+  async getHomeStats() {
+    return this.makeRequest('/user/home-stats');
   }
 
   async updateProfile(userData: {

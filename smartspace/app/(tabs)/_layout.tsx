@@ -3,14 +3,12 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useCart } from '../../contexts/CartContext';
+import { useEcommerce } from '../../contexts/EcommerceContext';
 
 export default function TabLayout() {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { items } = useCart();
-
-  const cartItemCount = items?.reduce((total, item) => total + item.quantity, 0) || 0;
+  const { cartItemCount } = useEcommerce();
 
 
 

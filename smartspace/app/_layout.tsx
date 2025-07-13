@@ -2,40 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from '../contexts/ThemeContext';
-import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { CartProvider } from '../contexts/CartContext';
-import { View, ActivityIndicator, Text } from 'react-native';
-import { useTheme } from '../contexts/ThemeContext';
+import { AuthProvider } from '../contexts/AuthContext';
+import { EcommerceProvider } from '../contexts/EcommerceContext';
 import SplashScreen from '../components/SplashScreen';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Onboarding from '../components/Onboarding';
 import { NotificationProvider } from '../contexts/NotificationContext';
+import AppInitializer from '../components/AppInitializer';
 
-function LoadingScreen() {
-  const { colors } = useTheme();
-  
-  return (
-    <View style={{ 
-      flex: 1, 
-      justifyContent: 'center', 
-      alignItems: 'center',
-      backgroundColor: colors.background 
-    }}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={{ 
-        marginTop: 16, 
-        fontSize: 16, 
-        color: colors.textSecondary 
-      }}>
-        Loading SmartSpace.AI...
-      </Text>
-    </View>
-  );
-}
+
 
 function AppContent() {
-  const { user, isInitialized } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -62,10 +40,6 @@ function AppContent() {
 
   if (showSplash) {
     return <SplashScreen onFinish={handleSplashFinish} />;
-  }
-
-  if (!isInitialized) {
-    return <LoadingScreen />;
   }
 
   return (
@@ -98,13 +72,15 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CartProvider>
+        <EcommerceProvider>
           <NotificationProvider>
             <ErrorBoundary>
-              <AppContent />
+              <AppInitializer>
+                <AppContent />
+              </AppInitializer>
             </ErrorBoundary>
           </NotificationProvider>
-        </CartProvider>
+        </EcommerceProvider>
       </AuthProvider>
     </ThemeProvider>
   );

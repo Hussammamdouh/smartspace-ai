@@ -37,19 +37,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem('token');
-        if (storedToken) {
-          setToken(storedToken);
-          // Skip profile fetch on initial load to prevent hanging
-          // Profile will be fetched when needed
-          setIsInitialized(true);
-        } else {
-          setIsInitialized(true);
+        // Clear ALL stored data on app start for clean cache
+        console.log('🧹 Clearing ALL stored data on app start...');
+        
+        // Get all keys and remove them
+        const allKeys = await AsyncStorage.getAllKeys();
+        console.log('📋 Found keys to clear:', allKeys);
+        
+        if (allKeys.length > 0) {
+          await AsyncStorage.multiRemove(allKeys);
+          console.log('✅ All stored data cleared successfully');
         }
-      } catch (error) {
+        
+        // Set user and token to null to ensure no automatic login
         setUser(null);
         setToken(null);
-        await AsyncStorage.removeItem('token');
+        setIsInitialized(true);
+        
+        console.log('✅ App started with clean cache. User will need to login manually.');
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setUser(null);
+        setToken(null);
         setIsInitialized(true);
       }
     };

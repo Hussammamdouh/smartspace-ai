@@ -29,8 +29,23 @@ const GeneratedDesignSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'success', 'failed'],
-    default: 'success',
+    enum: ['pending', 'processing', 'success', 'failed', 'cancelled'],
+    default: 'pending',
+  },
+  generationProgress: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0,
+  },
+  errorMessage: String,
+  retryCount: {
+    type: Number,
+    default: 0,
+  },
+  apiCost: {
+    type: Number,
+    default: 0,
   },
   // Cost estimation data
   totalCost: {
@@ -62,7 +77,27 @@ const GeneratedDesignSchema = new mongoose.Schema({
     imageSize: {
       type: String,
       default: '1024x1024',
-    }
+    },
+    promptHash: String, // For caching duplicate prompts
+    generationDuration: Number, // in milliseconds
+    apiProvider: {
+      type: String,
+      default: 'openai',
+    },
+    modelVersion: String,
+  },
+  // Version control for edits
+  versions: [{
+    versionNumber: Number,
+    imageUrl: String,
+    public_id: String,
+    editDescription: String,
+    createdAt: Date,
+    metadata: mongoose.Schema.Types.Mixed
+  }],
+  currentVersion: {
+    type: Number,
+    default: 1,
   },
   // Edit history support
   originalDesign: {
@@ -72,7 +107,7 @@ const GeneratedDesignSchema = new mongoose.Schema({
   editHistory: [{
     action: {
       type: String,
-      enum: ['add', 'remove', 'modify', 'custom_prompt'],
+      enum: ['add', 'remove', 'modify', 'custom_prompt', 'custom-prompt'],
     },
     furnitureItems: [{
       type: mongoose.Schema.Types.ObjectId,

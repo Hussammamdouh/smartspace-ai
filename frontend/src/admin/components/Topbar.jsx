@@ -34,16 +34,16 @@ const Topbar = () => {
   ];
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 bg-[#181818] border-b border-[#333]">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-bold text-[#E5CBBE]">Admin Dashboard</h1>
+    <header className="h-16 flex items-center justify-between px-4 md:px-6 bg-[#181818] border-b border-[#333] sticky top-0 z-30">
+      <div className="flex items-center gap-2 md:gap-4">
+        <h1 className="text-lg md:text-xl font-bold text-[#E5CBBE]">Admin Dashboard</h1>
         <div className="hidden md:flex items-center gap-2 text-sm text-[#A58077]">
           <span>Welcome back,</span>
           <span className="font-semibold">{user?.name || 'Admin'}</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {/* Notifications */}
         <div className="relative">
           <button
@@ -60,7 +60,7 @@ const Topbar = () => {
 
           {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-[#2c2c2c] border border-[#3c3c3c] rounded-lg shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-72 md:w-80 bg-[#2c2c2c] border border-[#3c3c3c] rounded-lg shadow-lg z-50 max-h-[80vh] overflow-hidden flex flex-col">
               <div className="p-4 border-b border-[#3c3c3c]">
                 <h3 className="font-semibold text-[#E5CBBE]">Notifications</h3>
               </div>
@@ -75,7 +75,7 @@ const Topbar = () => {
                         <p className="text-[#E5CBBE] text-sm">{notification.message}</p>
                         <p className="text-[#A58077] text-xs mt-1">{notification.time}</p>
                       </div>
-                      <div className={`w-2 h-2 rounded-full ml-2 ${
+                      <div className={`w-2 h-2 rounded-full ml-2 flex-shrink-0 mt-1 ${
                         notification.type === 'order' ? 'bg-green-400' :
                         notification.type === 'alert' ? 'bg-red-400' :
                         'bg-blue-400'

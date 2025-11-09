@@ -37,24 +37,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        // Clear ALL stored data on app start for clean cache
-        console.log('🧹 Clearing ALL stored data on app start...');
+        // Try to load existing token and user data
+        const storedToken = await AsyncStorage.getItem('token');
+        console.log('🔍 Checking for stored token:', storedToken ? 'Found' : 'Not found');
         
-        // Get all keys and remove them
-        const allKeys = await AsyncStorage.getAllKeys();
-        console.log('📋 Found keys to clear:', allKeys);
-        
-        if (allKeys.length > 0) {
-          await AsyncStorage.multiRemove(allKeys);
-          console.log('✅ All stored data cleared successfully');
+        if (storedToken) {
+          setToken(storedToken);
+          // Try to get user profile with the stored token
+          try {
+            const res = await api.getProfile();
+            if (res.success && res.data) {
+              setUser(res.data as User);
+              console.log('✅ User loaded from stored token');
+            } else {
+              // Token is invalid, clear it
+              console.log('❌ Invalid token, clearing...');
+              await AsyncStorage.removeItem('token');
+              setToken(null);
+              setUser(null);
+            }
+          } catch (error) {
+            console.log('❌ Error loading user profile, clearing token...');
+            await AsyncStorage.removeItem('token');
+            setToken(null);
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+          setToken(null);
         }
         
-        // Set user and token to null to ensure no automatic login
-        setUser(null);
-        setToken(null);
         setIsInitialized(true);
-        
-        console.log('✅ App started with clean cache. User will need to login manually.');
+        console.log('✅ Auth initialization complete');
       } catch (error) {
         console.error('Auth initialization error:', error);
         setUser(null);

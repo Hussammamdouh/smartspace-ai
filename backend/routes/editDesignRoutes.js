@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/auth');
+const { protect, editDesignLimiter } = require('../middlewares/auth');
 const {
   getDesignForEdit,
   getAvailableFurniture,
   editDesign,
   editDesignWithCustomPrompt,
   getDesignEditHistory,
+  getDesignVersion,
+  restoreDesignVersion,
   saveEditPreferences,
   exportDesign
 } = require('../controllers/editDesignController');
@@ -187,9 +189,11 @@ const {
 // Edit design routes
 router.get('/:designId', protect, getDesignForEdit);
 router.get('/furniture', protect, getAvailableFurniture);
-router.post('/:designId/edit', protect, editDesign);
-router.post('/:designId/custom-prompt', protect, editDesignWithCustomPrompt);
+router.post('/:designId/edit', protect, editDesignLimiter, editDesign);
+router.post('/:designId/custom-prompt', protect, editDesignLimiter, editDesignWithCustomPrompt);
 router.get('/:designId/history', protect, getDesignEditHistory);
+router.get('/:designId/version/:versionNumber', protect, getDesignVersion);
+router.post('/:designId/restore/:versionNumber', protect, restoreDesignVersion);
 router.post('/:designId/preferences', protect, saveEditPreferences);
 router.get('/:designId/export', protect, exportDesign);
 

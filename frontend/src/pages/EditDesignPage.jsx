@@ -159,14 +159,26 @@ const EditDesignPage = () => {
         const designId = urlParams.get('id');
         if (designId) {
           console.log('Found design ID in URL:', designId);
-          fetchDesignFromBackend(designId);
+          // Check if it's a temporary ID (starts with 'temp-')
+          if (designId.startsWith('temp-')) {
+            console.log('Temporary design ID detected, skipping backend fetch');
+            setOriginalImage("/images/empty-room.jpg");
+          } else {
+            fetchDesignFromBackend(designId);
+          }
         } else {
           // If no design ID, try to get from path params
           const pathParts = window.location.pathname.split('/');
           const lastPart = pathParts[pathParts.length - 1];
           if (lastPart && lastPart !== 'edit-design') {
             console.log('Found design ID in path:', lastPart);
-            fetchDesignFromBackend(lastPart);
+            // Check if it's a temporary ID
+            if (lastPart.startsWith('temp-')) {
+              console.log('Temporary design ID detected, skipping backend fetch');
+              setOriginalImage("/images/empty-room.jpg");
+            } else {
+              fetchDesignFromBackend(lastPart);
+            }
           } else {
             setOriginalImage("/images/empty-room.jpg");
           }
@@ -378,31 +390,25 @@ const EditDesignPage = () => {
       setError("");
 
       // Show loading toast for image generation
-      toast.loading('Generating your design... This may take 2-3 minutes.', {
-        duration: 180000, // 3 minutes
+      toast.loading('Applying furniture to white background... This may take 30-60 seconds.', {
+        duration: 60000, // 1 minute
         id: 'design-generation'
       });
 
-      // Build comprehensive prompt from all changes
+      // Build comprehensive prompt for white background approach
       const furnitureList = selectedFurniture.map(item => item.name).join(', ');
-      const removedList = removedFurniture.map(item => item.name).join(', ');
       
-      let prompt = `Edit the existing room design with the following furniture changes:\n\n`;
+      let prompt = `Apply the following furniture to a white background:\n\n`;
       
       if (selectedFurniture.length > 0) {
-        prompt += `ADD these furniture items: ${furnitureList}\n`;
+        prompt += `FURNITURE ITEMS TO APPLY: ${furnitureList}\n`;
       }
       
-      if (removedFurniture.length > 0) {
-        prompt += `REMOVE these furniture items: ${removedList}\n`;
-      }
-      
-      prompt += `\nIMPORTANT PRESERVATION REQUIREMENTS:\n`;
-      prompt += `- Keep the EXACT same background, walls, flooring, and architectural elements\n`;
-      prompt += `- Maintain the SAME lighting conditions and camera angle\n`;
-      prompt += `- Preserve the overall room structure and layout\n`;
-      prompt += `- Only modify the furniture as specified above\n`;
-      prompt += `- The new furniture should blend seamlessly with the existing design\n`;
+      prompt += `\nWHITE BACKGROUND REQUIREMENTS:\n`;
+      prompt += `- Use a clean white background\n`;
+      prompt += `- Maintain consistent furniture positioning\n`;
+      prompt += `- Fixed layout that never changes\n`;
+      prompt += `- Professional furniture placement\n`;
       
       prompt += `\nStyle context (for furniture selection):\n`;
       prompt += `- Design style: ${styleChanges.style}\n`;
@@ -416,18 +422,19 @@ const EditDesignPage = () => {
       prompt += `- Windows: ${roomChanges.windows}\n`;
       
       prompt += `\nQuality requirements:\n`;
-      prompt += `- Photorealistic quality with natural lighting\n`;
-      prompt += `- Professional interior design photography style\n`;
-      prompt += `- High-end, magazine-quality appearance\n`;
-      prompt += `- Proper furniture placement within existing room layout`;
+      prompt += `- Clean white background\n`;
+      prompt += `- Professional furniture placement\n`;
+      prompt += `- Consistent layout positioning\n`;
+      prompt += `- High-quality furniture images`;
 
-      // If we have a design ID, use the edit design endpoint
-      if (designData?._id) {
+      // If we have a design ID (and it's not temporary), use the edit design endpoint
+      if (designData?._id && !designData._id.startsWith('temp-')) {
         const response = await imageAxiosInstance.post(`/edit-design/${designData._id}/edit`, {
           action: 'add',
           furnitureItems: selectedFurniture.map(item => item._id),
           prompt: prompt.trim(),
-          originalImageUrl: originalImage
+          originalImageUrl: originalImage,
+          useWhiteBackground: true
         });
         
         if (response.data.success) {
@@ -452,21 +459,44 @@ const EditDesignPage = () => {
           setEditHistory([]);
           setHasUnsavedChanges(false);
           
-          toast.success('Design edited successfully!');
+          toast.success('Design updated with white background!');
         } else {
           throw new Error(response.data.message || "Failed to edit design");
         }
       } else {
-        // Fallback to regular image generation
-        await createNewDesign(prompt.trim(), styleChanges.style);
+        // For temporary designs, create a new design using the white background service
+        const response = await imageAxiosInstance.post('/ai/generate-image', {
+          prompt: prompt.trim(),
+          style: styleChanges.style,
+          size: '1024x1024',
+          useWhiteBackground: true,
+          furnitureItems: selectedFurniture.map(item => item._id)
+        });
         
-        // Clear all changes after successful generation
-        setSelectedFurniture([]);
-        setRemovedFurniture([]);
-        setEditHistory([]);
-        setHasUnsavedChanges(false);
-        
-        toast.success('Design generated successfully!');
+        if (response.data.status === 'success') {
+          const newImageUrl = response.data.data.imageUrl;
+          
+          // Update the image
+          setOriginalImage(newImageUrl);
+          
+          // Update design data
+          const updatedDesignData = {
+            ...designData,
+            imageUrl: newImageUrl,
+            _id: response.data.data.designId || `temp-${Date.now()}`
+          };
+          setDesignData(updatedDesignData);
+          
+          // Clear all changes after successful generation
+          setSelectedFurniture([]);
+          setRemovedFurniture([]);
+          setEditHistory([]);
+          setHasUnsavedChanges(false);
+          
+          toast.success('Design created with white background!');
+        } else {
+          throw new Error(response.data.message || "Failed to create design");
+        }
       }
       
       // Dismiss loading toast on success
@@ -606,7 +636,8 @@ const EditDesignPage = () => {
         // Use the new custom prompt endpoint that doesn't require furniture items
         const response = await imageAxiosInstance.post(`/edit-design/${designData._id}/custom-prompt`, {
           prompt: enhancedPrompt,
-          originalImageUrl: originalImage
+          originalImageUrl: originalImage,
+          useWhiteBackground: true
         });
         
         if (response.data.success) {
@@ -899,10 +930,18 @@ const EditDesignPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-[#E5CBBE] mb-2">Design Canvas</h2>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="px-3 py-1 bg-white text-gray-800 rounded-full text-xs font-medium">
+                    🎨 White Background
+                  </div>
+                  <div className="px-3 py-1 bg-[#A58077]/20 text-[#A58077] rounded-full text-xs font-medium">
+                    📐 Fixed Layout
+                  </div>
+                </div>
                 <p className="text-[#A58077] text-sm">
                   {hasUnsavedChanges 
-                    ? `${editHistory.length} furniture changes pending - Background and lighting will be preserved`
-                    : "Add or remove furniture - Background and lighting will be preserved"
+                    ? `${editHistory.length} furniture changes pending - Layout will never change`
+                    : "Add or remove furniture - Layout will never change"
                   }
                 </p>
                 {designData?.prompt && (
@@ -954,13 +993,13 @@ const EditDesignPage = () => {
               />
               {/* Custom Prompt Input */}
               <form onSubmit={handleCustomPromptSubmit} className="w-full max-w-xl mt-8 flex flex-col gap-2 bg-[#232323] p-4 rounded-lg shadow-lg border border-[#3C3C3C]">
-                <label htmlFor="customPrompt" className="text-[#A58077] text-sm font-medium mb-1">Custom furniture edit prompt (background preserved):</label>
+                <label htmlFor="customPrompt" className="text-[#A58077] text-sm font-medium mb-1">Custom furniture edit prompt (white background):</label>
                 <textarea
                   id="customPrompt"
                   value={customPrompt}
                   onChange={e => setCustomPrompt(e.target.value)}
                   rows={2}
-                  placeholder="Describe furniture changes you want to make (background will be preserved)..."
+                  placeholder="Describe furniture changes you want to make (white background with fixed layout)..."
                   className="w-full p-3 bg-[#2C2C2C] text-white rounded-lg border border-[#3C3C3C] focus:border-[#A58077] focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-200 text-sm resize-none"
                   disabled={customPromptLoading || loading}
                 />

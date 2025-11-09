@@ -8,7 +8,7 @@ A modern React-based frontend for the AI Interior Design application with compre
 - **Tailwind CSS** for responsive and beautiful UI
 - **JWT Authentication** with automatic token refresh
 - **Real-time Chat** with AI services integration
-- **Design Generation** with multiple AI providers
+- **Design Generation** powered by OpenAI
 - **Inventory Management** with admin panel
 - **Order Processing** with payment integration
 - **Responsive Design** for all devices
@@ -181,7 +181,7 @@ The frontend integrates with the backend API through:
 - Orders: `/api/orders/*`
 - Designs: `/api/design/*`
 - Chat: `/api/chat/*`
-- AI Services: `/api/chatbot/*`, `/api/gemini/*`, `/api/replicate/*`
+- AI Services: `/api/chatbot/*` (OpenAI only)
 
 ## 🎯 Key Features
 

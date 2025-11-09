@@ -104,28 +104,28 @@ exports.updateCartItem = async (req, res, next) => {
       });
     }
 
-    const itemIndex = cart.items.findIndex(
-      item => item._id.toString() === itemId
-    );
+      const itemIndex = cart.items.findIndex(
+    item => (item._id ? item._id.toString() : item.productId.toString()) === itemId
+  );
 
-    if (itemIndex === -1) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Item not found in cart'
-      });
-    }
+  if (itemIndex === -1) {
+    return res.status(404).json({
+      status: 'error',
+      message: 'Item not found in cart'
+    });
+  }
 
-    // Check stock availability
-    const product = await InventoryItem.findById(cart.items[itemIndex].productId);
-    if (product.stock < quantity) {
-      return res.status(400).json({
-        status: 'error',
-        message: `Insufficient stock. Available: ${product.stock}`
-      });
-    }
+  // Check stock availability
+  const product = await InventoryItem.findById(cart.items[itemIndex].productId);
+  if (product.stock < quantity) {
+    return res.status(400).json({
+      status: 'error',
+      message: `Insufficient stock. Available: ${product.stock}`
+    });
+  }
 
-    cart.items[itemIndex].quantity = quantity;
-    cart.items[itemIndex].price = product.price;
+  cart.items[itemIndex].quantity = quantity;
+  cart.items[itemIndex].price = product.price;
 
     await cart.save();
     await cart.populate('items.productId');
@@ -154,7 +154,7 @@ exports.removeFromCart = async (req, res, next) => {
     }
 
     const itemIndex = cart.items.findIndex(
-      item => item._id.toString() === itemId
+      item => (item._id ? item._id.toString() : item.productId.toString()) === itemId
     );
 
     if (itemIndex === -1) {

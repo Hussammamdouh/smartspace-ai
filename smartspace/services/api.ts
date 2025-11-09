@@ -6,18 +6,16 @@ const getApiBaseUrl = () => {
   if (__DEV__) {
     // Development environment
     if (Platform.OS === 'android') {
-      // For Android emulator:
-      // return 'http://10.0.2.2:5000/api';
-      // For physical device, use your computer's LAN IP:
-      // Try multiple IPs to find the correct one
+      // For Android emulator and physical device
       const possibleIPs = [
-        'http://192.168.1.8:5000/api',
         'http://10.0.2.2:5000/api', // Android emulator
+        'http://192.168.1.8:5000/api', // Physical device (adjust IP as needed)
         'http://localhost:5000/api',
         'http://127.0.0.1:5000/api',
       ];
       
-      // For now, use the first one, but we can implement IP detection later
+      // Try to detect the correct IP by testing connectivity
+      // For now, use the most common one for Android emulator
       return possibleIPs[0];
     } else if (Platform.OS === 'ios') {
       return 'http://localhost:5000/api'; // iOS simulator

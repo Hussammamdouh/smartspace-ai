@@ -12,19 +12,6 @@ const { errorHandler, notFound } = require('./middlewares/errorHandler');
 const requestLogger = require('./middlewares/requestLogger');
 const mongoose = require('mongoose');
 
-// Load environment variables
-require('dotenv').config();
-
-// Debug environment variables
-console.log('🔧 Environment Check:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('PORT:', process.env.PORT);
-console.log('MONGO_URI:', process.env.MONGO_URI ? '✅ Set' : '❌ Missing');
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? '✅ Set' : '❌ Missing');
-console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 
-  `✅ Set (${process.env.OPENAI_API_KEY.substring(0, 10)}...)` : '❌ Missing');
-console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? '✅ Set' : '❌ Missing');
-
 const authRoutes = require('./routes/authRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const designRoutes = require('./routes/designRoutes');
@@ -33,17 +20,24 @@ const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const unifiedChatRoutes  = require("./routes/openaiRoutes");
-const geminiRoutes = require("./routes/geminiRoutes");
-const replicateRoutes = require("./routes/replicateRoutes");
+// Removed Gemini and Replicate integrations
 const chatRoutes = require("./routes/chatRoutes");
 const editDesignRoutes = require("./routes/editDesignRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 
 const logger = require('./utils/logger');
 const app = express();
 
-// ✅ Connect to DB
-connectDB();
+// ✅ Connect to DB (async, but don't block server startup)
+// In serverless environments, connection will be established on first request
+connectDB().catch((error) => {
+  logger.error(`Initial DB connection failed: ${error.message}`);
+  // In serverless, we'll retry on first request
+  if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+    process.exit(1);
+  }
+});
 
 // ✅ Set server timeout for long-running requests (like image generation)
 app.use((req, res, next) => {
@@ -54,15 +48,47 @@ app.use((req, res, next) => {
 });
 
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)
-    : ["http://localhost:5173", "http://localhost:3000", "http://localhost:8080", "http://10.0.2.2:5000"],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // In production, check against allowed origins
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        process.env.ADMIN_URL,
+        // Allow Vercel preview deployments
+        /\.vercel\.app$/,
+        /\.vercel\.dev$/
+      ].filter(Boolean);
+      
+      // Check if origin matches any allowed pattern
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') {
+          return origin === allowed;
+        } else if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // Development: allow all local origins
+      callback(null, true);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   maxAge: 86400 // 24 hours
 };
+// Use CORS with the configured options
 app.use(cors(corsOptions));
 
 // ✅ Global Middlewares
@@ -174,10 +200,10 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use("/api/chatbot", unifiedChatRoutes);
-app.use('/api/gemini', geminiRoutes); 
-app.use("/api/replicate", replicateRoutes);
+// Gemini and Replicate routes removed; using OpenAI-only endpoints
 app.use("/api/chat", chatRoutes);
 app.use("/api/edit-design", editDesignRoutes);
+app.use("/api/upload", uploadRoutes);
 app.use("/api/ai", aiRoutes);
 
 // ✅ 404 Handler - Must be before error handler
@@ -186,18 +212,26 @@ app.use(notFound);
 // ✅ Error Handler
 app.use(errorHandler);
 
-// ✅ Server Init
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📚 API Documentation available at: http://localhost:${PORT}/api-docs`);
-  logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  
-  // Auto-open Swagger docs in development
-  if (process.env.NODE_ENV === 'development') {
-    const open = require('open');
-    setTimeout(() => {
-      open(`http://localhost:${PORT}/api-docs`);
-    }, 1000);
-  }
-});
+// ✅ Server Init - Only listen if not running on Vercel
+// Vercel will handle the serverless function invocation
+if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    logger.info(`🚀 Server running on port ${PORT}`);
+    logger.info(`📚 API Documentation available at: http://localhost:${PORT}/api-docs`);
+    logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
+    
+    // Auto-open Swagger docs in development
+    if (process.env.NODE_ENV === 'development') {
+      const open = require('open');
+      setTimeout(() => {
+        open(`http://localhost:${PORT}/api-docs`);
+      }, 1000);
+    }
+  });
+} else {
+  logger.info('🚀 Server configured for Vercel deployment');
+}
+
+// Export app for Vercel serverless functions
+module.exports = app;

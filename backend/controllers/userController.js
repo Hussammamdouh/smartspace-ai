@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Design = require('../models/Design'); // If designs are stored separately
 const Order = require('../models/Order');   // If orders are stored separately
+const InventoryItem = require('../models/InventoryItem');
 const { APIError } = require('../middlewares/errorHandler');
 const logger = require('../utils/logger');
 const { deleteFromCloudinary } = require('../config/cloudinary');
@@ -323,31 +324,172 @@ exports.getUserStats = async (req, res, next) => {
   }
 };
 
-// Get dashboard stats (admin only)
+// Get dashboard stats (admin only) with monthly data
 exports.getDashboardStats = async (req, res, next) => {
   try {
+    const Order = require('../models/Order');
+    const InventoryItem = require('../models/InventoryItem');
+    
     const totalUsers = await User.countDocuments();
     const totalOrders = await Order.countDocuments();
-    const totalSales = await Order.aggregate([
-      { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+    
+    // Calculate total revenue (using 'total' field, not 'totalPrice')
+    const totalSalesResult = await Order.aggregate([
+      { $group: { _id: null, total: { $sum: "$total" } } }
     ]);
-    const totalProducts = await require('../models/InventoryItem').countDocuments();
-    const recentUsers = await User.find().sort({ createdAt: -1 }).limit(5).select('-password');
-    const recentOrders = await Order.find().sort({ createdAt: -1 }).limit(5);
+    const totalSales = totalSalesResult[0]?.total || 0;
+    
+    const totalProducts = await InventoryItem.countDocuments({ isDeleted: false });
+    
+    // Get recent users and orders
+    const recentUsers = await User.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('-password');
+    
+    const recentOrders = await Order.find()
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(5);
+    
+    // Get low stock products
+    const lowStockProducts = await InventoryItem.find({
+      stock: { $lt: 10 },
+      isDeleted: false,
+      available: true
+    })
+      .limit(10)
+      .select('name stock price');
+    
+    // Calculate monthly data for last 6 months
+    const monthlyData = await calculateMonthlyStats();
+    
+    // Calculate category distribution
+    const categoryDistribution = await InventoryItem.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    
+    // Calculate growth percentages
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    
+    const lastMonthUsers = await User.countDocuments({
+      createdAt: { $lt: lastMonth }
+    });
+    const lastMonthOrders = await Order.countDocuments({
+      createdAt: { $lt: lastMonth }
+    });
+    const lastMonthRevenue = await Order.aggregate([
+      { $match: { createdAt: { $lt: lastMonth } } },
+      { $group: { _id: null, total: { $sum: "$total" } } }
+    ]);
+    const lastMonthRevenueValue = lastMonthRevenue[0]?.total || 0;
+    
+    const userGrowth = lastMonthUsers > 0 
+      ? ((totalUsers - lastMonthUsers) / lastMonthUsers * 100).toFixed(1)
+      : '0';
+    const orderGrowth = lastMonthOrders > 0
+      ? ((totalOrders - lastMonthOrders) / lastMonthOrders * 100).toFixed(1)
+      : '0';
+    const revenueGrowth = lastMonthRevenueValue > 0
+      ? ((totalSales - lastMonthRevenueValue) / lastMonthRevenueValue * 100).toFixed(1)
+      : '0';
 
     res.status(200).json({
       success: true,
       data: {
         totalUsers,
         totalOrders,
-        totalSales: totalSales[0]?.total || 0,
+        totalSales,
         totalProducts,
         recentUsers,
-        recentOrders
+        recentOrders,
+        lowStockProducts,
+        monthlyData,
+        categoryDistribution,
+        growth: {
+          users: userGrowth,
+          orders: orderGrowth,
+          revenue: revenueGrowth
+        }
       }
     });
   } catch (error) {
     logger.error('Error getting dashboard stats:', error);
+    next(error);
+  }
+};
+
+// Helper function to calculate monthly statistics
+const calculateMonthlyStats = async () => {
+  const Order = require('../models/Order');
+  const months = [];
+  const now = new Date();
+  
+  // Get last 6 months
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const monthEnd = new Date(nextMonth.getTime() - 1);
+    
+    const [users, orders, revenue] = await Promise.all([
+      User.countDocuments({
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      }),
+      Order.countDocuments({
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      }),
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: monthStart, $lte: monthEnd }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$total" }
+          }
+        }
+      ])
+    ]);
+    
+    months.push({
+      label: date.toLocaleDateString('en-US', { month: 'short' }),
+      users: users,
+      orders: orders,
+      revenue: revenue[0]?.total || 0
+    });
+  }
+  
+  return months;
+};
+
+// Get home page stats (public endpoint)
+exports.getHomeStats = async (req, res, next) => {
+  try {
+    const totalProducts = await InventoryItem.countDocuments();
+    const totalDesigns = await Design.countDocuments();
+    const totalUsers = await User.countDocuments();
+    
+    // Calculate average rating (mock data for now)
+    const averageRating = 4.9;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalProducts,
+        totalDesigns,
+        totalUsers,
+        averageRating
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting home stats:', error);
     next(error);
   }
 };

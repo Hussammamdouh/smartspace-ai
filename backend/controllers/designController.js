@@ -7,23 +7,91 @@ const { APIError } = require('../middlewares/errorHandler');
 const fetch = require('node-fetch');
 const { deleteFromCloudinary } = require('../config/cloudinary');
 
-// Get user designs for dashboard
+// Get user designs for dashboard with pagination and filters
 exports.getUserDesigns = async (req, res, next) => {
   try {
-    console.log('getUserDesigns called for user:', req.user.id);
-    
-    const designs = await GeneratedDesign.find({ user: req.user.id })
-      .populate('preference')
-      .populate('relatedProducts')
+    const userId = req.user.id;
+    const { 
+      page = 1, 
+      limit = 12, 
+      status, 
+      style, 
+      roomType, 
+      startDate, 
+      endDate,
+      search 
+    } = req.query;
+
+    // Build query
+    const query = { user: userId };
+
+    // Filter by status
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter by date range
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    // Get total count before pagination
+    const total = await GeneratedDesign.countDocuments(query);
+
+    // Build populate options with filters
+    const populateOptions = [
+      {
+        path: 'preference',
+        match: {}
+      },
+      {
+        path: 'relatedProducts'
+      }
+    ];
+
+    // Add preference filters
+    if (style) populateOptions[0].match.style = style;
+    if (roomType) populateOptions[0].match.roomType = roomType;
+
+    // Fetch designs with pagination
+    let designs = await GeneratedDesign.find(query)
+      .populate(populateOptions)
       .sort({ createdAt: -1 })
-      .limit(10); // Limit to recent 10 designs for dashboard
-    
-    console.log('Found designs:', designs.length);
-    console.log('Designs:', designs);
-    
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    // Filter out designs with null preferences (if preference filters were applied)
+    if (style || roomType) {
+      designs = designs.filter(d => d.preference !== null);
+    }
+
+    // Search filter (search in preference notes or metadata)
+    if (search) {
+      const searchLower = search.toLowerCase();
+      designs = designs.filter(design => {
+        const notes = design.preference?.additionalNotes?.toLowerCase() || '';
+        const room = design.preference?.roomType?.toLowerCase() || '';
+        const designStyle = design.preference?.style?.toLowerCase() || '';
+        const metadata = JSON.stringify(design.metadata || {}).toLowerCase();
+        return notes.includes(searchLower) || 
+               room.includes(searchLower) || 
+               designStyle.includes(searchLower) ||
+               metadata.includes(searchLower);
+      });
+    }
+
     res.status(200).json({
       status: 'success',
-      data: designs
+      data: designs,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: designs.length,
+        totalPages: Math.ceil(total / limit),
+        hasMore: (page * limit) < total
+      }
     });
   } catch (error) {
     console.error('Error in getUserDesigns:', error);

@@ -5,7 +5,15 @@ const InventoryItemSchema = mongoose.Schema(
     name: { type: String, required: true },
     category: { 
       type: String, 
-      enum: ["bedroom", "child bedroom", "kitchen", "bathroom", "living room"] 
+      enum: [
+        // Room categories
+        "bedroom", "child bedroom", "kitchen", "bathroom", "living room",
+        // Furniture categories
+        "sofa", "coffee table", "armchair", "tv stand", "bookshelf", "lamp", "rug",
+        "bed", "nightstand", "dresser", "mirror",
+        "kitchen cabinet", "refrigerator", "stove", "sink", "dining table", "chair",
+        "toilet", "bathtub", "shower", "towel rack"
+      ] 
     },
     style: { type: String },
     color: { type: String },

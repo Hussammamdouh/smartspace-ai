@@ -493,14 +493,14 @@ const ChatPage = () => {
                     {currentConversationId ? 'Current Conversation' : 'New Conversation'}
                   </h3>
                   <p className="text-[#A58077] text-sm">
-                    {chatMode === 'chat' ? 'AI Design Assistant' : 'AI Image Generator'}
+                    {chatMode === 'chat' ? 'AI Design Assistant' : 'White Background Generator'}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   {chatMode === 'image' && (
                     <div className="flex items-center space-x-2 bg-[#A58077]/20 text-[#A58077] px-3 py-1 rounded-full text-sm">
                       <FaMagic className="text-xs" />
-                      <span>Image Mode</span>
+                      <span>White Background Mode</span>
                     </div>
                   )}
                 </div>

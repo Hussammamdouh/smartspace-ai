@@ -49,22 +49,23 @@ const upload = multer({
   }
 });
 
-// Enhanced upload middleware with Cloudinary support
-const uploadWithCloudinary = async (req, res, next) => {
-  try {
-    // First, use multer to handle the file upload locally
-    upload.single('image')(req, res, async (err) => {
-      if (err) {
-        return res.status(400).json({ 
-          error: err.message 
-        });
-      }
+// Factory function to create upload middleware with Cloudinary support for different field names
+const createUploadWithCloudinary = (fieldName = 'image') => {
+  return async (req, res, next) => {
+    try {
+      // Use multer to handle the file upload locally
+      upload.single(fieldName)(req, res, async (err) => {
+        if (err) {
+          return res.status(400).json({ 
+            error: err.message 
+          });
+        }
 
-      if (!req.file) {
-        return res.status(400).json({ 
-          error: 'No file uploaded' 
-        });
-      }
+        if (!req.file) {
+          return res.status(400).json({ 
+            error: `No file uploaded with field name: ${fieldName}` 
+          });
+        }
 
       try {
         // Check if Cloudinary is available
@@ -107,14 +108,20 @@ const uploadWithCloudinary = async (req, res, next) => {
         req.file.url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
         next();
       }
-    });
-  } catch (error) {
-    logger.error('Upload middleware error:', error);
-    res.status(500).json({ 
-      error: 'File upload failed' 
-    });
-  }
+      });
+    } catch (error) {
+      logger.error('Upload middleware error:', error);
+      res.status(500).json({ 
+        error: 'File upload failed' 
+      });
+    }
+  };
 };
+
+// Pre-configured middleware for common field names
+const uploadWithCloudinary = createUploadWithCloudinary('image');
+const uploadAvatarWithCloudinary = createUploadWithCloudinary('avatar');
+const uploadFileWithCloudinary = createUploadWithCloudinary('file');
 
 // Simple multer upload (for backward compatibility)
 const simpleUpload = multer({ 
@@ -129,5 +136,8 @@ const simpleUpload = multer({
 module.exports = {
   upload: simpleUpload,
   uploadWithCloudinary,
+  uploadAvatarWithCloudinary,
+  uploadFileWithCloudinary,
+  createUploadWithCloudinary,
   uploadToCloudinary
 };

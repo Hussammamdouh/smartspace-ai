@@ -162,62 +162,137 @@ exports.sendMessage = async (req, res, next) => {
       logger.info(`Starting image generation for user ${req.user.id}: ${message.substring(0, 100)}...`);
       const startTime = Date.now();
       
-      const { imageUrl, designId, prompt, usedItems, totalCost, furnitureCount, metadata } = await generateImageWithDalle(
-        message,
-        req.user.id
+      // Use white background approach for consistent layout
+      const { applyFurnitureToWhiteBackground } = require('../services/whiteBackgroundService');
+      
+      // Extract room type from message or use default
+      const roomType = message.toLowerCase().includes('bedroom') ? 'bedroom' :
+                      message.toLowerCase().includes('kitchen') ? 'kitchen' :
+                      message.toLowerCase().includes('bathroom') ? 'bathroom' :
+                      'living room';
+      
+      // Extract furniture items from the message using inventory
+      const InventoryItem = require('../models/InventoryItem');
+      
+      // Get furniture items based on the message content
+      const furnitureFilter = { 
+        isDeleted: false,
+        available: true,
+        stock: { $gt: 0 }
+      };
+      
+      // Add category filter based on room type
+      if (roomType === 'bedroom') {
+        furnitureFilter.category = { $in: ['bed', 'nightstand', 'dresser', 'lamp', 'mirror', 'rug'] };
+      } else if (roomType === 'kitchen') {
+        furnitureFilter.category = { $in: ['kitchen cabinet', 'refrigerator', 'stove', 'sink', 'dining table', 'chair'] };
+      } else if (roomType === 'bathroom') {
+        furnitureFilter.category = { $in: ['toilet', 'sink', 'bathtub', 'shower', 'mirror', 'towel rack'] };
+      } else {
+        // Living room or default
+        furnitureFilter.category = { $in: ['sofa', 'coffee table', 'armchair', 'tv stand', 'bookshelf', 'lamp', 'rug'] };
+      }
+      
+      // Get 3-5 furniture items
+      const furnitureItems = await InventoryItem.find(furnitureFilter)
+        .sort({ price: 1 })
+        .limit(5);
+      
+      // Use white background approach with furniture
+      const { imageUrl, publicId, furnitureCount, metadata } = await applyFurnitureToWhiteBackground(
+        furnitureItems,
+        roomType,
+        {
+          width: 1024,
+          height: 1024,
+          preserveLayout: true
+        }
       );
+      
+      // Create a temporary design ID for the response
+      const designId = `temp-${Date.now()}`;
+      
+      // Create basic metadata
+      const basicMetadata = {
+        roomType,
+        style: 'modern',
+        colorScheme: 'neutral',
+        method: 'white-background-overlay',
+        backgroundType: 'white',
+        layoutPreserved: true
+      };
       
       const endTime = Date.now();
       logger.info(`Image generation completed in ${endTime - startTime}ms for user ${req.user.id}`);
 
       aiResponse = imageUrl;
       responseType = 'image';
+      
+      // Calculate total cost
+      const totalCost = furnitureItems.reduce((sum, item) => sum + (item.price || 0), 0);
+      
       designData = {
         designId,
         totalCost,
-        furnitureCount,
-        usedItems: usedItems.map(item => ({
+        furnitureCount: furnitureItems.length,
+        usedItems: furnitureItems.map(item => ({
           id: item._id,
           name: item.name,
           category: item.category,
           price: item.price
         })),
-        metadata
+        metadata: {
+          ...basicMetadata,
+          furnitureItems: furnitureItems.map(item => ({
+            id: item._id,
+            name: item.name,
+            category: item.category,
+            position: metadata.furnitureItems?.find(f => f.id === item._id.toString())?.position || 'auto-positioned'
+          }))
+        }
       };
 
       // Add AI response to conversation
       conversation.conversation.push({
         role: 'assistant',
-        content: `Generated interior design image based on: ${message}`,
+        content: `Generated white background interior design for: ${message}`,
         type: 'image',
         imageUrl,
-        designId,
+        // Don't include designId for white background approach
         timestamp: new Date(),
         designData: {
           designId,
           totalCost,
-          furnitureCount,
-          usedItems: usedItems.map(item => ({
+          furnitureCount: furnitureItems.length,
+          usedItems: furnitureItems.map(item => ({
             id: item._id,
             name: item.name,
             category: item.category,
             price: item.price
           })),
           metadata: {
-            roomType: metadata?.roomType,
-            style: metadata?.style,
-            colorScheme: metadata?.colorScheme
+            roomType: basicMetadata.roomType,
+            style: basicMetadata.style,
+            colorScheme: basicMetadata.colorScheme,
+            method: 'white-background-overlay',
+            backgroundType: 'white',
+            furnitureItems: furnitureItems.map(item => ({
+              id: item._id,
+              name: item.name,
+              category: item.category
+            }))
           }
         },
         metadata: {
           totalCost,
-          furnitureCount,
-          usedItems: usedItems.map(item => ({
+          furnitureCount: furnitureItems.length,
+          usedItems: furnitureItems.map(item => ({
             id: item._id,
             name: item.name,
             category: item.category,
             price: item.price
-          }))
+          })),
+          method: 'white-background-overlay'
         }
       });
     }

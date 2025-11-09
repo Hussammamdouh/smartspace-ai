@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/auth');
+const { protect, imageGenerationLimiter } = require('../middlewares/auth');
 const { generateImageWithDalle } = require('../services/openaiService');
+const logger = require('../utils/logger');
 
 /**
  * @swagger
@@ -65,9 +66,9 @@ const { generateImageWithDalle } = require('../services/openaiService');
  *         description: AI service error
  */
 
-router.post('/generate-image', protect, async (req, res, next) => {
+router.post('/generate-image', protect, imageGenerationLimiter, async (req, res, next) => {
   try {
-    const { prompt, style, size = '1024x1024' } = req.body;
+    const { prompt, style, size = '1024x1024', quality = 'standard' } = req.body;
 
     if (!prompt) {
       return res.status(400).json({
@@ -76,23 +77,87 @@ router.post('/generate-image', protect, async (req, res, next) => {
       });
     }
 
-    // Generate image using DALL-E
-    const result = await generateImageWithDalle(prompt, req.user.id, { style, size });
+    // Validate quality parameter
+    if (quality && !['standard', 'hd'].includes(quality)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Quality must be either "standard" or "hd"'
+      });
+    }
+
+    // Validate size parameter
+    const validSizes = ['1024x1024', '1792x1024', '1024x1792'];
+    if (!validSizes.includes(size)) {
+      return res.status(400).json({
+        status: 'error',
+        message: `Size must be one of: ${validSizes.join(', ')}`
+      });
+    }
+
+    // Generate image using DALL-E with retry mechanism
+    let result;
+    let retries = 0;
+    const maxRetries = 3;
+    
+    while (retries < maxRetries) {
+      try {
+        result = await generateImageWithDalle(prompt, req.user.id, { 
+          style, 
+          size,
+          quality 
+        });
+        break; // Success, exit retry loop
+      } catch (error) {
+        retries++;
+        logger.error(`Image generation attempt ${retries} failed:`, error);
+        
+        if (retries >= maxRetries) {
+          throw error; // Re-throw if max retries reached
+        }
+        
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+      }
+    }
 
     res.status(200).json({
       status: 'success',
       data: {
         imageUrl: result.imageUrl,
         prompt: result.prompt,
-        designId: result.designId
+        designId: result.designId,
+        cached: result.cached || false,
+        quality: quality,
+        size: size
       }
     });
   } catch (error) {
-    console.error('AI image generation error:', error);
-    res.status(500).json({
+    logger.error('AI image generation error:', error);
+    
+    // Provide specific error messages
+    let errorMessage = 'Failed to generate image';
+    let statusCode = 500;
+    
+    if (error.response) {
+      // OpenAI API error
+      if (error.response.status === 429) {
+        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+        statusCode = 429;
+      } else if (error.response.status === 400) {
+        errorMessage = error.response.data?.error?.message || 'Invalid prompt. Please try a different description.';
+        statusCode = 400;
+      } else if (error.response.status === 401) {
+        errorMessage = 'API authentication failed. Please contact support.';
+        statusCode = 401;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    res.status(statusCode).json({
       status: 'error',
-      message: 'Failed to generate image',
-      error: error.message
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

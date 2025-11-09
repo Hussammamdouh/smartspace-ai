@@ -69,26 +69,54 @@ export default function AIDesignScreen() {
 
     setIsGenerating(true);
     try {
+      console.log('🚀 Starting design generation...');
+      console.log('User:', user.email);
+      console.log('Prompt:', prompt);
+      
       // Build the full prompt with style if selected
       let fullPrompt = prompt.trim();
       if (selectedStyle) {
         fullPrompt = `${fullPrompt} in ${selectedStyle} style`;
       }
 
+      console.log('Full prompt:', fullPrompt);
+
       // Use the generateDesign endpoint
       const response = await api.generateDesign(fullPrompt);
+      console.log('API Response:', response);
 
       if (response.success && response.data) {
         const designData = response.data as any;
-        setGeneratedImage(designData.imageUrl || designData.content);
-        setDesignId(designData._id || designData.id);
-        Alert.alert('Success', 'Your design has been generated!');
+        console.log('Design data:', designData);
+        
+        // Handle different response formats
+        const imageUrl = designData.imageUrl || designData.content || designData.url;
+        const designId = designData._id || designData.id || designData.designId;
+        
+        if (imageUrl) {
+          setGeneratedImage(imageUrl);
+          setDesignId(designId);
+          Alert.alert('Success', 'Your design has been generated!');
+        } else {
+          Alert.alert('Error', 'No image URL received from server');
+        }
       } else {
-        Alert.alert('Error', response.error || 'Failed to generate image');
+        console.error('API Error:', response.error);
+        Alert.alert('Error', response.error || 'Failed to generate image. Please check your connection and try again.');
       }
     } catch (error: any) {
       console.error('Generate image error:', error);
-      Alert.alert('Error', 'Failed to generate image. Please try again.');
+      let errorMessage = 'Failed to generate image. Please try again.';
+      
+      if (error.message?.includes('Network error')) {
+        errorMessage = 'Network error. Please check your internet connection and ensure the backend server is running.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. The image generation is taking longer than expected.';
+      } else if (error.message?.includes('401')) {
+        errorMessage = 'Authentication error. Please log in again.';
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsGenerating(false);
     }

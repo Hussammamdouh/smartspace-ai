@@ -1,0 +1,14 @@
+node_modules
+uploads
+logs
+*.log
+.env
+.env.local
+.DS_Store
+test-*.js
+*.test.js
+*.spec.js
+UPLOAD_TESTING.md
+WHITE_BACKGROUND_APPROACH.md
+README.md
+

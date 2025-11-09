@@ -11,6 +11,29 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const MAX_RETRIES = 3;
 
+// Helper function to check for cached designs
+const checkCachedDesign = async (promptHash, userId) => {
+  try {
+    const GeneratedDesign = require('../models/GeneratedDesign');
+    const cachedDesign = await GeneratedDesign.findOne({
+      'metadata.promptHash': promptHash,
+      user: userId,
+      status: 'success'
+    })
+    .sort({ createdAt: -1 })
+    .limit(1);
+    
+    if (cachedDesign) {
+      logger.info('Found cached design for prompt hash:', promptHash);
+      return cachedDesign;
+    }
+    return null;
+  } catch (error) {
+    logger.error('Error checking cache:', error);
+    return null;
+  }
+};
+
 // Helper function to download image from URL and upload to Cloudinary
 const downloadAndUploadToCloudinary = async (imageUrl, folder = 'ai-interior-design') => {
   try {
@@ -78,7 +101,15 @@ exports.chatWithGPT = async (messages) => {
 
 exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
   try {
-    const { style: customStyle, size = '1024x1024', preserveOriginal = false, originalImageContext = null } = options;
+    const { 
+      style: customStyle, 
+      size = '1024x1024', 
+      quality = 'standard', // 'standard' or 'hd'
+      preserveOriginal = false, 
+      originalImageContext = null,
+      originalImageUrl = null, // For editing existing images
+      maskImageUrl = null // For masked editing
+    } = options;
     const context = extractPromptContext(userPrompt);
     logger.info('Extracted context:', context);
     logger.info('Preservation mode:', preserveOriginal);
@@ -219,14 +250,59 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
 
     logger.info('Generated prompt:', augmentedPrompt);
 
-    // Generate image with DALL-E
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: augmentedPrompt,
-      size: size,
-      quality: "standard",
-      n: 1,
-    });
+    // Create prompt hash for caching
+    const crypto = require('crypto');
+    const promptHash = crypto.createHash('sha256').update(augmentedPrompt).digest('hex');
+    
+    // Check for cached design (only for new generations, not edits)
+    if (!preserveOriginal) {
+      const cachedDesign = await checkCachedDesign(promptHash, userId);
+      if (cachedDesign) {
+        logger.info('Returning cached design:', cachedDesign._id);
+        // Increment views for cached design
+        await cachedDesign.addView();
+        
+        return {
+          imageUrl: cachedDesign.imageUrl,
+          designId: cachedDesign._id,
+          prompt: augmentedPrompt,
+          usedItems: selectedItems,
+          totalCost,
+          furnitureCount: selectedItems.length,
+          cached: true,
+          metadata: {
+            roomType: context.category,
+            style: finalStyle,
+            colorScheme: context.color,
+            imageSize: size
+          }
+        };
+      }
+    }
+
+    // Check if this is an edit operation (has original image)
+    let response;
+    if (preserveOriginal && originalImageUrl) {
+      // DALL-E 3 doesn't support image editing directly, so we use image generation with enhanced prompt
+      // For true image editing, we would need DALL-E 2 or use image variation API
+      logger.info('Using enhanced prompt for image editing');
+      response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: augmentedPrompt,
+        size: size,
+        quality: quality, // Use quality parameter
+        n: 1,
+      });
+    } else {
+      // Standard generation
+      response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: augmentedPrompt,
+        size: size,
+        quality: quality, // Use quality parameter (standard or hd)
+        n: 1,
+      });
+    }
 
     const dalleImageUrl = response.data[0].url;
     logger.info('Image generated successfully from DALL-E');
@@ -234,6 +310,9 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
     // Upload to Cloudinary if available
     const { url: imageUrl, public_id: cloudinaryPublicId } = await downloadAndUploadToCloudinary(dalleImageUrl);
     logger.info('Image uploaded to Cloudinary:', cloudinaryPublicId ? 'Yes' : 'No');
+
+    // Calculate API cost (approximate: DALL-E 3 standard = $0.04/image, HD = $0.08/image)
+    const apiCost = quality === 'hd' ? 0.08 : 0.04;
 
     // Create design preference for this generation
     const designPreference = await DesignPreference.create({
@@ -247,6 +326,7 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
     });
 
     // Save the generated design with detailed information
+    const generationStartTime = Date.now();
     const design = await GeneratedDesign.create({
       user: userId,
       preference: designPreference._id,
@@ -255,6 +335,7 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
       relatedProducts: selectedItems.map(i => i._id),
       modelUsed: 'DALL·E 3',
       status: 'success',
+      apiCost,
       metadata: {
         totalCost,
         furnitureCount: selectedItems.length,
@@ -264,7 +345,12 @@ exports.generateImageWithDalle = async (userPrompt, userId, options = {}) => {
         originalPrompt: userPrompt,
         enhancedPrompt: augmentedPrompt,
         imageSize: size,
-        cloudinaryPublicId
+        imageQuality: quality,
+        cloudinaryPublicId,
+        promptHash,
+        generationDuration: Date.now() - generationStartTime,
+        apiProvider: 'openai',
+        modelVersion: 'dall-e-3'
       }
     });
 

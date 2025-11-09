@@ -9,23 +9,31 @@ const { sendTemplateEmail } = require('../utils/emailService');
 const logger = require('../utils/logger');
 
 // Sign JWT token
-const signToken = (id) => {
+const signToken = (id, rememberMe = false) => {
+  const expiresIn = rememberMe 
+    ? process.env.JWT_ACCESS_EXPIRE_REMEMBER || '30d'
+    : process.env.JWT_ACCESS_EXPIRE || '15m';
+  
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
+    expiresIn
   });
 };
 
 // Sign refresh token
-const signRefreshToken = (id) => {
+const signRefreshToken = (id, rememberMe = false) => {
+  const expiresIn = rememberMe
+    ? process.env.JWT_REFRESH_EXPIRE_REMEMBER || '90d'
+    : process.env.JWT_REFRESH_EXPIRE || '7d';
+  
   return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
+    expiresIn
   });
 };
 
 // Create and send token
-const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user._id);
-  const refreshToken = signRefreshToken(user._id);
+const createSendToken = (user, statusCode, res, rememberMe = false) => {
+  const token = signToken(user._id, rememberMe);
+  const refreshToken = signRefreshToken(user._id, rememberMe);
 
   // Remove password from output
   user.password = undefined;
@@ -88,6 +96,10 @@ exports.register = async (req, res, next) => {
       // Don't fail registration if email fails
     }
 
+    // Log registration activity
+    const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
+    await user.logActivity('account_created', req, { ip: clientIP });
+
     // Remove password from output
     user.password = undefined;
     user.passwordConfirm = undefined;
@@ -120,12 +132,15 @@ exports.register = async (req, res, next) => {
 // Login user
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     // Check if email and password exist
     if (!email || !password) {
       return next(new APIError('Please provide email and password', 400));
     }
+
+    // Get client IP
+    const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
 
     // Check if user exists && password is correct
     const user = await User.findByEmail(email).select('+password');
@@ -135,34 +150,63 @@ exports.login = async (req, res, next) => {
       // Only increment login attempts if user exists
       if (user) {
         await user.incrementLoginAttempts();
+        await user.logActivity('failed_login', req, { email, reason: 'Invalid credentials' });
       }
       return next(new APIError('Incorrect email or password', 401));
     }
 
     // Check if email is verified
     if (!user.emailVerified) {
+      await user.logActivity('login_blocked', req, { reason: 'Email not verified' });
       return next(new APIError('Please verify your email address before logging in. Check your inbox for a verification link.', 401));
     }
 
     // Check if account is locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
+      await user.logActivity('login_blocked', req, { reason: 'Account locked' });
       return next(new APIError('Account is locked. Please try again later', 401));
     }
 
     // Reset login attempts on successful login
     await user.resetLoginAttempts();
     user.lastLogin = Date.now();
+    user.lastLoginIP = clientIP;
+    
+    // Track login IP
+    if (!user.loginIPs) {
+      user.loginIPs = [];
+    }
+    user.loginIPs.push({
+      ip: clientIP,
+      loginAt: Date.now()
+    });
+    // Keep only last 10 login IPs
+    if (user.loginIPs.length > 10) {
+      user.loginIPs.shift();
+    }
+    
     await user.save();
+    await user.logActivity('successful_login', req, { ip: clientIP, rememberMe: !!rememberMe });
 
-    createSendToken(user, 200, res);
+    createSendToken(user, 200, res, rememberMe);
   } catch (err) {
     next(err);
   }
 };
 
 // Logout user
-exports.logout = (req, res) => {
-  res.status(200).json({ status: 'success' });
+exports.logout = async (req, res, next) => {
+  try {
+    // Log logout activity
+    const user = await User.findById(req.user.id);
+    if (user) {
+      await user.logActivity('logout', req, { timestamp: Date.now() });
+    }
+    res.status(200).json({ status: 'success' });
+  } catch (err) {
+    // Don't fail logout if logging fails
+    res.status(200).json({ status: 'success' });
+  }
 };
 
 // Get current user
@@ -205,7 +249,13 @@ exports.updatePassword = async (req, res, next) => {
 
     // Check if current password is correct
     if (!(await user.correctPassword(currentPassword, user.password))) {
+      await user.logActivity('password_change_failed', req, { reason: 'Incorrect current password' });
       return next(new APIError('Your current password is incorrect', 401));
+    }
+
+    // Check if new password is same as current password
+    if (await user.correctPassword(newPassword, user.password)) {
+      return next(new APIError('New password must be different from current password', 400));
     }
 
     // Validate new password
@@ -214,10 +264,18 @@ exports.updatePassword = async (req, res, next) => {
       return next(new APIError(passwordErrors.join('. '), 400));
     }
 
-    // Update password
+    // Check if password is in history (prevent reuse of last 3 passwords)
+    // Note: We check before saving, so passwordHistory hasn't been updated yet
+    if (await user.isPasswordInHistory(newPassword)) {
+      return next(new APIError('You cannot reuse a recently used password. Please choose a different password.', 400));
+    }
+
+    // Update password (password history will be stored in pre-save hook)
     user.password = newPassword;
     user.passwordConfirm = newPasswordConfirm;
     await user.save();
+
+    await user.logActivity('password_changed', req, { timestamp: Date.now() });
 
     // Log user in, send JWT
     createSendToken(user, 200, res);
@@ -232,15 +290,20 @@ exports.forgotPassword = async (req, res, next) => {
     // Get user based on POSTed email
     const user = await User.findByEmail(req.body.email);
     if (!user) {
-      return next(new APIError('There is no user with that email address', 404));
+      // Don't reveal if user exists (security best practice)
+      return res.status(200).json({
+        status: 'success',
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      });
     }
 
     // Generate random reset token
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
-    // Send reset token to user's email
-    const resetURL = `${req.protocol}://${req.get('host')}/api/auth/resetPassword/${resetToken}`;
+    // Send reset token to user's email - USE FRONTEND URL
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetURL = `${frontendURL}/reset-password/${resetToken}`;
     
     try {
       await sendTemplateEmail(user.email, 'passwordReset', {
@@ -250,10 +313,14 @@ exports.forgotPassword = async (req, res, next) => {
       
       res.status(200).json({
         status: 'success',
-        message: 'Password reset token sent to email!'
+        message: 'If an account exists with this email, a password reset link has been sent.'
       });
     } catch (emailError) {
       logger.error('Failed to send password reset email:', emailError);
+      // Reset the token fields if email fails
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save({ validateBeforeSave: false });
       return next(new APIError('Failed to send password reset email. Please try again.', 500));
     }
   } catch (err) {
@@ -286,11 +353,18 @@ exports.resetPassword = async (req, res, next) => {
       return next(new APIError(passwordErrors.join('. '), 400));
     }
 
+    // Check if password is in history
+    if (await user.isPasswordInHistory(req.body.password)) {
+      return next(new APIError('You cannot reuse a recently used password. Please choose a different password.', 400));
+    }
+
     user.password = req.body.password;
     user.passwordConfirm = req.body.passwordConfirm;
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
+
+    await user.logActivity('password_reset', req, { timestamp: Date.now() });
 
     // Log the user in, send JWT
     createSendToken(user, 200, res);
@@ -352,6 +426,9 @@ exports.verifyEmail = async (req, res, next) => {
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
+
+    // Log email verification activity
+    await user.logActivity('email_verified', req, { timestamp: Date.now() });
 
     // Send confirmation email
     try {
@@ -458,5 +535,186 @@ exports.refreshToken = async (req, res, next) => {
       return next(new APIError('Invalid refresh token', 401));
     }
     next(error);
+  }
+};
+
+/**
+ * @desc    Change email address
+ * @route   PATCH /api/auth/change-email
+ * @access  Private
+ */
+exports.changeEmail = async (req, res, next) => {
+  try {
+    const { newEmail, password } = req.body;
+
+    if (!newEmail || !password) {
+      return next(new APIError('New email and password are required', 400));
+    }
+
+    // Email validation
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!emailRegex.test(newEmail)) {
+      return next(new APIError('Please provide a valid email address', 400));
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user.id).select('+password');
+
+    // Verify password
+    if (!(await user.correctPassword(password, user.password))) {
+      await user.logActivity('email_change_failed', req, { reason: 'Incorrect password' });
+      return next(new APIError('Password is incorrect', 401));
+    }
+
+    // Check if new email is same as current
+    if (user.email.toLowerCase() === newEmail.toLowerCase()) {
+      return next(new APIError('New email must be different from current email', 400));
+    }
+
+    // Check if email is already in use
+    const existingUser = await User.findByEmail(newEmail);
+    if (existingUser) {
+      return next(new APIError('Email is already in use', 400));
+    }
+
+    // Store old email in history
+    if (!user.emailHistory) {
+      user.emailHistory = [];
+    }
+    user.emailHistory.push({
+      email: user.email,
+      changedAt: Date.now()
+    });
+
+    // Update email and mark as unverified
+    user.email = newEmail.toLowerCase();
+    user.emailVerified = false;
+
+    // Generate new verification token
+    const verificationToken = user.createEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Send verification email
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationURL = `${frontendURL}/verify-email/${verificationToken}`;
+    
+    try {
+      await sendTemplateEmail(user.email, 'welcome', {
+        name: user.name,
+        url: verificationURL
+      });
+      
+      await user.logActivity('email_changed', req, { oldEmail: user.emailHistory[user.emailHistory.length - 1].email, newEmail });
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Email changed successfully. Please verify your new email address.',
+        data: {
+          user: {
+            _id: user._id,
+            email: user.email,
+            emailVerified: user.emailVerified
+          }
+        }
+      });
+    } catch (emailError) {
+      logger.error('Failed to send verification email:', emailError);
+      return next(new APIError('Failed to send verification email. Please try again.', 500));
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Delete user account
+ * @route   DELETE /api/auth/delete-account
+ * @access  Private
+ */
+exports.deleteAccount = async (req, res, next) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return next(new APIError('Password is required to delete account', 400));
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user.id).select('+password');
+
+    // Verify password
+    if (!(await user.correctPassword(password, user.password))) {
+      await user.logActivity('account_deletion_failed', req, { reason: 'Incorrect password' });
+      return next(new APIError('Password is incorrect', 401));
+    }
+
+    // Soft delete - mark as deleted and deactivate
+    user.isDeleted = true;
+    user.active = false;
+    user.email = `deleted_${Date.now()}_${user.email}`; // Anonymize email
+    await user.save({ validateBeforeSave: false });
+
+    await user.logActivity('account_deleted', req, { timestamp: Date.now() });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Account deleted successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Get account activity log
+ * @route   GET /api/auth/activity
+ * @access  Private
+ */
+exports.getActivityLog = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return next(new APIError('User not found', 404));
+    }
+
+    // Return last 50 activities
+    const activities = (user.activityLog || []).slice(-50).reverse();
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        activities,
+        total: user.activityLog?.length || 0
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Get login history
+ * @route   GET /api/auth/login-history
+ * @access  Private
+ */
+exports.getLoginHistory = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return next(new APIError('User not found', 404));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        lastLogin: user.lastLogin,
+        lastLoginIP: user.lastLoginIP,
+        loginIPs: user.loginIPs || []
+      }
+    });
+  } catch (err) {
+    next(err);
   }
 };

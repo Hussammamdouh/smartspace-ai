@@ -2,7 +2,6 @@ import { createContext, useState, useEffect, useContext, useRef } from "react";
 import PropTypes from 'prop-types';
 import axiosInstance from '../utils/axiosInstance';
 import { toast } from 'react-hot-toast';
-import { useCart } from './CartContext';
 
 export const AuthContext = createContext();
 
@@ -19,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // Loading state for user verification
   const verifyingRef = useRef(false); // Prevent multiple simultaneous verifications
-  const clearCartRef = useRef(null);
+  const cartReloadRef = useRef(null);
 
   // Verify token and get user data on mount
   const verifyToken = async () => {
@@ -123,16 +122,11 @@ export const AuthProvider = ({ children }) => {
     verifyToken();
   }, []);
 
-  // Use an effect to store clearCart in a ref
-  useEffect(() => {
-    try {
-      // Only assign if useCart is available
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      clearCartRef.current = useCart().clearCart;
-    } catch {
-      // ignore if useCart is not available
-    }
-  }, []);
+  // Use an effect to store cart reload function in a ref
+  // This will be set by CartContext via a callback pattern
+  const setCartReloadRef = (reloadFn) => {
+    cartReloadRef.current = reloadFn;
+  };
 
   const login = async (userData, token, refreshToken) => {
     try {
@@ -140,6 +134,14 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
+      
+      // Trigger cart reload after login (will be handled by CartContext useEffect)
+      // Small delay to ensure CartContext has mounted
+      setTimeout(() => {
+        if (cartReloadRef.current) {
+          cartReloadRef.current();
+        }
+      }, 100);
     } catch (error) {
       console.error('Error during login:', error);
       toast.error('Failed to save login information');
@@ -156,8 +158,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('authToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('cart'); // Clear cart on logout
       setUser(null);
-      if (clearCartRef.current) clearCartRef.current();
       toast.success('Logged out successfully');
     }
   };
@@ -192,7 +194,8 @@ export const AuthProvider = ({ children }) => {
       logout, 
       updateUser,
       isAuthenticated: !!user,
-      loading
+      loading,
+      setCartReloadRef
     }}>
       {children}
     </AuthContext.Provider>

@@ -8,8 +8,9 @@ const {
   getAllUsers,
   getUserStats,
   getDashboardStats,
+  getHomeStats,
 } = require('../controllers/userController');
-const { upload } = require("../middlewares/uploadMiddleware");
+const { uploadAvatarWithCloudinary } = require("../middlewares/uploadMiddleware");
 const { protect, admin } = require('../middlewares/auth');
 const {validate} = require('../middlewares/validateMiddleware');
 const { updateProfileSchema } = require('../utils/validationSchemas');
@@ -34,7 +35,10 @@ router.get('/designs', protect, getUserDesigns);
 
 // Fetch user purchase history
 router.get('/purchases', protect, getUserPurchases);
-router.patch('/avatar', protect, upload.single('avatar'), uploadAvatar);
+router.patch('/avatar', protect, uploadAvatarWithCloudinary, uploadAvatar);
+
+// Public stats endpoint
+router.get('/home-stats', getHomeStats);
 
 // Admin routes
 router.get('/', protect, admin, getAllUsers);

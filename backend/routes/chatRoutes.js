@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/auth');
+const { protect, imageGenerationLimiter } = require('../middlewares/auth');
 const {
   getChatHistory,
   getChatConversation,
@@ -132,7 +132,7 @@ router.get('/user-chats', protect, getUserChats);
 router.get('/history', protect, getChatHistory);
 router.get('/conversation/:conversationId', protect, getChatConversation);
 router.post('/conversation', protect, startNewConversation);
-router.post('/message', protect, sendMessage);
+router.post('/message', protect, imageGenerationLimiter, sendMessage);
 router.post('/send', protect, sendSimpleMessage);
 router.delete('/conversation/:conversationId', protect, deleteConversation);
 router.patch('/conversation/:conversationId/title', protect, updateConversationTitle);

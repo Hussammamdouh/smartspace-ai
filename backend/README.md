@@ -51,8 +51,6 @@ A robust Node.js backend for the AI Interior Design application with comprehensi
    # Optional
    EMAIL_USER=your-email@gmail.com
    EMAIL_PASS=your-app-password
-   GEMINI_API_KEY=your-gemini-api-key-here
-   REPLICATE_API_TOKEN=your-replicate-api-token-here
    ```
 
 4. **Start the server**

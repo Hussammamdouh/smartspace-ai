@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect, admin } = require('../middlewares/auth');
-const { createOrder, getOrders, getOrderById, updateOrderStatus, getUserOrders, getAllOrders } = require('../controllers/orderController');
+const { createOrder, getOrders, getOrderById, updateOrderStatus, getUserOrders, getAllOrders, cancelOrder } = require('../controllers/orderController');
 const { validateQuery } = require('../middlewares/validateMiddleware');
 const { orderFilterSchema } = require('../utils/validationSchemas');
 
@@ -208,6 +208,7 @@ router.post("/", protect, createOrder);
 router.get("/", protect, getOrders);
 router.get("/:id", protect, getOrderById);
 router.patch("/:id", protect, updateOrderStatus);
+router.delete("/:id", protect, cancelOrder);
 router.get('/admin/all', protect, admin, getAllOrders);
 
 module.exports = router;

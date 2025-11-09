@@ -13,10 +13,35 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const registerLimiter = rateLimit({
+const forgotPasswordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 attempts
-  message: 'Too many registration attempts from this IP, please try again after an hour',
+  max: 3, // 3 attempts per hour
+  message: 'Too many password reset requests from this IP, please try again after an hour',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const imageGenerationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 generations per hour
+  message: 'Too many image generation requests. Please wait before generating more images.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
+
+const editDesignLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // 20 edits per 15 minutes
+  message: 'Too many design edit requests. Please wait before editing again.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 attempts per hour
+  message: 'Too many password reset attempts from this IP, please try again after an hour',
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -123,7 +148,10 @@ module.exports = {
   restrictTo,
   authorize,
   loginLimiter,
-  registerLimiter,
+  forgotPasswordLimiter,
+  resetPasswordLimiter,
+  imageGenerationLimiter,
+  editDesignLimiter,
   validatePassword,
   admin
 }; 

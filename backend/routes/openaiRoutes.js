@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect } = require("../middlewares/auth");
+const { protect, imageGenerationLimiter } = require("../middlewares/auth");
 const { handleUnifiedChat } = require("../controllers/openaiController");
 const router = express.Router();
 
@@ -58,5 +58,5 @@ const router = express.Router();
  *         description: AI service error
  */
 
-router.post("/unified", protect, handleUnifiedChat);
+router.post("/unified", protect, imageGenerationLimiter, handleUnifiedChat);
 module.exports = router;

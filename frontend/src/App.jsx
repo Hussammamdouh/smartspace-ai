@@ -50,7 +50,6 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
 const UserDashboard = lazy(() => import("./pages/Dashboard"));
 const GenerateImage = lazy(() => import("./pages/GenerateImage"));
-const GeminiChat = lazy(() => import("./pages/GeminiChat"));
 const EditDesignPage = lazy(() => import("./pages/EditDesignPage"));
 const Designs = lazy(() => import("./pages/Designs"));
 
@@ -149,14 +148,7 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/gemini-chat"
-            element={
-              <ProtectedRoute>
-                <GeminiChat />
-              </ProtectedRoute>
-            }
-          />
+          {false && <Route path="/gemini-chat" element={<div /> } />} 
           <Route
             path="/edit-design"
             element={

@@ -20,7 +20,7 @@ import PropTypes from "prop-types";
 import { AuthContext } from "../contexts/AuthContext";
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -55,7 +55,11 @@ const Login = () => {
 
     try {
       console.log('Attempting login with:', { email: formData.email });
-      const response = await axiosInstance.post('/auth/login', formData);
+      const response = await axiosInstance.post('/auth/login', {
+        email: formData.email,
+        password: formData.password,
+        rememberMe: formData.rememberMe
+      });
       console.log('Login response:', response.data);
 
       if (response.data.status === 'success') {
@@ -196,8 +200,20 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Forgot Password */}
-              <div className="flex items-center justify-end">
+              {/* Remember Me */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="rememberMe"
+                    type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                    className="w-4 h-4 bg-[#1e1e1e] border-[#3C3C3C] rounded focus:ring-[#A58077] focus:ring-2 text-[#A58077]"
+                  />
+                  <label htmlFor="rememberMe" className="ml-2 text-sm text-[#A58077]">
+                    Remember me
+                  </label>
+                </div>
                 <button
                   type="button"
                   onClick={handleForgotPassword}

@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
 import { toast } from "react-hot-toast";
-import { FaEye, FaEyeSlash, FaArrowLeft } from "react-icons/fa";
-
+import { FaEye, FaEyeSlash, FaArrowLeft, FaLock, FaCheck, FaTimes } from "react-icons/fa";
 
 const ResetPassword = () => {
-  
   const { token } = useParams();
   const navigate = useNavigate();
   
@@ -30,6 +28,21 @@ const ResetPassword = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validatePasswordStrength = (password) => {
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+    return checks;
+  };
+
+  const passwordChecks = validatePasswordStrength(formData.password);
+  const passwordsMatch = formData.password === formData.passwordConfirm && formData.passwordConfirm.length > 0;
+  const isPasswordValid = Object.values(passwordChecks).every(check => check);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -39,20 +52,13 @@ const ResetPassword = () => {
       return;
     }
 
-    if (formData.password.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+    if (!isPasswordValid) {
+      toast.error("Password does not meet all requirements");
       return;
     }
 
-    if (formData.password !== formData.passwordConfirm) {
+    if (!passwordsMatch) {
       toast.error("Passwords do not match");
-      return;
-    }
-
-    // Password strength validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
-    if (!passwordRegex.test(formData.password)) {
-      toast.error("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
       return;
     }
 
@@ -66,7 +72,7 @@ const ResetPassword = () => {
 
       if (response.data.status === 'success') {
         toast.success("Password reset successfully! You can now log in with your new password.");
-        navigate("/login");
+        setTimeout(() => navigate("/login"), 2000);
       } else {
         toast.error(response.data.message || "Failed to reset password");
       }
@@ -79,6 +85,8 @@ const ResetPassword = () => {
       } else if (err.response?.status === 401) {
         toast.error("Reset link has expired or is invalid. Please request a new one.");
         setTokenValid(false);
+      } else if (err.response?.status === 429) {
+        toast.error("Too many attempts. Please try again later.");
       } else if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
         toast.error("Network error. Please check your connection and try again.");
       } else {
@@ -91,35 +99,31 @@ const ResetPassword = () => {
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center relative px-4 py-8 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/path-to-image.jpg')] bg-cover opacity-20 z-0" />
-
-        <div className="z-10 w-full max-w-lg bg-[var(--surface)] bg-opacity-90 rounded-xl shadow-2xl p-6 md:p-8 lg:p-10 animate-fade-in text-center">
-          <div className="mb-4 md:mb-6">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <svg className="w-6 h-6 md:w-8 md:h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
+      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-[#2C2C2C] rounded-2xl p-8 border border-[#3C3C3C] shadow-2xl text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaTimes className="text-red-400 text-3xl" />
             </div>
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-[#181818] mb-2">
+            <h1 className="text-3xl font-bold mb-2 text-[#E5CBBE]">
               Invalid Reset Link
             </h1>
-            <p className="text-[#616161] text-xs md:text-sm">
+            <p className="text-[#A58077] text-lg">
               This password reset link is invalid or has expired.
             </p>
           </div>
 
-          <div className="space-y-3 md:space-y-4">
+          <div className="space-y-4">
             <button
               onClick={() => navigate("/forgot-password")}
-              className="w-full px-3 md:px-4 py-2 md:py-3 bg-[#181818] text-white rounded-lg hover:bg-[#3a3a3a] transition-all duration-200 text-sm md:text-base"
+              className="w-full px-6 py-3 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-lg hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-semibold"
             >
               Request New Reset Link
             </button>
             
             <button
               onClick={() => navigate("/login")}
-              className="w-full px-3 md:px-4 py-2 md:py-3 border border-[#181818] text-[#181818] rounded-lg hover:bg-[#181818] hover:text-white transition-all duration-200 text-sm md:text-base"
+              className="w-full px-6 py-3 border border-[#3C3C3C] text-[#E5CBBE] rounded-lg hover:bg-[#A58077] hover:text-white hover:border-[#A58077] transition-all duration-300"
             >
               Back to Login
             </button>
@@ -130,106 +134,173 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center relative px-4 py-8 overflow-hidden">
-      <div className="absolute inset-0 bg-[url('/path-to-image.jpg')] bg-cover opacity-20 z-0" />
+    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
+      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-[#2C2C2C] rounded-2xl p-8 border border-[#3C3C3C] shadow-2xl">
+          <div className="mb-8">
+            <button
+              onClick={() => navigate("/login")}
+              className="flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors mb-4 text-sm"
+            >
+              <FaArrowLeft className="mr-2" />
+              Back to Login
+            </button>
+            
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-xl flex items-center justify-center shadow-lg">
+                <FaLock className="text-white text-xl" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-[#E5CBBE]">
+                  Reset Password
+                </h1>
+                <p className="text-[#A58077] text-sm">
+                  Enter your new password below
+                </p>
+              </div>
+            </div>
+          </div>
 
-      <div className="z-10 w-full max-w-lg bg-[var(--surface)] bg-opacity-90 rounded-xl shadow-2xl p-6 md:p-8 lg:p-10 animate-fade-in">
-        <div className="mb-4 md:mb-6">
-          <button
-            onClick={() => navigate("/login")}
-            className="flex items-center text-[#616161] hover:text-[#181818] transition-colors mb-3 md:mb-4 text-sm"
-          >
-            <FaArrowLeft className="mr-2" />
-            Back to Login
-          </button>
-          
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#181818] text-center mb-2">
-            Reset Your Password
-          </h1>
-          <p className="text-[#616161] text-center text-xs md:text-sm">
-            Enter your new password below
-          </p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-[#E5CBBE] mb-2"
+              >
+                New Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FaLock className="text-[#A58077]" />
+                </div>
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Enter your new password"
+                  className="w-full pl-12 pr-12 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 focus:border-[#A58077] text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle Password Visibility"
+                >
+                  {showPassword ? <FaEye size={16} /> : <FaEyeSlash size={16} />}
+                </button>
+              </div>
+              
+              {/* Password Requirements */}
+              {formData.password && (
+                <div className="mt-3 space-y-2 text-sm">
+                  <div className={`flex items-center space-x-2 ${passwordChecks.length ? 'text-green-400' : 'text-red-400'}`}>
+                    {passwordChecks.length ? <FaCheck /> : <FaTimes />}
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordChecks.uppercase ? 'text-green-400' : 'text-red-400'}`}>
+                    {passwordChecks.uppercase ? <FaCheck /> : <FaTimes />}
+                    <span>One uppercase letter</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordChecks.lowercase ? 'text-green-400' : 'text-red-400'}`}>
+                    {passwordChecks.lowercase ? <FaCheck /> : <FaTimes />}
+                    <span>One lowercase letter</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordChecks.number ? 'text-green-400' : 'text-red-400'}`}>
+                    {passwordChecks.number ? <FaCheck /> : <FaTimes />}
+                    <span>One number</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordChecks.special ? 'text-green-400' : 'text-red-400'}`}>
+                    {passwordChecks.special ? <FaCheck /> : <FaTimes />}
+                    <span>One special character</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="passwordConfirm"
+                className="block text-sm font-medium text-[#E5CBBE] mb-2"
+              >
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FaLock className="text-[#A58077]" />
+                </div>
+                <input
+                  id="passwordConfirm"
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="passwordConfirm"
+                  placeholder="Confirm your new password"
+                  className={`w-full pl-12 pr-12 py-4 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077] ${
+                    formData.passwordConfirm 
+                      ? passwordsMatch 
+                        ? 'border-green-500 focus:border-green-500' 
+                        : 'border-red-500 focus:border-red-500'
+                      : 'border-[#3C3C3C] focus:border-[#A58077]'
+                  }`}
+                  value={formData.passwordConfirm}
+                  onChange={handleInputChange}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label="Toggle Password Visibility"
+                >
+                  {showConfirmPassword ? <FaEye size={16} /> : <FaEyeSlash size={16} />}
+                </button>
+              </div>
+              
+              {/* Password Match Indicator */}
+              {formData.passwordConfirm && (
+                <div className="mt-2 flex items-center space-x-2 text-sm">
+                  {passwordsMatch ? (
+                    <>
+                      <FaCheck className="text-green-400" />
+                      <span className="text-green-400">Passwords match</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaTimes className="text-red-400" />
+                      <span className="text-red-400">Passwords do not match</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !isPasswordValid || !passwordsMatch}
+              className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 ${
+                loading || !isPasswordValid || !passwordsMatch
+                  ? "bg-[#3C3C3C] text-[#A58077] cursor-not-allowed" 
+                  : "bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white hover:from-[#8B6B63] hover:to-[#A58077] shadow-lg hover:shadow-xl transform hover:scale-105"
+              }`}
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Resetting Password...</span>
+                </>
+              ) : (
+                <>
+                  <FaLock />
+                  <span>Reset Password</span>
+                </>
+              )}
+            </button>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-          <div className="relative">
-            <label
-              htmlFor="password"
-              className="block text-[#616161] text-sm font-medium mb-1"
-            >
-              New Password
-            </label>
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Enter your new password"
-              className="w-full px-3 md:px-4 py-2 md:py-3 pr-10 md:pr-12 bg-[var(--surface)] border border-[#A09C9C] rounded focus:outline-none focus:ring-2 focus:ring-[#A58077] text-[#181818] transition-all duration-200 placeholder-[#A09C9C] text-sm md:text-base"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-            />
-            <button
-              type="button"
-              className="absolute inset-y-0 right-2 md:right-3 flex items-center text-[#616161] hover:text-[#A58077]"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label="Toggle Password Visibility"
-            >
-              {showPassword ? <FaEye size={16} /> : <FaEyeSlash size={16} />}
-            </button>
-          </div>
-
-          <div className="relative">
-            <label
-              htmlFor="passwordConfirm"
-              className="block text-[#616161] text-sm font-medium mb-1"
-            >
-              Confirm New Password
-            </label>
-            <input
-              id="passwordConfirm"
-              type={showConfirmPassword ? "text" : "password"}
-              name="passwordConfirm"
-              placeholder="Confirm your new password"
-              className="w-full px-3 md:px-4 py-2 md:py-3 pr-10 md:pr-12 bg-[var(--surface)] border border-[#A09C9C] rounded focus:outline-none focus:ring-2 focus:ring-[#A58077] text-[#181818] transition-all duration-200 placeholder-[#A09C9C] text-sm md:text-base"
-              value={formData.passwordConfirm}
-              onChange={handleInputChange}
-              required
-            />
-            <button
-              type="button"
-              className="absolute inset-y-0 right-2 md:right-3 flex items-center text-[#616161] hover:text-[#A58077]"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              aria-label="Toggle Password Visibility"
-            >
-              {showConfirmPassword ? <FaEye size={16} /> : <FaEyeSlash size={16} />}
-            </button>
-          </div>
-
-          <div className="text-xs text-[#616161]">
-            <p>Password must contain:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>At least 8 characters</li>
-              <li>One uppercase letter</li>
-              <li>One lowercase letter</li>
-              <li>One number</li>
-              <li>One special character (@$!%*?&)</li>
-            </ul>
-          </div>
-
-          <button
-            type="submit"
-            className={`w-full h-12 md:h-14 rounded-lg text-base md:text-lg font-semibold text-white transition-all duration-200 ${
-              loading ? "bg-[#A09C9C] cursor-not-allowed" : "bg-[#181818] hover:bg-[#3a3a3a]"
-            }`}
-            disabled={loading}
-          >
-            {loading ? "Resetting Password..." : "Reset Password"}
-          </button>
-        </form>
       </div>
     </div>
   );
 };
 
-export default ResetPassword; 
+export default ResetPassword;

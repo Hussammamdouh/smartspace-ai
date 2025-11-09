@@ -4,7 +4,7 @@ const inventoryController = require('../controllers/inventoryController');
 const { protect, restrictTo } = require('../middlewares/auth');
 const { validate, validateQuery } = require('../middlewares/validateMiddleware');
 const { inventoryItemSchema, inventoryFilterSchema } = require('../utils/validationSchemas');
-const { upload } = require('../middlewares/uploadMiddleware');
+const { uploadWithCloudinary, uploadFileWithCloudinary, upload } = require('../middlewares/uploadMiddleware');
 
 /**
  * @swagger
@@ -314,7 +314,7 @@ router.get("/categories", inventoryController.getCategories);
 router.get("/:id", inventoryController.getInventoryItem);
 
 // Test upload route (public)
-router.post('/test-upload', upload.single('image'), (req, res) => {
+router.post('/test-upload', uploadWithCloudinary, (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -348,8 +348,8 @@ router.post('/test-upload', upload.single('image'), (req, res) => {
 router.use(protect);
 router.use(restrictTo('admin'));
 
-router.post("/", upload.single("file"), validate(inventoryItemSchema), inventoryController.addInventoryItem);
-router.put("/:id", upload.single("file"), inventoryController.updateInventoryItem);
+router.post("/", uploadFileWithCloudinary, validate(inventoryItemSchema), inventoryController.addInventoryItem);
+router.put("/:id", uploadFileWithCloudinary, inventoryController.updateInventoryItem);
 router.delete("/:id", inventoryController.deleteInventoryItem);
 
 module.exports = router;

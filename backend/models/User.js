@@ -72,6 +72,22 @@ const userSchema = new mongoose.Schema({
   },
   lockUntil: Date,
   lastLogin: Date,
+  lastLoginIP: String,
+  loginIPs: [{
+    ip: String,
+    loginAt: Date
+  }],
+  passwordHistory: [{
+    hashedPassword: String,
+    changedAt: Date
+  }],
+  activityLog: [{
+    action: String,
+    ip: String,
+    userAgent: String,
+    timestamp: Date,
+    details: mongoose.Schema.Types.Mixed
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -94,9 +110,31 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Pre-save middleware to update passwordChangedAt
-userSchema.pre('save', function(next) {
+// Pre-save middleware to update passwordChangedAt and store password history
+userSchema.pre('save', async function(next) {
   if (!this.isModified('password') || this.isNew) return next();
+
+  // Store old password in history before hashing new one
+  // Note: We need to get the current password hash from DB before it changes
+  try {
+    const currentDoc = await this.constructor.findById(this._id).select('+password');
+    if (currentDoc && currentDoc.password) {
+      // Keep only last 3 passwords
+      if (!this.passwordHistory) {
+        this.passwordHistory = [];
+      }
+      this.passwordHistory.push({
+        hashedPassword: currentDoc.password,
+        changedAt: Date.now()
+      });
+      if (this.passwordHistory.length > 3) {
+        this.passwordHistory.shift(); // Remove oldest
+      }
+    }
+  } catch (err) {
+    // If error getting current doc, continue anyway
+    console.error('Error storing password history:', err);
+  }
 
   this.passwordChangedAt = Date.now() - 1000;
   next();
@@ -177,9 +215,40 @@ userSchema.methods.resetLoginAttempts = async function() {
   });
 };
 
-// Static method to find user by email
-userSchema.statics.findByEmail = function(email) {
-  return this.findOne({ email: email.toLowerCase() });
+// Instance method to check if password was used recently
+userSchema.methods.isPasswordInHistory = async function(candidatePassword) {
+  if (!this.passwordHistory || this.passwordHistory.length === 0) {
+    return false;
+  }
+
+  for (const historyItem of this.passwordHistory) {
+    const isMatch = await bcrypt.compare(candidatePassword, historyItem.hashedPassword);
+    if (isMatch) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Instance method to log activity
+userSchema.methods.logActivity = async function(action, req, details = {}) {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const userAgent = req.get('user-agent') || 'unknown';
+
+  this.activityLog.push({
+    action,
+    ip,
+    userAgent,
+    timestamp: Date.now(),
+    details
+  });
+
+  // Keep only last 100 activity logs
+  if (this.activityLog.length > 100) {
+    this.activityLog.shift();
+  }
+
+  await this.save({ validateBeforeSave: false });
 };
 
 // Add indexes for better performance

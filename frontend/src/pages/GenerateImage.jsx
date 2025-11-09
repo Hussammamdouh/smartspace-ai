@@ -23,6 +23,8 @@ const GenerateImage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [quality, setQuality] = useState('standard'); // 'standard' or 'hd'
+  const [size, setSize] = useState('1024x1024'); // '1024x1024', '1792x1024', '1024x1792'
   const navigate = useNavigate();
 
   const handleGenerate = async (e) => {
@@ -43,13 +45,20 @@ const GenerateImage = () => {
     setImage("");
     
     try {
-      const response = await axiosInstance.post('/replicate/generate', { 
-        prompt: prompt.trim() 
+      const response = await axiosInstance.post('/ai/generate-image', {
+        prompt: prompt.trim(),
+        quality: quality,
+        size: size
       });
-      
-      if (response.data.status === 'success') {
-        setImage(response.data.data.image);
-        toast.success("Image generated successfully!");
+
+      // Handle response from /ai/generate-image endpoint
+      if (response.data.status === 'success' && response.data.data?.imageUrl) {
+        setImage(response.data.data.imageUrl);
+        if (response.data.data.cached) {
+          toast.success("Image retrieved from cache!");
+        } else {
+          toast.success("Image generated successfully!");
+        }
       } else {
         throw new Error(response.data.message || "Failed to generate image");
       }
@@ -228,6 +237,39 @@ const GenerateImage = () => {
                     {error && (
                       <span className="text-xs text-red-400">{error}</span>
                     )}
+                  </div>
+                </div>
+
+                {/* Quality and Size Options */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-[#E5CBBE]">
+                      Image Quality
+                    </label>
+                    <select
+                      value={quality}
+                      onChange={(e) => setQuality(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-[#1e1e1e] border border-[#3C3C3C] focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300"
+                      disabled={loading}
+                    >
+                      <option value="standard">Standard ($0.04)</option>
+                      <option value="hd">HD Quality ($0.08)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-[#E5CBBE]">
+                      Image Size
+                    </label>
+                    <select
+                      value={size}
+                      onChange={(e) => setSize(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-[#1e1e1e] border border-[#3C3C3C] focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300"
+                      disabled={loading}
+                    >
+                      <option value="1024x1024">Square (1024x1024)</option>
+                      <option value="1792x1024">Landscape (1792x1024)</option>
+                      <option value="1024x1792">Portrait (1024x1792)</option>
+                    </select>
                   </div>
                 </div>
 

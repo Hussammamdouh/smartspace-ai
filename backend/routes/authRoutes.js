@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect } = require('../middlewares/auth');
+const { protect, forgotPasswordLimiter, resetPasswordLimiter } = require('../middlewares/auth');
 const {
   register,
   login,
@@ -10,7 +10,11 @@ const {
   resetPassword,
   refreshToken,
   verifyEmail,
-  resendVerification
+  resendVerification,
+  changeEmail,
+  deleteAccount,
+  getActivityLog,
+  getLoginHistory
 } = require('../controllers/authController');
 const {validate} = require('../middlewares/validateMiddleware');
 const { registerSchema, loginSchema, resendVerificationSchema } = require('../utils/validationSchemas');
@@ -261,7 +265,7 @@ router.post('/resend-verification', validate(resendVerificationSchema), resendVe
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/forgotPassword', forgotPassword);
+router.post('/forgotPassword', forgotPasswordLimiter, forgotPassword);
 
 /**
  * @swagger
@@ -321,7 +325,7 @@ router.post('/forgotPassword', forgotPassword);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.patch('/resetPassword/:token', resetPassword);
+router.patch('/resetPassword/:token', resetPasswordLimiter, resetPassword);
 
 // Protected routes (require authentication)
 router.use(protect);
@@ -444,5 +448,9 @@ router.get('/me', getMe);
  *               $ref: '#/components/schemas/Error'
  */
 router.patch('/updatePassword', updatePassword);
+router.patch('/change-email', changeEmail);
+router.delete('/delete-account', deleteAccount);
+router.get('/activity', getActivityLog);
+router.get('/login-history', getLoginHistory);
 
 module.exports = router;

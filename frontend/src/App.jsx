@@ -50,7 +50,7 @@ const UserDashboard = lazy(() => import("./pages/Dashboard"));
 const GenerateImage = lazy(() => import("./pages/GenerateImage"));
 const EditDesignPage = lazy(() => import("./pages/EditDesignPage"));
 const Designs = lazy(() => import("./pages/Designs"));
-const ThankYouPage = lazy(() => import("./pages/ThankYou.jsx"));
+const ThankYouPage = lazy(() => import("./pages/thankyou"));
 
 // AppContent component that uses the theme
 const AppContent = () => {

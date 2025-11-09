@@ -9,7 +9,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import ErrorBoundary from "./components/ErrorBoundry";
 import NotFoundPage from "./pages/error";
-import ThankYouPage from "./pages/ThankYou";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -51,6 +50,7 @@ const UserDashboard = lazy(() => import("./pages/Dashboard"));
 const GenerateImage = lazy(() => import("./pages/GenerateImage"));
 const EditDesignPage = lazy(() => import("./pages/EditDesignPage"));
 const Designs = lazy(() => import("./pages/Designs"));
+const ThankYouPage = lazy(() => import("./pages/ThankYou.jsx"));
 
 // AppContent component that uses the theme
 const AppContent = () => {

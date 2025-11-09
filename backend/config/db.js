@@ -12,12 +12,22 @@ const connectDB = async () => {
   }
 
   try {
-    const connection = await mongoose.connect(process.env.MONGO_URI, {
+    // Validate MONGO_URI is set
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable is not set');
+    }
+
+    // Connection options optimized for serverless
+    const connectionOptions = {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000, // Increased to 10 seconds for serverless
       socketTimeoutMS: 45000,
-      bufferCommands: false,
-    });
+      connectTimeoutMS: 10000, // Added explicit connect timeout
+      bufferCommands: false, // Disable mongoose buffering
+    };
+
+    logger.info('Attempting to connect to MongoDB...');
+    const connection = await mongoose.connect(process.env.MONGO_URI, connectionOptions);
     
     cachedConnection = connection;
     logger.info('MongoDB connected successfully.');

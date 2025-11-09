@@ -4,25 +4,35 @@ const fs = require('fs');
 const { uploadToCloudinary, testCloudinaryConnection, isCloudinaryAvailable } = require('../config/cloudinary');
 const logger = require('../utils/logger');
 
-// Ensure uploads directory exists for local storage fallback
+// Check if running on Vercel (serverless environment)
+const isVercel = process.env.VERCEL || process.env.VERCEL_ENV || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+// Ensure uploads directory exists for local storage fallback (only if not on Vercel)
 const uploadsDir = 'uploads/';
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+if (!isVercel && !fs.existsSync(uploadsDir)) {
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (error) {
+    logger.warn('Could not create uploads directory:', error.message);
+  }
 }
 
 // Configure storage with Cloudinary support
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    // Sanitize filename and add timestamp
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const timestamp = Date.now();
-    const extension = path.extname(file.originalname);
-    cb(null, `${timestamp}-${sanitizedName}`);
-  },
-});
+// Use memory storage on Vercel (serverless), disk storage otherwise
+const storage = isVercel 
+  ? multer.memoryStorage() // Memory storage for serverless environments
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+      },
+      filename: (req, file, cb) => {
+        // Sanitize filename and add timestamp
+        const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const timestamp = Date.now();
+        const extension = path.extname(file.originalname);
+        cb(null, `${timestamp}-${sanitizedName}`);
+      },
+    });
 
 // File filter for specific file types
 const fileFilter = (req, file, cb) => {
@@ -84,29 +94,53 @@ const createUploadWithCloudinary = (fieldName = 'image') => {
             req.file.url = cloudinaryResult.url;
             req.file.public_id = cloudinaryResult.public_id;
             
-            // Clean up local file
-            fs.unlinkSync(req.file.path);
-            req.file.path = null;
+            // Clean up local file (only if using disk storage)
+            if (req.file.path && !isVercel) {
+              try {
+                fs.unlinkSync(req.file.path);
+                req.file.path = null;
+              } catch (unlinkError) {
+                logger.warn('Could not delete local file:', unlinkError.message);
+              }
+            }
             
             logger.info('File uploaded to Cloudinary successfully');
           } else {
-            // Fallback to local storage
-            req.file.url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-            logger.info('File saved locally (Cloudinary connection failed)');
+            // Fallback to local storage (only if not on Vercel)
+            if (!isVercel && req.file.path) {
+              req.file.url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+              logger.info('File saved locally (Cloudinary connection failed)');
+            } else {
+              return res.status(500).json({ 
+                error: 'File upload failed: Cloudinary not available and local storage not supported in serverless environment' 
+              });
+            }
           }
         } else {
-          // Fallback to local storage
-          req.file.url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-          logger.info('File saved locally (Cloudinary not configured)');
+          // Fallback to local storage (only if not on Vercel)
+          if (!isVercel && req.file.path) {
+            req.file.url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+            logger.info('File saved locally (Cloudinary not configured)');
+          } else {
+            return res.status(500).json({ 
+              error: 'File upload failed: Cloudinary not configured and local storage not supported in serverless environment' 
+            });
+          }
         }
 
         next();
       } catch (cloudinaryError) {
-        logger.error('Cloudinary upload failed, falling back to local storage:', cloudinaryError);
+        logger.error('Cloudinary upload failed:', cloudinaryError);
         
-        // Fallback to local storage
-        req.file.url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-        next();
+        // Fallback to local storage (only if not on Vercel)
+        if (!isVercel && req.file.path) {
+          req.file.url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+          next();
+        } else {
+          return res.status(500).json({ 
+            error: 'File upload failed: Cloudinary error and local storage not supported in serverless environment' 
+          });
+        }
       }
       });
     } catch (error) {

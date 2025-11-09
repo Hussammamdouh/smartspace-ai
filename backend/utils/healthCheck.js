@@ -15,6 +15,33 @@ const checkDatabaseHealth = async () => {
       3: 'disconnecting'
     };
     
+    // If disconnected, try to connect (for serverless environments)
+    if (state === 0) {
+      const isServerless = process.env.VERCEL || process.env.VERCEL_ENV || process.env.AWS_LAMBDA_FUNCTION_NAME;
+      if (isServerless) {
+        try {
+          const connectDB = require('../config/db');
+          await connectDB();
+          // Wait a moment for connection to establish
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          const newState = mongoose.connection.readyState;
+          return {
+            status: newState === 1 ? 'healthy' : 'unhealthy',
+            state: states[newState] || 'unknown',
+            readyState: newState
+          };
+        } catch (connectError) {
+          logger.error('Failed to connect during health check:', connectError.message);
+          return {
+            status: 'unhealthy',
+            state: 'disconnected',
+            readyState: 0,
+            error: connectError.message
+          };
+        }
+      }
+    }
+    
     return {
       status: state === 1 ? 'healthy' : 'unhealthy',
       state: states[state] || 'unknown',

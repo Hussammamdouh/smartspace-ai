@@ -10,6 +10,7 @@ const swaggerSpec = require('./config/swagger');
 const swaggerUi = require('swagger-ui-express');
 const { errorHandler, notFound } = require('./middlewares/errorHandler');
 const requestLogger = require('./middlewares/requestLogger');
+const ensureDB = require('./middlewares/ensureDB');
 const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/authRoutes');
@@ -129,6 +130,39 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   }
 }));
 
+// ✅ Serve static files (uploaded images)
+app.use('/uploads', express.static('uploads'));
+
+// ✅ Diagnostic endpoint (BEFORE ensureDB to check env vars without connecting)
+app.get('/api/diagnose', (req, res) => {
+  res.json({
+    status: 'info',
+    message: 'Diagnostic information',
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      vercel: !!process.env.VERCEL,
+      vercelEnv: process.env.VERCEL_ENV,
+      hasMongoUri: !!process.env.MONGO_URI,
+      mongoUriPrefix: process.env.MONGO_URI ? process.env.MONGO_URI.substring(0, 20) + '...' : 'NOT SET',
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasOpenaiKey: !!process.env.OPENAI_API_KEY,
+      hasCloudinary: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY),
+    },
+    mongoose: {
+      readyState: mongoose.connection.readyState,
+      states: {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting'
+      }
+    }
+  });
+});
+
+// ✅ Ensure DB connection for API routes (serverless) - Must be before all API routes except diagnose
+app.use('/api', ensureDB);
+
 /**
  * @swagger
  * /api/health:
@@ -158,7 +192,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
  */
 const { performHealthCheck } = require('./utils/healthCheck');
 
-// ✅ Health Check Endpoint
+// ✅ Health Check Endpoint (DB connection ensured by ensureDB middleware)
 app.get('/api/health', async (req, res) => {
   try {
     const healthStatus = await performHealthCheck();
@@ -187,9 +221,6 @@ app.get('/api/health', async (req, res) => {
     });
   }
 });
-
-// ✅ Serve static files (uploaded images)
-app.use('/uploads', express.static('uploads'));
 
 // ✅ API Routes
 app.use('/api/auth', authRoutes);

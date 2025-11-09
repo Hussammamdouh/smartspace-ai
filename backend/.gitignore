@@ -9,3 +9,4 @@ uploads/
 
 # Tests
 coverage/
+.vercel

@@ -44,7 +44,19 @@ const uploadToCloudinary = async (file, folder = 'ai-interior-design') => {
       throw new Error('Cloudinary not configured');
     }
 
-    const result = await cloudinary.uploader.upload(file.path, {
+    // Handle both disk storage (file.path) and memory storage (file.buffer)
+    let uploadSource;
+    if (file.buffer) {
+      // Memory storage - upload from buffer
+      uploadSource = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    } else if (file.path) {
+      // Disk storage - upload from file path
+      uploadSource = file.path;
+    } else {
+      throw new Error('File must have either path or buffer property');
+    }
+
+    const result = await cloudinary.uploader.upload(uploadSource, {
       folder: folder,
       resource_type: 'auto',
       transformation: [

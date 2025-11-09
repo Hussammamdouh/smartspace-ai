@@ -60,7 +60,7 @@ exports.register = async (req, res, next) => {
     }
 
     // Check if user exists
-    const existingUser = await User.findByEmail(email);
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new APIError('Email already in use', 400));
     }
@@ -143,7 +143,7 @@ exports.login = async (req, res, next) => {
     const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
 
     // Check if user exists && password is correct
-    const user = await User.findByEmail(email).select('+password');
+    const user = await User.findOne({ email }).select('+password');
     
     // If user doesn't exist or password is incorrect
     if (!user || !(await user.correctPassword(password, user.password))) {
@@ -288,7 +288,7 @@ exports.updatePassword = async (req, res, next) => {
 exports.forgotPassword = async (req, res, next) => {
   try {
     // Get user based on POSTed email
-    const user = await User.findByEmail(req.body.email);
+    const user = await User.findOne({ email: req.body.email });
     if (!user) {
       // Don't reveal if user exists (security best practice)
       return res.status(200).json({
@@ -462,7 +462,7 @@ exports.resendVerification = async (req, res, next) => {
       return next(new APIError('Email is required', 400));
     }
 
-    const user = await User.findByEmail(email);
+    const user = await User.findOne({ email });
 
     if (!user) {
       return next(new APIError('No user found with this email address', 404));
@@ -572,7 +572,7 @@ exports.changeEmail = async (req, res, next) => {
     }
 
     // Check if email is already in use
-    const existingUser = await User.findByEmail(newEmail);
+    const existingUser = await User.findOne({ email: newEmail });
     if (existingUser) {
       return next(new APIError('Email is already in use', 400));
     }

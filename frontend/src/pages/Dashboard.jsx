@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useCart } from '../contexts/CartContext';
 import axiosInstance from '../utils/axiosInstance';
 import { 
@@ -20,6 +21,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 function Dashboard() {
+  const { isDarkMode } = useTheme();
   const { user, logout } = useContext(AuthContext);
   const { getCartCount } = useCart();
   const navigate = useNavigate();
@@ -133,30 +135,74 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#181818] flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${
+        isDarkMode ? 'bg-[#181818]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6]'
+      }`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A58077] mx-auto mb-4"></div>
-          <h1 className="text-xl text-[#E5CBBE]">Loading your dashboard...</h1>
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 ${
+            isDarkMode ? 'border-[#A58077]' : 'border-[#8B6B61]'
+          }`}></div>
+          <h1 className={`text-xl transition-colors duration-300 ${
+            isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+          }`}>Loading your dashboard...</h1>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen pt-24 pb-16 transition-colors duration-500 relative overflow-hidden ${
+      isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+    }`}>
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Gradient Orbs */}
+        <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+        }`}></div>
+        <div className={`absolute bottom-0 left-0 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#8B6B63]/10' : 'bg-[#A58077]/5'
+        }`} style={{ animationDelay: '1s' }}></div>
+        
+        {/* Grid Pattern */}
+        <div className={`absolute inset-0 bg-[size:50px_50px] transition-opacity duration-500 ${
+          isDarkMode 
+            ? 'bg-[linear-gradient(rgba(165,128,119,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(165,128,119,0.03)_1px,transparent_1px)]' 
+            : 'bg-[linear-gradient(rgba(139,107,97,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(139,107,97,0.05)_1px,transparent_1px)]'
+        }`}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-12">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-4xl lg:text-5xl font-bold mb-2">
+              <div className="inline-block mb-4">
+                <span className={`text-sm font-semibold uppercase tracking-wider px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-300 ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-[#A58077]/20 to-[#8B6B63]/20 border-[#A58077]/30 text-[#E5CBBE]'
+                    : 'bg-gradient-to-r from-[#8B6B61]/20 to-[#A58077]/20 border-[#8B6B61]/30 text-[#2C2C2C]'
+                }`}>
+                  Dashboard
+                </span>
+              </div>
+              
+              <h1 className={`text-5xl sm:text-6xl lg:text-7xl font-extrabold mb-4 transform hover:scale-105 transition-transform duration-300 ${
+                isDarkMode ? 'text-white' : 'text-[#2C2C2C]'
+              }`}>
                 Welcome back,
-                <span className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] bg-clip-text text-transparent">
+                <span className={`block bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-[#A58077] via-[#E5CBBE] to-[#8B6B63]'
+                    : 'bg-gradient-to-r from-[#8B6B61] via-[#A58077] to-[#8B6B61]'
+                }`}>
                   {user?.firstName || user?.name?.split(' ')[0] || 'User'}!
                 </span>
               </h1>
-              <p className="text-[#A58077] text-lg">
+              <p className={`text-xl sm:text-2xl max-w-2xl transition-colors duration-500 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
                 Here&apos;s what&apos;s happening with your account today
               </p>
             </div>
@@ -164,16 +210,20 @@ function Dashboard() {
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => navigate('/profile')}
-                className="flex items-center space-x-2 bg-[#2C2C2C] hover:bg-[#A58077] text-[#E5CBBE] hover:text-white px-4 py-3 rounded-xl transition-all duration-300 border border-[#3C3C3C] hover:border-[#A58077]"
+                className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all duration-300 border transform hover:scale-105 ${
+                  isDarkMode
+                    ? 'bg-[#2C2C2C] hover:bg-gradient-to-r hover:from-[#A58077] hover:to-[#8B6B63] text-[#E5CBBE] hover:text-white border-[#3C3C3C] hover:border-[#A58077]'
+                    : 'bg-white hover:bg-gradient-to-r hover:from-[#8B6B61] hover:to-[#A58077] text-[#2C2C2C] hover:text-white border-[#E5D3C7] hover:border-[#8B6B61] shadow-md'
+                }`}
               >
-                <FaUser />
+                <FaUser className="group-hover:rotate-12 transition-transform duration-300" />
                 <span>Profile</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-2 bg-[#2C2C2C] hover:bg-red-500 text-[#E5CBBE] hover:text-white px-4 py-3 rounded-xl transition-all duration-300 border border-[#3C3C3C] hover:border-red-500"
+                className="flex items-center space-x-2 px-4 py-3 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-xl transition-all duration-300 border border-red-500/30 hover:border-red-500 transform hover:scale-105"
               >
-                <FaSignOutAlt />
+                <FaSignOutAlt className="group-hover:rotate-12 transition-transform duration-300" />
                 <span>Logout</span>
               </button>
             </div>
@@ -182,70 +232,72 @@ function Dashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-[#2C2C2C] rounded-2xl p-6 border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#A58077] text-sm font-medium mb-1">Total Orders</p>
-                <p className="text-3xl font-bold text-[#E5CBBE] group-hover:text-white transition-colors duration-300">
-                  {stats.totalOrders}
-                </p>
-                <p className="text-xs text-[#A58077] mt-1">Lifetime orders</p>
-              </div>
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <FaBox className="text-white text-2xl" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#2C2C2C] rounded-2xl p-6 border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#A58077] text-sm font-medium mb-1">AI Designs</p>
-                <p className="text-3xl font-bold text-[#E5CBBE] group-hover:text-white transition-colors duration-300">
-                  {stats.totalDesigns}
-                </p>
-                <p className="text-xs text-[#A58077] mt-1">Generated designs</p>
-                <button
-                  onClick={() => navigate('/designs')}
-                  className="text-xs text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200 mt-2 underline"
-                >
-                  View All Designs
-                </button>
-              </div>
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <FaPalette className="text-white text-2xl" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#2C2C2C] rounded-2xl p-6 border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[#A58077] text-sm font-medium mb-1">Chat Sessions</p>
-                <p className="text-3xl font-bold text-[#E5CBBE] group-hover:text-white transition-colors duration-300">
-                  {stats.totalChats}
-                </p>
-                <p className="text-xs text-[#A58077] mt-1">AI conversations</p>
-              </div>
-              <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <FaComments className="text-white text-2xl" />
+          {[
+            { label: "Total Orders", value: stats.totalOrders, desc: "Lifetime orders", icon: FaBox, gradient: "from-blue-500 to-blue-600" },
+            { label: "AI Designs", value: stats.totalDesigns, desc: "Generated designs", icon: FaPalette, gradient: "from-purple-500 to-purple-600", action: () => navigate('/designs'), actionText: "View All Designs" },
+            { label: "Chat Sessions", value: stats.totalChats, desc: "AI conversations", icon: FaComments, gradient: "from-green-500 to-green-600" }
+          ].map((stat, idx) => (
+            <div key={idx} className={`rounded-2xl p-6 border backdrop-blur-xl transition-all duration-500 transform hover:scale-105 perspective-1000 ${
+              isDarkMode
+                ? 'bg-[#2C2C2C]/80 border-[#3C3C3C] hover:border-[#A58077]/50'
+                : 'bg-white/80 border-[#E5D3C7] hover:border-[#8B6B61]/50 shadow-lg'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium mb-1 transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>{stat.label}</p>
+                  <p className={`text-3xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE] group-hover:text-white' : 'text-[#2C2C2C] group-hover:text-[#8B6B61]'
+                  }`}>
+                    {stat.value}
+                  </p>
+                  <p className={`text-xs mt-1 transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>{stat.desc}</p>
+                  {stat.action && (
+                    <button
+                      onClick={stat.action}
+                      className={`text-xs mt-2 underline transition-colors duration-200 hover:scale-105 transform ${
+                        isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                      }`}
+                    >
+                      {stat.actionText}
+                    </button>
+                  )}
+                </div>
+                <div className={`bg-gradient-to-br ${stat.gradient} p-4 rounded-xl transform hover:scale-110 hover:rotate-12 transition-all duration-300 shadow-lg`}>
+                  <stat.icon className="text-white text-2xl" />
+                </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Quick Actions */}
           <div className="lg:col-span-2">
-            <div className="bg-[#2C2C2C] rounded-2xl p-8 border border-[#3C3C3C]">
+            <div className={`rounded-2xl p-8 border backdrop-blur-xl transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+              isDarkMode
+                ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+                : 'bg-white/80 border-[#E5D3C7] shadow-lg'
+            }`}>
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+                  isDarkMode
+                    ? 'from-[#A58077] to-[#8B6B63]'
+                    : 'from-[#8B6B61] to-[#A58077]'
+                }`}>
                   <FaRocket className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-[#E5CBBE]">Quick Actions</h2>
-                  <p className="text-[#A58077] text-sm">Get started with these popular features</p>
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>Quick Actions</h2>
+                  <p className={`text-sm transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>Get started with these popular features</p>
                 </div>
               </div>
               
@@ -254,21 +306,31 @@ function Dashboard() {
                   <button
                     key={index}
                     onClick={action.action}
-                    className="group relative overflow-hidden bg-[#1e1e1e] rounded-xl p-6 border border-[#3C3C3C] hover:border-[#A58077] transition-all duration-300 hover:shadow-xl hover:shadow-[#A58077]/10"
+                    className={`group relative overflow-hidden rounded-xl p-6 border transition-all duration-300 transform hover:scale-105 perspective-1000 ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] hover:border-[#A58077] hover:shadow-xl hover:shadow-[#A58077]/10'
+                        : 'bg-white border-[#E5D3C7] hover:border-[#8B6B61] hover:shadow-xl hover:shadow-[#8B6B61]/10 shadow-md'
+                    }`}
                   >
                     <div className="flex items-start space-x-4">
-                      <div className={`bg-gradient-to-br ${action.color} p-3 rounded-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <div className={`bg-gradient-to-br ${action.color} p-3 rounded-lg transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 shadow-lg`}>
                         <action.icon className="text-white text-xl" />
                       </div>
                       <div className="flex-1 text-left">
-                        <h3 className="text-lg font-semibold text-[#E5CBBE] group-hover:text-white transition-colors duration-300 mb-1">
+                        <h3 className={`text-lg font-semibold mb-1 transition-colors duration-300 ${
+                          isDarkMode ? 'text-[#E5CBBE] group-hover:text-white' : 'text-[#2C2C2C] group-hover:text-[#8B6B61]'
+                        }`}>
                           {action.title}
                         </h3>
-                        <p className="text-sm text-[#A58077] group-hover:text-[#E5CBBE] transition-colors duration-300">
+                        <p className={`text-sm transition-colors duration-300 ${
+                          isDarkMode ? 'text-[#A58077] group-hover:text-[#E5CBBE]' : 'text-[#8B6B61] group-hover:text-[#2C2C2C]'
+                        }`}>
                           {action.description}
                         </p>
                       </div>
-                      <FaArrowRight className="text-[#A58077] group-hover:text-white transition-colors duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300" />
+                      <FaArrowRight className={`transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 ${
+                        isDarkMode ? 'text-[#A58077] group-hover:text-white' : 'text-[#8B6B61] group-hover:text-[#2C2C2C]'
+                      }`} />
                     </div>
                   </button>
                 ))}
@@ -278,28 +340,48 @@ function Dashboard() {
 
           {/* Recent Activity */}
           <div className="lg:col-span-1">
-            <div className="bg-[#2C2C2C] rounded-2xl p-6 border border-[#3C3C3C] h-fit">
+            <div className={`rounded-2xl p-6 border backdrop-blur-xl h-fit transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+              isDarkMode
+                ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+                : 'bg-white/80 border-[#E5D3C7] shadow-lg'
+            }`}>
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-lg flex items-center justify-center">
+                <div className={`w-8 h-8 bg-gradient-to-br rounded-lg flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+                  isDarkMode
+                    ? 'from-[#A58077] to-[#8B6B63]'
+                    : 'from-[#8B6B61] to-[#A58077]'
+                }`}>
                   <FaChartLine className="text-white text-sm" />
                 </div>
-                <h3 className="text-xl font-bold text-[#E5CBBE]">Recent Activity</h3>
+                <h3 className={`text-xl font-bold transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>Recent Activity</h3>
               </div>
               
               <div className="space-y-4">
                 {recentActivities.map((activity, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-[#1e1e1e] transition-colors duration-200">
-                    <div className={`w-8 h-8 ${activity.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                  <div key={index} className={`flex items-start space-x-3 p-3 rounded-lg transition-all duration-300 transform hover:scale-105 ${
+                    isDarkMode
+                      ? 'hover:bg-[#1e1e1e]'
+                      : 'hover:bg-white/50 border border-[#E5D3C7] shadow-md'
+                  }`}>
+                    <div className={`w-8 h-8 ${activity.bgColor} rounded-lg flex items-center justify-center flex-shrink-0 transform hover:rotate-12 transition-transform duration-300`}>
                       <activity.icon className={`${activity.color} text-sm`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold text-[#E5CBBE] truncate">
+                      <h4 className={`text-sm font-semibold truncate transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                      }`}>
                         {activity.title}
                       </h4>
-                      <p className="text-xs text-[#A58077] truncate">
+                      <p className={`text-xs truncate transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>
                         {activity.description}
                       </p>
-                      <p className="text-xs text-[#A58077] mt-1">
+                      <p className={`text-xs mt-1 transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>
                         {activity.time}
                       </p>
                     </div>
@@ -307,7 +389,9 @@ function Dashboard() {
                 ))}
               </div>
               
-              <button className="w-full mt-4 py-2 text-sm text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200">
+              <button className={`w-full mt-4 py-2 text-sm rounded-lg transition-all duration-200 hover:scale-105 transform ${
+                isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+              }`}>
                 View all activity
               </button>
             </div>
@@ -316,45 +400,34 @@ function Dashboard() {
 
         {/* Additional Features */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-[#2C2C2C] rounded-xl p-6 border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group cursor-pointer" onClick={() => navigate('/wishlist')}>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <FaHeart className="text-white text-xl" />
+          {[
+            { icon: FaHeart, title: "Wishlist", desc: "Save your favorite items", gradient: "from-red-500 to-red-600", action: () => navigate('/wishlist') },
+            { icon: FaBox, title: "Orders", desc: "Track your purchases", gradient: "from-green-500 to-green-600", action: () => navigate('/orders') },
+            { icon: FaCog, title: "Settings", desc: "Manage your account", gradient: "from-gray-500 to-gray-600", action: () => navigate('/settings') },
+            { icon: FaShieldAlt, title: "Support", desc: "Get help & contact us", gradient: "from-blue-500 to-blue-600", action: () => navigate('/support') }
+          ].map((feature, idx) => (
+            <div
+              key={idx}
+              onClick={feature.action}
+              className={`rounded-xl p-6 border backdrop-blur-xl transition-all duration-500 transform hover:scale-105 perspective-1000 cursor-pointer ${
+                isDarkMode
+                  ? 'bg-[#2C2C2C]/80 border-[#3C3C3C] hover:border-[#A58077]/50'
+                  : 'bg-white/80 border-[#E5D3C7] hover:border-[#8B6B61]/50 shadow-lg'
+              }`}
+            >
+              <div className="text-center">
+                <div className={`w-12 h-12 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center mx-auto mb-4 transform hover:scale-110 hover:rotate-12 transition-all duration-300 shadow-lg`}>
+                  <feature.icon className="text-white text-xl" />
+                </div>
+                <h3 className={`text-lg font-semibold mb-2 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>{feature.title}</h3>
+                <p className={`text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>{feature.desc}</p>
               </div>
-              <h3 className="text-lg font-semibold text-[#E5CBBE] mb-2">Wishlist</h3>
-              <p className="text-sm text-[#A58077]">Save your favorite items</p>
             </div>
-          </div>
-
-          <div className="bg-[#2C2C2C] rounded-xl p-6 border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group cursor-pointer" onClick={() => navigate('/orders')}>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <FaBox className="text-white text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-[#E5CBBE] mb-2">Orders</h3>
-              <p className="text-sm text-[#A58077]">Track your purchases</p>
-            </div>
-          </div>
-
-          <div className="bg-[#2C2C2C] rounded-xl p-6 border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group cursor-pointer" onClick={() => navigate('/settings')}>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <FaCog className="text-white text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-[#E5CBBE] mb-2">Settings</h3>
-              <p className="text-sm text-[#A58077]">Manage your account</p>
-            </div>
-          </div>
-
-          <div className="bg-[#2C2C2C] rounded-xl p-6 border border-[#3C3C3C] hover:border-[#A58077]/50 transition-all duration-300 group cursor-pointer" onClick={() => navigate('/support')}>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <FaShieldAlt className="text-white text-xl" />
-              </div>
-              <h3 className="text-lg font-semibold text-[#E5CBBE] mb-2">Support</h3>
-              <p className="text-sm text-[#A58077]">Get help & contact us</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

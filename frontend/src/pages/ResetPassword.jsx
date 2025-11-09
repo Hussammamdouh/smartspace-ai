@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
+import { useTheme } from "../contexts/ThemeContext";
 import { toast } from "react-hot-toast";
 import { FaEye, FaEyeSlash, FaArrowLeft, FaLock, FaCheck, FaTimes } from "react-icons/fa";
 
 const ResetPassword = () => {
+  const { isDarkMode } = useTheme();
   const { token } = useParams();
   const navigate = useNavigate();
   
@@ -99,16 +101,33 @@ const ResetPassword = () => {
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32 flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-[#2C2C2C] rounded-2xl p-8 border border-[#3C3C3C] shadow-2xl text-center">
+      <div className={`min-h-screen pt-24 pb-32 flex items-center justify-center px-4 transition-colors duration-500 relative overflow-hidden ${
+        isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+      }`}>
+        {/* Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+            isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+          }`}></div>
+        </div>
+        
+        <div className={`max-w-md w-full rounded-2xl p-8 border backdrop-blur-xl shadow-2xl text-center transition-all duration-500 transform hover:scale-[1.02] perspective-1000 relative z-10 ${
+          isDarkMode
+            ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+            : 'bg-white/80 border-[#E5D3C7]'
+        }`}>
           <div className="mb-6">
-            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 transform hover:scale-110 transition-transform duration-300">
               <FaTimes className="text-red-400 text-3xl" />
             </div>
-            <h1 className="text-3xl font-bold mb-2 text-[#E5CBBE]">
+            <h1 className={`text-3xl font-bold mb-2 transition-colors duration-300 ${
+              isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+            }`}>
               Invalid Reset Link
             </h1>
-            <p className="text-[#A58077] text-lg">
+            <p className={`text-lg transition-colors duration-300 ${
+              isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+            }`}>
               This password reset link is invalid or has expired.
             </p>
           </div>
@@ -116,14 +135,22 @@ const ResetPassword = () => {
           <div className="space-y-4">
             <button
               onClick={() => navigate("/forgot-password")}
-              className="w-full px-6 py-3 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-lg hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-semibold"
+              className={`w-full px-6 py-3 text-white rounded-lg transition-all duration-300 font-semibold transform hover:scale-105 ${
+                isDarkMode
+                  ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                  : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+              }`}
             >
               Request New Reset Link
             </button>
             
             <button
               onClick={() => navigate("/login")}
-              className="w-full px-6 py-3 border border-[#3C3C3C] text-[#E5CBBE] rounded-lg hover:bg-[#A58077] hover:text-white hover:border-[#A58077] transition-all duration-300"
+              className={`w-full px-6 py-3 border rounded-lg transition-all duration-300 transform hover:scale-105 ${
+                isDarkMode
+                  ? 'border-[#3C3C3C] text-[#E5CBBE] hover:bg-gradient-to-r hover:from-[#A58077] hover:to-[#8B6B63] hover:text-white hover:border-[#A58077]'
+                  : 'border-[#E5D3C7] text-[#2C2C2C] hover:bg-gradient-to-r hover:from-[#8B6B61] hover:to-[#A58077] hover:text-white hover:border-[#8B6B61] shadow-md'
+              }`}
             >
               Back to Login
             </button>
@@ -134,27 +161,60 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#2C2C2C] rounded-2xl p-8 border border-[#3C3C3C] shadow-2xl">
+    <div className={`min-h-screen pt-24 pb-32 transition-colors duration-500 relative overflow-hidden ${
+      isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+    }`}>
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+        }`}></div>
+        <div className={`absolute bottom-0 left-0 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#8B6B63]/10' : 'bg-[#A58077]/5'
+        }`} style={{ animationDelay: '1s' }}></div>
+        
+        {/* Grid Pattern */}
+        <div className={`absolute inset-0 bg-[size:50px_50px] transition-opacity duration-500 ${
+          isDarkMode 
+            ? 'bg-[linear-gradient(rgba(165,128,119,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(165,128,119,0.03)_1px,transparent_1px)]' 
+            : 'bg-[linear-gradient(rgba(139,107,97,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(139,107,97,0.05)_1px,transparent_1px)]'
+        }`}></div>
+      </div>
+
+      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className={`rounded-2xl p-8 border backdrop-blur-xl shadow-2xl transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+          isDarkMode
+            ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+            : 'bg-white/80 border-[#E5D3C7]'
+        }`}>
           <div className="mb-8">
             <button
               onClick={() => navigate("/login")}
-              className="flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors mb-4 text-sm"
+              className={`flex items-center transition-all duration-200 hover:scale-105 mb-4 text-sm ${
+                isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+              }`}
             >
               <FaArrowLeft className="mr-2" />
               Back to Login
             </button>
             
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-xl flex items-center justify-center shadow-lg">
+              <div className={`w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+                isDarkMode
+                  ? 'from-[#A58077] to-[#8B6B63]'
+                  : 'from-[#8B6B61] to-[#A58077]'
+              }`}>
                 <FaLock className="text-white text-xl" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-[#E5CBBE]">
+                <h1 className={`text-3xl font-bold transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Reset Password
                 </h1>
-                <p className="text-[#A58077] text-sm">
+                <p className={`text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
                   Enter your new password below
                 </p>
               </div>
@@ -165,27 +225,37 @@ const ResetPassword = () => {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-[#E5CBBE] mb-2"
+                className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}
               >
                 New Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <FaLock className="text-[#A58077]" />
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
+                  <FaLock />
                 </div>
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Enter your new password"
-                  className="w-full pl-12 pr-12 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 focus:border-[#A58077] text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                  className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                    isDarkMode
+                      ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                      : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                  }`}
                   value={formData.password}
                   onChange={handleInputChange}
                   required
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors"
+                  className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-all duration-200 hover:scale-110 ${
+                    isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                  }`}
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label="Toggle Password Visibility"
                 >
@@ -223,25 +293,35 @@ const ResetPassword = () => {
             <div>
               <label
                 htmlFor="passwordConfirm"
-                className="block text-sm font-medium text-[#E5CBBE] mb-2"
+                className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}
               >
                 Confirm New Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <FaLock className="text-[#A58077]" />
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
+                  <FaLock />
                 </div>
                 <input
                   id="passwordConfirm"
                   type={showConfirmPassword ? "text" : "password"}
                   name="passwordConfirm"
                   placeholder="Confirm your new password"
-                  className={`w-full pl-12 pr-12 py-4 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077] ${
+                  className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
                     formData.passwordConfirm 
                       ? passwordsMatch 
                         ? 'border-green-500 focus:border-green-500' 
                         : 'border-red-500 focus:border-red-500'
-                      : 'border-[#3C3C3C] focus:border-[#A58077]'
+                      : isDarkMode
+                        ? 'border-[#3C3C3C] focus:border-[#A58077]'
+                        : 'border-[#E5D3C7] focus:border-[#8B6B61]'
+                  } ${
+                    isDarkMode
+                      ? 'bg-[#1e1e1e] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                      : 'bg-white focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
                   }`}
                   value={formData.passwordConfirm}
                   onChange={handleInputChange}
@@ -249,7 +329,9 @@ const ResetPassword = () => {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors"
+                  className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-all duration-200 hover:scale-110 ${
+                    isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                  }`}
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   aria-label="Toggle Password Visibility"
                 >
@@ -278,10 +360,14 @@ const ResetPassword = () => {
             <button
               type="submit"
               disabled={loading || !isPasswordValid || !passwordsMatch}
-              className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 ${
+              className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
                 loading || !isPasswordValid || !passwordsMatch
-                  ? "bg-[#3C3C3C] text-[#A58077] cursor-not-allowed" 
-                  : "bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white hover:from-[#8B6B63] hover:to-[#A58077] shadow-lg hover:shadow-xl transform hover:scale-105"
+                  ? isDarkMode
+                    ? "bg-[#3C3C3C] text-[#A58077]"
+                    : "bg-gray-300 text-gray-600"
+                  : isDarkMode
+                    ? "bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white hover:from-[#8B6B63] hover:to-[#A58077] shadow-lg hover:shadow-xl"
+                    : "bg-gradient-to-r from-[#8B6B61] to-[#A58077] text-white hover:from-[#A58077] hover:to-[#8B6B61] shadow-lg hover:shadow-xl"
               }`}
             >
               {loading ? (

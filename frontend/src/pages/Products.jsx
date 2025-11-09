@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
+import { useTheme } from "../contexts/ThemeContext";
 import { 
   FaHeart, 
   FaRegHeart, 
@@ -18,6 +19,7 @@ import SkeletonCard from "../components/SkeletonCard";
 import { toast } from "react-hot-toast";
 
 const ProductsPage = () => {
+  const { isDarkMode } = useTheme();
   const [products, setProducts] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,20 +156,30 @@ const ProductsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
+      <div className={`min-h-screen pt-24 pb-16 transition-colors duration-500 ${
+        isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-[#F5F1ED] text-[#2C2C2C]'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header Skeleton */}
           <div className="mb-8">
-            <div className="h-4 bg-[#2C2C2C] rounded w-32 mb-2 animate-pulse"></div>
-            <div className="h-12 bg-[#2C2C2C] rounded w-48 animate-pulse"></div>
+            <div className={`h-4 rounded w-32 mb-2 animate-pulse ${
+              isDarkMode ? 'bg-[#2C2C2C]' : 'bg-[#E5D3C7]'
+            }`}></div>
+            <div className={`h-12 rounded w-48 animate-pulse ${
+              isDarkMode ? 'bg-[#2C2C2C]' : 'bg-[#E5D3C7]'
+            }`}></div>
           </div>
           
           {/* Search and Filters Skeleton */}
           <div className="mb-8">
-            <div className="h-12 bg-[#2C2C2C] rounded mb-4 animate-pulse"></div>
+            <div className={`h-12 rounded mb-4 animate-pulse ${
+              isDarkMode ? 'bg-[#2C2C2C]' : 'bg-[#E5D3C7]'
+            }`}></div>
             <div className="flex flex-wrap gap-2">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-10 bg-[#2C2C2C] rounded w-24 animate-pulse"></div>
+                <div key={i} className={`h-10 rounded w-24 animate-pulse ${
+                  isDarkMode ? 'bg-[#2C2C2C]' : 'bg-[#E5D3C7]'
+                }`}></div>
               ))}
             </div>
           </div>
@@ -185,13 +197,19 @@ const ProductsPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] flex items-center justify-center pt-24 pb-16">
+      <div className={`min-h-screen flex items-center justify-center pt-24 pb-16 transition-colors duration-500 ${
+        isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-[#F5F1ED] text-[#2C2C2C]'
+      }`}>
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">😕</div>
           <p className="text-red-400 mb-4 text-lg">{error}</p>
           <button
             onClick={() => fetchProducts(1)}
-            className="px-6 py-3 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-300"
+            className={`px-6 py-3 text-white rounded-lg transition-all duration-300 transform hover:scale-105 ${
+              isDarkMode 
+                ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]' 
+                : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+            }`}
           >
             Try Again
           </button>
@@ -201,79 +219,164 @@ const ProductsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen pt-24 pb-16 transition-colors duration-500 relative overflow-hidden ${
+      isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+    }`}>
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Gradient Orbs */}
+        <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+        }`}></div>
+        <div className={`absolute top-1/4 left-0 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#8B6B63]/10' : 'bg-[#A58077]/5'
+        }`} style={{ animationDelay: '1s' }}></div>
+        
+        {/* Grid Pattern */}
+        <div className={`absolute inset-0 bg-[size:50px_50px] transition-opacity duration-500 ${
+          isDarkMode 
+            ? 'bg-[linear-gradient(rgba(165,128,119,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(165,128,119,0.03)_1px,transparent_1px)]' 
+            : 'bg-[linear-gradient(rgba(139,107,97,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(139,107,97,0.05)_1px,transparent_1px)]'
+        }`}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
-        <div className="mb-8">
-          <nav className="flex items-center space-x-2 text-sm text-[#A58077] mb-4">
-            <span>Home</span>
-            <span>/</span>
-            <span className="text-[#E5CBBE]">Products</span>
+        <div className="mb-12 relative">
+          {/* Breadcrumb */}
+          <nav className={`flex items-center space-x-2 text-sm mb-6 transition-colors duration-500 ${
+            isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+          }`}>
+            <span className="hover:underline cursor-pointer">Home</span>
+            <span className="opacity-50">/</span>
+            <span className={`font-medium ${isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'}`}>Products</span>
           </nav>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-2">
-            Discover Our
-            <span className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] bg-clip-text text-transparent"> Collection</span>
-          </h1>
-          <p className="text-[#A58077] text-lg">
-            Find the perfect pieces to transform your space
-          </p>
+          
+          {/* Title Section */}
+          <div className="space-y-4">
+            <div className="inline-block mb-2">
+              <span className={`text-sm font-semibold uppercase tracking-wider px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-300 ${
+                isDarkMode
+                  ? 'bg-gradient-to-r from-[#A58077]/20 to-[#8B6B63]/20 border-[#A58077]/30 text-[#E5CBBE]'
+                  : 'bg-gradient-to-r from-[#8B6B61]/20 to-[#A58077]/20 border-[#8B6B61]/30 text-[#2C2C2C]'
+              }`}>
+                Product Catalog
+              </span>
+            </div>
+            
+            <h1 className={`text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight transform hover:scale-[1.02] transition-transform duration-300 ${
+              isDarkMode ? 'text-white' : 'text-[#2C2C2C]'
+            }`}>
+              <span className="block mb-2">Discover Our</span>
+              <span className={`block bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] ${
+                isDarkMode
+                  ? 'bg-gradient-to-r from-[#A58077] via-[#E5CBBE] to-[#8B6B63]'
+                  : 'bg-gradient-to-r from-[#8B6B61] via-[#A58077] to-[#8B6B61]'
+              }`}>
+                Collection
+              </span>
+            </h1>
+            
+            <p className={`text-xl sm:text-2xl max-w-2xl transition-colors duration-500 leading-relaxed ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Find the perfect pieces to transform your space with our curated selection
+            </p>
+          </div>
         </div>
 
         {/* Search and Controls */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-8 space-y-6">
           {/* Search Bar */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products by name, style, or category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-4 pl-12 bg-[#2C2C2C] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077] transition-all duration-300"
-            />
-            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A58077]" />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200"
-              >
-                <FaTimes />
-              </button>
-            )}
+          <div className="relative group">
+            {/* Glow Effect */}
+            <div className={`absolute -inset-0.5 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63]'
+                : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077]'
+            }`}></div>
+            
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products by name, style, or category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full px-6 py-5 pl-14 pr-12 border-2 rounded-2xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.01] backdrop-blur-xl ${
+                  isDarkMode
+                    ? 'bg-[#2C2C2C]/80 border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/30 text-[#E5CBBE] placeholder-[#A58077]'
+                    : 'bg-white/90 border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/30 text-[#2C2C2C] placeholder-[#8B6B61] shadow-xl'
+                }`}
+              />
+              <FaSearch className={`absolute left-5 top-1/2 transform -translate-y-1/2 text-lg transition-all duration-300 group-hover:scale-110 ${
+                isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+              }`} />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className={`absolute right-5 top-1/2 transform -translate-y-1/2 transition-all duration-200 hover:scale-110 hover:rotate-90 ${
+                    isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                  }`}
+                >
+                  <FaTimes />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Controls Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl backdrop-blur-xl border transition-all duration-300 ${
+            isDarkMode
+              ? 'bg-[#2C2C2C]/50 border-[#3C3C3C]/50'
+              : 'bg-white/60 border-[#E5D3C7]/50 shadow-lg'
+          }`}>
             {/* Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 px-4 py-2 bg-[#2C2C2C] text-[#E5CBBE] rounded-lg hover:bg-[#A58077] hover:text-white transition-all duration-300 border border-[#3C3C3C] hover:border-[#A58077]"
+              className={`flex items-center space-x-3 px-6 py-3 rounded-xl transition-all duration-300 border-2 transform hover:scale-105 hover:rotate-1 font-medium ${
+                isDarkMode
+                  ? 'bg-[#2C2C2C] text-[#E5CBBE] border-[#3C3C3C] hover:bg-gradient-to-r hover:from-[#A58077] hover:to-[#8B6B63] hover:text-white hover:border-[#A58077]'
+                  : 'bg-white text-[#2C2C2C] border-[#E5D3C7] hover:bg-gradient-to-r hover:from-[#8B6B61] hover:to-[#A58077] hover:text-white hover:border-[#8B6B61] shadow-md'
+              }`}
             >
-              <FaSlidersH />
+              <FaSlidersH className="text-lg" />
               <span>Filters</span>
               {hasActiveFilters && (
-                <span className="w-2 h-2 bg-[#A58077] rounded-full"></span>
+                <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                  isDarkMode ? 'bg-[#A58077]' : 'bg-[#8B6B61]'
+                }`}></span>
               )}
             </button>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center space-x-2">
+            <div className={`flex items-center space-x-2 p-1 rounded-xl backdrop-blur-sm ${
+              isDarkMode ? 'bg-[#1a1a1a]/50' : 'bg-white/50'
+            }`}>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-all duration-300 ${
+                className={`p-3 rounded-lg transition-all duration-300 transform hover:scale-110 ${
                   viewMode === 'grid' 
-                    ? 'bg-[#A58077] text-white' 
-                    : 'bg-[#2C2C2C] text-[#E5CBBE] hover:bg-[#A58077] hover:text-white'
+                    ? isDarkMode
+                      ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white shadow-lg'
+                      : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] text-white shadow-lg'
+                    : isDarkMode
+                      ? 'bg-transparent text-[#E5CBBE] hover:bg-[#A58077]/20 hover:text-white'
+                      : 'bg-transparent text-[#2C2C2C] hover:bg-[#8B6B61]/20 hover:text-[#8B6B61]'
                 }`}
               >
                 <FaTh />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-all duration-300 ${
+                className={`p-3 rounded-lg transition-all duration-300 transform hover:scale-110 ${
                   viewMode === 'list' 
-                    ? 'bg-[#A58077] text-white' 
-                    : 'bg-[#2C2C2C] text-[#E5CBBE] hover:bg-[#A58077] hover:text-white'
+                    ? isDarkMode
+                      ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white shadow-lg'
+                      : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] text-white shadow-lg'
+                    : isDarkMode
+                      ? 'bg-transparent text-[#E5CBBE] hover:bg-[#A58077]/20 hover:text-white'
+                      : 'bg-transparent text-[#2C2C2C] hover:bg-[#8B6B61]/20 hover:text-[#8B6B61]'
                 }`}
               >
                 <FaList />
@@ -284,7 +387,11 @@ const ProductsPage = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 bg-[#2C2C2C] text-[#E5CBBE] border border-[#3C3C3C] rounded-lg focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-300"
+              className={`px-5 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-105 font-medium cursor-pointer ${
+                isDarkMode
+                  ? 'bg-[#2C2C2C] text-[#E5CBBE] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/30 hover:border-[#A58077]'
+                  : 'bg-white text-[#2C2C2C] border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/30 hover:border-[#8B6B61] shadow-md'
+              }`}
             >
               <option value="newest">Newest First</option>
               <option value="price-low">Price: Low to High</option>
@@ -296,30 +403,48 @@ const ProductsPage = () => {
           {/* Active Filters */}
           {hasActiveFilters && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[#A58077] text-sm">Active filters:</span>
+              <span className={`text-sm transition-colors duration-300 ${
+                isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+              }`}>Active filters:</span>
               {selectedCategory && (
-                <span className="px-3 py-1 bg-[#A58077]/20 text-[#A58077] rounded-full text-sm">
+                <span className={`px-3 py-1 rounded-full text-sm transition-all duration-300 hover:scale-110 ${
+                  isDarkMode
+                    ? 'bg-[#A58077]/20 text-[#A58077]'
+                    : 'bg-[#8B6B61]/20 text-[#8B6B61]'
+                }`}>
                   Category: {selectedCategory}
                 </span>
               )}
               {selectedStyle && (
-                <span className="px-3 py-1 bg-[#A58077]/20 text-[#A58077] rounded-full text-sm">
+                <span className={`px-3 py-1 rounded-full text-sm transition-all duration-300 hover:scale-110 ${
+                  isDarkMode
+                    ? 'bg-[#A58077]/20 text-[#A58077]'
+                    : 'bg-[#8B6B61]/20 text-[#8B6B61]'
+                }`}>
                   Style: {selectedStyle}
                 </span>
               )}
               {selectedColor && (
-                <span className="px-3 py-1 bg-[#A58077]/20 text-[#A58077] rounded-full text-sm">
+                <span className={`px-3 py-1 rounded-full text-sm transition-all duration-300 hover:scale-110 ${
+                  isDarkMode
+                    ? 'bg-[#A58077]/20 text-[#A58077]'
+                    : 'bg-[#8B6B61]/20 text-[#8B6B61]'
+                }`}>
                   Color: {selectedColor}
                 </span>
               )}
               {searchQuery && (
-                <span className="px-3 py-1 bg-[#A58077]/20 text-[#A58077] rounded-full text-sm">
+                <span className={`px-3 py-1 rounded-full text-sm transition-all duration-300 hover:scale-110 ${
+                  isDarkMode
+                    ? 'bg-[#A58077]/20 text-[#A58077]'
+                    : 'bg-[#8B6B61]/20 text-[#8B6B61]'
+                }`}>
                   Search: &quot;{searchQuery}&quot;
                 </span>
               )}
               <button
                 onClick={clearFilters}
-                className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm hover:bg-red-500 hover:text-white transition-all duration-300"
+                className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm hover:bg-red-500 hover:text-white transition-all duration-300 transform hover:scale-110"
               >
                 Clear All
               </button>
@@ -329,16 +454,26 @@ const ProductsPage = () => {
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mb-8 p-6 bg-[#2C2C2C] rounded-xl border border-[#3C3C3C]">
+          <div className={`mb-8 p-6 rounded-xl border transition-all duration-500 transform hover:scale-[1.01] ${
+            isDarkMode
+              ? 'bg-[#2C2C2C] border-[#3C3C3C]'
+              : 'bg-white border-[#E5D3C7] shadow-xl'
+          }`}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               
               {/* Category Filter */}
               <div>
-                <label className="block text-sm font-medium text-[#E5CBBE] mb-3">Category</label>
+                <label className={`block text-sm font-medium mb-3 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>Category</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] text-[#E5CBBE] border border-[#3C3C3C] rounded-lg focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-300"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-105 ${
+                    isDarkMode
+                      ? 'bg-[#1e1e1e] text-[#E5CBBE] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20'
+                      : 'bg-white text-[#2C2C2C] border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20'
+                  }`}
                 >
                   <option value="">All Categories</option>
                   <option value="bedroom">Bedroom</option>
@@ -351,11 +486,17 @@ const ProductsPage = () => {
 
               {/* Style Filter */}
               <div>
-                <label className="block text-sm font-medium text-[#E5CBBE] mb-3">Style</label>
+                <label className={`block text-sm font-medium mb-3 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>Style</label>
                 <select
                   value={selectedStyle}
                   onChange={(e) => setSelectedStyle(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] text-[#E5CBBE] border border-[#3C3C3C] rounded-lg focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-300"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-105 ${
+                    isDarkMode
+                      ? 'bg-[#1e1e1e] text-[#E5CBBE] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20'
+                      : 'bg-white text-[#2C2C2C] border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20'
+                  }`}
                 >
                   <option value="">All Styles</option>
                   <option value="modern">Modern</option>
@@ -368,11 +509,17 @@ const ProductsPage = () => {
 
               {/* Color Filter */}
               <div>
-                <label className="block text-sm font-medium text-[#E5CBBE] mb-3">Color</label>
+                <label className={`block text-sm font-medium mb-3 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>Color</label>
                 <select
                   value={selectedColor}
                   onChange={(e) => setSelectedColor(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] text-[#E5CBBE] border border-[#3C3C3C] rounded-lg focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 transition-all duration-300"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-105 ${
+                    isDarkMode
+                      ? 'bg-[#1e1e1e] text-[#E5CBBE] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20'
+                      : 'bg-white text-[#2C2C2C] border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20'
+                  }`}
                 >
                   <option value="">All Colors</option>
                   <option value="brown">Brown</option>
@@ -385,7 +532,9 @@ const ProductsPage = () => {
 
               {/* Price Range Filter */}
               <div>
-                <label className="block text-sm font-medium text-[#E5CBBE] mb-3">
+                <label className={`block text-sm font-medium mb-3 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Max Price: ${priceRange.toLocaleString()}
                 </label>
                 <input
@@ -395,7 +544,9 @@ const ProductsPage = () => {
                   step="100"
                   value={priceRange}
                   onChange={(e) => setPriceRange(Number(e.target.value))}
-                  className="w-full h-2 bg-[#1e1e1e] rounded-lg appearance-none cursor-pointer slider"
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer slider ${
+                    isDarkMode ? 'bg-[#1e1e1e]' : 'bg-[#E5D3C7]'
+                  }`}
                 />
               </div>
             </div>
@@ -406,8 +557,12 @@ const ProductsPage = () => {
         {sortedProducts.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-bold text-[#E5CBBE] mb-2">No products found</h3>
-            <p className="text-[#A58077] mb-6">
+            <h3 className={`text-2xl font-bold mb-2 transition-colors duration-300 ${
+              isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+            }`}>No products found</h3>
+            <p className={`mb-6 transition-colors duration-300 ${
+              isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+            }`}>
               {hasActiveFilters 
                 ? "Try adjusting your filters or search terms" 
                 : "We're working on adding more products"
@@ -416,7 +571,11 @@ const ProductsPage = () => {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="px-6 py-3 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-all duration-300"
+                className={`px-6 py-3 text-white rounded-lg transition-all duration-300 transform hover:scale-105 ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                    : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+                }`}
               >
                 Clear Filters
               </button>
@@ -437,6 +596,7 @@ const ProductsPage = () => {
                   onToggleWishlist={toggleWishlist}
                   onClick={handleCardClick}
                   viewMode={viewMode}
+                  isDarkMode={isDarkMode}
                 />
               ))}
             </div>
@@ -447,7 +607,11 @@ const ProductsPage = () => {
                 <button
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className="px-8 py-4 bg-[#A58077] text-white rounded-xl hover:bg-[#8B6B63] transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-8 py-4 text-white rounded-xl transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 ${
+                    isDarkMode
+                      ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                      : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+                  }`}
                 >
                   {isLoadingMore ? 'Loading...' : 'Load More Products'}
                 </button>
@@ -463,17 +627,21 @@ const ProductsPage = () => {
 };
 
 // Product Card Component
-const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMode }) => {
+const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMode, isDarkMode }) => {
   const isGrid = viewMode === 'grid';
 
   if (isGrid) {
     return (
       <div 
-        className="group bg-[#2C2C2C] rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer border border-[#3C3C3C] hover:border-[#A58077] transform hover:scale-105"
+        className={`group rounded-xl overflow-hidden transition-all duration-300 cursor-pointer border transform hover:scale-105 hover:rotate-y-2 perspective-1000 ${
+          isDarkMode
+            ? 'bg-[#2C2C2C] border-[#3C3C3C] hover:border-[#A58077] hover:shadow-2xl hover:shadow-[#A58077]/20'
+            : 'bg-white border-[#E5D3C7] hover:border-[#8B6B61] hover:shadow-2xl hover:shadow-[#8B6B61]/20'
+        }`}
         onClick={() => onClick(product._id)}
       >
         {/* Image Container */}
-        <div className="relative aspect-square overflow-hidden">
+        <div className="relative aspect-square overflow-hidden transform-style-3d">
           <img
             src={product.image || product.filePath}
             alt={product.name}
@@ -486,18 +654,30 @@ const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMod
           {/* Wishlist Button */}
           <button
             onClick={(e) => onToggleWishlist(product._id, e)}
-            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full text-[#A58077] hover:text-red-500 transition-all duration-300 hover:scale-110 shadow-lg"
+            className={`absolute top-3 right-3 p-2 backdrop-blur-sm rounded-full transition-all duration-300 hover:scale-110 hover:rotate-12 shadow-lg ${
+              isDarkMode
+                ? 'bg-white/90 text-[#A58077] hover:text-red-500'
+                : 'bg-white/95 text-[#8B6B61] hover:text-red-500'
+            }`}
           >
             {isWishlisted ? <FaHeart /> : <FaRegHeart />}
           </button>
 
           {/* Quick Actions */}
           <div className="absolute bottom-3 left-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button className="flex-1 py-2 px-3 bg-[#A58077] text-white rounded-lg text-sm font-medium hover:bg-[#8B6B63] transition-colors duration-200">
+            <button className={`flex-1 py-2 px-3 text-white rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+            }`}>
               <FaEye className="inline mr-1" />
               View
             </button>
-            <button className="flex-1 py-2 px-3 bg-[#2C2C2C] text-[#E5CBBE] rounded-lg text-sm font-medium hover:bg-[#A58077] hover:text-white transition-colors duration-200">
+            <button className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+              isDarkMode
+                ? 'bg-[#2C2C2C] text-[#E5CBBE] hover:bg-[#A58077] hover:text-white'
+                : 'bg-white text-[#2C2C2C] hover:bg-[#8B6B61] hover:text-white'
+            }`}>
               <FaShoppingCart className="inline mr-1" />
               Add to Cart
             </button>
@@ -507,22 +687,32 @@ const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMod
         {/* Content */}
         <div className="p-4">
           <div className="flex items-start justify-between mb-2">
-            <h3 className="font-semibold text-[#E5CBBE] group-hover:text-white transition-colors duration-200 line-clamp-2">
+            <h3 className={`font-semibold transition-colors duration-200 line-clamp-2 ${
+              isDarkMode
+                ? 'text-[#E5CBBE] group-hover:text-white'
+                : 'text-[#2C2C2C] group-hover:text-[#8B6B61]'
+            }`}>
               {product.name}
             </h3>
           </div>
           
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl font-bold text-[#A58077]">
+            <span className={`text-2xl font-bold transition-colors duration-300 ${
+              isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+            }`}>
               ${product.price?.toFixed(2)}
             </span>
             <div className="flex items-center space-x-1">
               <FaStar className="text-yellow-400 text-sm" />
-              <span className="text-sm text-[#A58077]">4.8</span>
+              <span className={`text-sm transition-colors duration-300 ${
+                isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+              }`}>4.8</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-sm text-[#A58077]">
+          <div className={`flex items-center justify-between text-sm transition-colors duration-300 ${
+            isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+          }`}>
             <span className="capitalize">{product.category}</span>
             <span className={`px-2 py-1 rounded-full text-xs ${
               product.stock > 10 ? 'bg-green-500/20 text-green-400' : 
@@ -540,16 +730,20 @@ const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMod
   // List View
   return (
     <div 
-      className="group bg-[#2C2C2C] rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border border-[#3C3C3C] hover:border-[#A58077]"
+      className={`group rounded-xl overflow-hidden transition-all duration-300 cursor-pointer border transform hover:scale-[1.02] hover:rotate-y-1 perspective-1000 ${
+        isDarkMode
+          ? 'bg-[#2C2C2C] border-[#3C3C3C] hover:border-[#A58077] hover:shadow-xl'
+          : 'bg-white border-[#E5D3C7] hover:border-[#8B6B61] hover:shadow-xl'
+      }`}
       onClick={() => onClick(product._id)}
     >
       <div className="flex">
         {/* Image */}
-        <div className="relative w-48 h-48 flex-shrink-0">
+        <div className="relative w-48 h-48 flex-shrink-0 transform-style-3d">
           <img
             src={product.image || product.filePath}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 group-hover:rotate-y-2 transition-all duration-500"
             onError={(e) => {
               e.target.src = 'https://via.placeholder.com/400x400/2C2C2C/A58077?text=No+Image';
             }}
@@ -558,7 +752,11 @@ const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMod
           {/* Wishlist Button */}
           <button
             onClick={(e) => onToggleWishlist(product._id, e)}
-            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full text-[#A58077] hover:text-red-500 transition-all duration-300 hover:scale-110 shadow-lg"
+            className={`absolute top-3 right-3 p-2 backdrop-blur-sm rounded-full transition-all duration-300 hover:scale-110 hover:rotate-12 shadow-lg ${
+              isDarkMode
+                ? 'bg-white/90 text-[#A58077] hover:text-red-500'
+                : 'bg-white/95 text-[#8B6B61] hover:text-red-500'
+            }`}
           >
             {isWishlisted ? <FaHeart /> : <FaRegHeart />}
           </button>
@@ -568,22 +766,32 @@ const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMod
         <div className="flex-1 p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h3 className="text-xl font-semibold text-[#E5CBBE] group-hover:text-white transition-colors duration-200 mb-2">
+              <h3 className={`text-xl font-semibold transition-colors duration-200 mb-2 ${
+                isDarkMode
+                  ? 'text-[#E5CBBE] group-hover:text-white'
+                  : 'text-[#2C2C2C] group-hover:text-[#8B6B61]'
+              }`}>
                 {product.name}
               </h3>
-              <p className="text-[#A58077] text-sm mb-3 line-clamp-2">
+              <p className={`text-sm mb-3 line-clamp-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+              }`}>
                 {product.description || 'Beautiful interior design piece that will transform your space.'}
               </p>
             </div>
             <div className="text-right ml-4">
-              <span className="text-3xl font-bold text-[#A58077]">
+              <span className={`text-3xl font-bold transition-colors duration-300 ${
+                isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+              }`}>
                 ${product.price?.toFixed(2)}
               </span>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 text-sm text-[#A58077]">
+            <div className={`flex items-center space-x-4 text-sm transition-colors duration-300 ${
+              isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+            }`}>
               <span className="capitalize">{product.category}</span>
               {product.style && <span className="capitalize">{product.style}</span>}
               {product.color && <span className="capitalize">{product.color}</span>}
@@ -602,7 +810,11 @@ const ProductCard = ({ product, isWishlisted, onToggleWishlist, onClick, viewMod
                 {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
               </span>
               
-              <button className="px-4 py-2 bg-[#A58077] text-white rounded-lg hover:bg-[#8B6B63] transition-colors duration-200 font-medium">
+              <button className={`px-4 py-2 text-white rounded-lg transition-all duration-200 font-medium transform hover:scale-105 ${
+                isDarkMode
+                  ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                  : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+              }`}>
                 <FaEye className="inline mr-1" />
                 View Details
               </button>
@@ -620,6 +832,7 @@ ProductCard.propTypes = {
   onToggleWishlist: PropTypes.func.isRequired,
   onClick: PropTypes.func.isRequired,
   viewMode: PropTypes.oneOf(['grid', 'list']).isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
 };
 
 export default ProductsPage;

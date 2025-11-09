@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../contexts/ThemeContext";
 import CartContext from "../contexts/CartContext";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../utils/axiosInstance";
@@ -108,6 +109,7 @@ CreditCard.propTypes = {
 };
 
 const CheckoutPage = () => {
+  const { isDarkMode } = useTheme();
   const { cart, clearCart, validateCartItems, addToCart } = useContext(CartContext);
   const navigate = useNavigate();
   const [address, setAddress] = useState({
@@ -379,10 +381,16 @@ const CheckoutPage = () => {
 
   if (validatingCart) {
     return (
-      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${
+        isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+      }`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A58077] mx-auto mb-4"></div>
-          <p className="text-[#A58077]">Validating your cart...</p>
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 ${
+            isDarkMode ? 'border-[#A58077]' : 'border-[#8B6B61]'
+          }`}></div>
+          <p className={`transition-colors duration-300 ${
+            isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+          }`}>Validating your cart...</p>
         </div>
       </div>
     );
@@ -390,38 +398,56 @@ const CheckoutPage = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={`min-h-screen pt-24 pb-32 transition-colors duration-500 relative overflow-hidden ${
+        isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+      }`}>
+        {/* Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+            isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+          }`}></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center py-16">
-            <div className="text-8xl mb-6">🛒</div>
-            <h2 className="text-4xl font-bold mb-4">
+            <div className="text-8xl mb-6 transform hover:scale-110 transition-transform duration-300">🛒</div>
+            <h2 className={`text-4xl font-bold mb-4 transition-colors duration-300 ${
+              isDarkMode ? 'text-white' : 'text-[#2C2C2C]'
+            }`}>
               Your Cart is
-              <span className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] bg-clip-text text-transparent"> Empty</span>
+              <span className={`block bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] ${
+                isDarkMode
+                  ? 'bg-gradient-to-r from-[#A58077] via-[#E5CBBE] to-[#8B6B63]'
+                  : 'bg-gradient-to-r from-[#8B6B61] via-[#A58077] to-[#8B6B61]'
+              }`}> Empty</span>
             </h2>
-            <p className="text-[#A58077] text-lg mb-8 max-w-md mx-auto">
+            <p className={`text-lg mb-8 max-w-md mx-auto transition-colors duration-300 ${
+              isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+            }`}>
               Looks like you haven&apos;t added any items to your cart yet. Start shopping to proceed to checkout.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
               <button
                 onClick={() => navigate('/products')}
-                className="px-8 py-4 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                className={`px-8 py-4 text-white rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                    : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+                }`}
               >
-                <FaBox className="inline mr-2" />
+                <FaBox className="inline mr-2 group-hover:rotate-12 transition-transform duration-300" />
                 Start Shopping
               </button>
               <button
                 onClick={() => navigate('/cart')}
-                className="px-8 py-4 bg-[#2C2C2C] text-[#E5CBBE] rounded-xl hover:bg-[#A58077] hover:text-white transition-all duration-300 font-semibold border border-[#3C3C3C] hover:border-[#A58077]"
+                className={`px-8 py-4 rounded-xl transition-all duration-300 font-semibold border transform hover:scale-105 ${
+                  isDarkMode
+                    ? 'bg-[#2C2C2C] text-[#E5CBBE] border-[#3C3C3C] hover:bg-gradient-to-r hover:from-[#A58077] hover:to-[#8B6B63] hover:text-white hover:border-[#A58077]'
+                    : 'bg-white text-[#2C2C2C] border-[#E5D3C7] hover:bg-gradient-to-r hover:from-[#8B6B61] hover:to-[#A58077] hover:text-white hover:border-[#8B6B61] shadow-md'
+                }`}
               >
-                <FaArrowLeft className="inline mr-2" />
+                <FaArrowLeft className="inline mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
                 View Cart
-              </button>
-              {/* Debug button */}
-              <button
-                onClick={addTestItems}
-                className="px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300 font-semibold"
-              >
-                Add Test Items (Debug)
               </button>
             </div>
           </div>
@@ -435,35 +461,65 @@ const CheckoutPage = () => {
   const priceChangedItems = cartValidation?.filter(result => result.priceChanged) || [];
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen pt-24 pb-32 transition-colors duration-500 relative overflow-hidden ${
+      isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+    }`}>
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Gradient Orbs */}
+        <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+        }`}></div>
+        <div className={`absolute bottom-0 left-0 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#8B6B63]/10' : 'bg-[#A58077]/5'
+        }`} style={{ animationDelay: '1s' }}></div>
+        
+        {/* Grid Pattern */}
+        <div className={`absolute inset-0 bg-[size:50px_50px] transition-opacity duration-500 ${
+          isDarkMode 
+            ? 'bg-[linear-gradient(rgba(165,128,119,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(165,128,119,0.03)_1px,transparent_1px)]' 
+            : 'bg-[linear-gradient(rgba(139,107,97,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(139,107,97,0.05)_1px,transparent_1px)]'
+        }`}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/cart')}
-            className="flex items-center space-x-2 text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200 mb-4"
+            className={`flex items-center space-x-2 mb-4 transition-all duration-300 transform hover:scale-105 ${
+              isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+            }`}
           >
-            <FaArrowLeft />
+            <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-300" />
             <span>Back to Cart</span>
           </button>
           
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-xl flex items-center justify-center">
+            <div className={`w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+              isDarkMode
+                ? 'from-[#A58077] to-[#8B6B63]'
+                : 'from-[#8B6B61] to-[#A58077]'
+            }`}>
               <FaCreditCard className="text-white text-xl" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-[#E5CBBE]">Checkout</h1>
-              <p className="text-[#A58077] text-lg">Complete your purchase</p>
+              <h1 className={`text-4xl font-bold transition-colors duration-300 ${
+                isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+              }`}>Checkout</h1>
+              <p className={`text-lg transition-colors duration-300 ${
+                isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+              }`}>Complete your purchase</p>
             </div>
           </div>
         </div>
 
         {/* Validation Warnings */}
         {(invalidItems.length > 0 || priceChangedItems.length > 0) && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-8">
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-8 backdrop-blur-xl transform hover:scale-[1.01] transition-all duration-300">
             <div className="flex items-center space-x-3 mb-4">
-              <FaExclamationTriangle className="text-red-400 text-xl" />
+              <FaExclamationTriangle className="text-red-400 text-xl transform hover:scale-110 transition-transform duration-300" />
               <h3 className="text-lg font-semibold text-red-400">Cart Issues Detected</h3>
             </div>
             <div className="space-y-2 text-sm text-red-300">
@@ -476,7 +532,7 @@ const CheckoutPage = () => {
             </div>
             <button
               onClick={() => navigate('/cart')}
-              className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 transform hover:scale-105"
             >
               Review Cart
             </button>
@@ -489,24 +545,40 @@ const CheckoutPage = () => {
           <div className="lg:col-span-2 space-y-8">
             
             {/* Shipping Information */}
-            <div className="bg-[#2C2C2C] rounded-2xl p-8 border border-[#3C3C3C]">
+            <div className={`rounded-2xl p-8 border backdrop-blur-xl transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+              isDarkMode
+                ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+                : 'bg-white/80 border-[#E5D3C7] shadow-lg'
+            }`}>
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-lg flex items-center justify-center">
+                <div className={`w-10 h-10 bg-gradient-to-br rounded-lg flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+                  isDarkMode
+                    ? 'from-[#A58077] to-[#8B6B63]'
+                    : 'from-[#8B6B61] to-[#A58077]'
+                }`}>
                   <FaMapMarkerAlt className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-[#E5CBBE]">Shipping Information</h2>
-                  <p className="text-[#A58077] text-sm">Where should we deliver your order?</p>
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>Shipping Information</h2>
+                  <p className={`text-sm transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>Where should we deliver your order?</p>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label htmlFor="name" className="block text-sm font-medium mb-1">Full Name</label>
+                    <label htmlFor="name" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                    }`}>Full Name</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <FaUser className="text-[#A58077]" />
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>
+                        <FaUser />
                       </div>
                       <input
                         id="name"
@@ -514,8 +586,12 @@ const CheckoutPage = () => {
                         type="text"
                         value={address.name}
                         onChange={handleChange}
-                        className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
-                          errors.name ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                        className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                          errors.name 
+                            ? 'border-red-500 focus:ring-red-500/20' 
+                            : isDarkMode
+                              ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                              : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                         }`}
                         placeholder="Enter your full name"
                       />
@@ -524,10 +600,14 @@ const CheckoutPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="email" className="block text-sm font-medium mb-1">Email Address</label>
+                    <label htmlFor="email" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                    }`}>Email Address</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <FaEnvelope className="text-[#A58077]" />
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>
+                        <FaEnvelope />
                       </div>
                       <input
                         id="email"
@@ -535,8 +615,12 @@ const CheckoutPage = () => {
                         type="email"
                         value={address.email}
                         onChange={handleChange}
-                        className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
-                          errors.email ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                        className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                          errors.email 
+                            ? 'border-red-500 focus:ring-red-500/20' 
+                            : isDarkMode
+                              ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                              : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                         }`}
                         placeholder="Enter your email"
                       />
@@ -546,10 +630,14 @@ const CheckoutPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="address" className="block text-sm font-medium mb-1">Address</label>
+                  <label htmlFor="address" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>Address</label>
                   <div className="relative">
-                    <div className="absolute top-3 left-4 flex items-center pointer-events-none">
-                      <FaHome className="text-[#A58077]" />
+                    <div className={`absolute top-3 left-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`}>
+                      <FaHome />
                     </div>
                     <textarea
                       id="address"
@@ -557,8 +645,12 @@ const CheckoutPage = () => {
                       value={address.address}
                       onChange={handleChange}
                       rows="3"
-                      className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 resize-none ${
-                        errors.address ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                      className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 resize-none transform focus:scale-[1.02] ${
+                        errors.address 
+                          ? 'border-red-500 focus:ring-red-500/20' 
+                          : isDarkMode
+                            ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                            : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                       }`}
                       placeholder="Enter your full address"
                     />
@@ -568,42 +660,58 @@ const CheckoutPage = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label htmlFor="city" className="block text-sm font-medium mb-1">City</label>
-                    <input
-                      id="city"
-                      name="city"
-                      type="text"
-                      value={address.city}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
-                        errors.city ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
-                      }`}
-                      placeholder="City"
-                    />
+                    <label htmlFor="city" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                    }`}>City</label>
+                      <input
+                        id="city"
+                        name="city"
+                        type="text"
+                        value={address.city}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                          errors.city 
+                            ? 'border-red-500 focus:ring-red-500/20' 
+                            : isDarkMode
+                              ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                              : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
+                        }`}
+                        placeholder="City"
+                      />
                     {errors.city && <p className="text-red-400 text-sm">{errors.city}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="postalCode" className="block text-sm font-medium mb-1">Postal Code</label>
-                    <input
-                      id="postalCode"
-                      name="postalCode"
-                      type="text"
-                      value={address.postalCode}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
-                        errors.postalCode ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
-                      }`}
-                      placeholder="Postal Code"
-                    />
+                    <label htmlFor="postalCode" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                    }`}>Postal Code</label>
+                      <input
+                        id="postalCode"
+                        name="postalCode"
+                        type="text"
+                        value={address.postalCode}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                          errors.postalCode 
+                            ? 'border-red-500 focus:ring-red-500/20' 
+                            : isDarkMode
+                              ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                              : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
+                        }`}
+                        placeholder="Postal Code"
+                      />
                     {errors.postalCode && <p className="text-red-400 text-sm">{errors.postalCode}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="country" className="block text-sm font-medium mb-1">Country</label>
+                    <label htmlFor="country" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                    }`}>Country</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <FaGlobe className="text-[#A58077]" />
+                      <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>
+                        <FaGlobe />
                       </div>
                       <input
                         id="country"
@@ -611,8 +719,12 @@ const CheckoutPage = () => {
                         type="text"
                         value={address.country}
                         onChange={handleChange}
-                        className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
-                          errors.country ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                        className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                          errors.country 
+                            ? 'border-red-500 focus:ring-red-500/20' 
+                            : isDarkMode
+                              ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                              : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                         }`}
                         placeholder="Country"
                       />
@@ -622,10 +734,14 @@ const CheckoutPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone Number (Optional)</label>
+                  <label htmlFor="phone" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>Phone Number (Optional)</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <FaPhone className="text-[#A58077]" />
+                    <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`}>
+                      <FaPhone />
                     </div>
                     <input
                       id="phone"
@@ -633,8 +749,12 @@ const CheckoutPage = () => {
                       type="tel"
                       value={address.phone}
                       onChange={handleChange}
-                      className={`w-full pl-12 pr-4 py-3 bg-[#1e1e1e] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
-                        errors.phone ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                      className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                        errors.phone 
+                          ? 'border-red-500 focus:ring-red-500/20' 
+                          : isDarkMode
+                            ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                            : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                       }`}
                       placeholder="Enter your phone number"
                     />
@@ -645,74 +765,124 @@ const CheckoutPage = () => {
             </div>
 
             {/* Payment Method */}
-            <div className="bg-[#2C2C2C] rounded-2xl p-8 border border-[#3C3C3C]">
+            <div className={`rounded-2xl p-8 border backdrop-blur-xl transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+              isDarkMode
+                ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+                : 'bg-white/80 border-[#E5D3C7] shadow-lg'
+            }`}>
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-lg flex items-center justify-center">
+                <div className={`w-10 h-10 bg-gradient-to-br rounded-lg flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+                  isDarkMode
+                    ? 'from-[#A58077] to-[#8B6B63]'
+                    : 'from-[#8B6B61] to-[#A58077]'
+                }`}>
                   <FaCreditCard className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-[#E5CBBE]">Payment Method</h2>
-                  <p className="text-[#A58077] text-sm">How would you like to pay?</p>
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>Payment Method</h2>
+                  <p className={`text-sm transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>How would you like to pay?</p>
                 </div>
               </div>
 
               <div className="space-y-6">
                 {/* Cash on Delivery Option */}
-                <div className="flex items-center space-x-4 p-4 bg-[#1e1e1e] rounded-xl border border-[#3C3C3C] hover:border-[#A58077] transition-colors duration-200">
+                <div className={`flex items-center space-x-4 p-4 rounded-xl border transition-all duration-300 transform hover:scale-105 ${
+                  isDarkMode
+                    ? 'bg-[#1e1e1e] border-[#3C3C3C] hover:border-[#A58077]'
+                    : 'bg-white border-[#E5D3C7] hover:border-[#8B6B61] shadow-md'
+                }`}>
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="cash-on-delivery"
                     checked={paymentMethod === "cash-on-delivery"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-4 h-4 bg-[#1e1e1e] border-[#3C3C3C] text-[#A58077] focus:ring-[#A58077] focus:ring-2"
+                    className={`w-4 h-4 focus:ring-2 ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] text-[#A58077] focus:ring-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] text-[#8B6B61] focus:ring-[#8B6B61]'
+                    }`}
                   />
                   <div className="flex items-center space-x-3">
-                    <FaCreditCard className="text-[#A58077]" />
+                    <FaCreditCard className={`transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`} />
                     <div>
-                      <p className="font-semibold text-[#E5CBBE]">Cash on Delivery</p>
-                      <p className="text-sm text-[#A58077]">Pay when you receive your order</p>
+                      <p className={`font-semibold transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                      }`}>Cash on Delivery</p>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>Pay when you receive your order</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Credit Card Option */}
-                <div className="flex items-center space-x-4 p-4 bg-[#1e1e1e] rounded-xl border border-[#3C3C3C] hover:border-[#A58077] transition-colors duration-200">
+                <div className={`flex items-center space-x-4 p-4 rounded-xl border transition-all duration-300 transform hover:scale-105 ${
+                  isDarkMode
+                    ? 'bg-[#1e1e1e] border-[#3C3C3C] hover:border-[#A58077]'
+                    : 'bg-white border-[#E5D3C7] hover:border-[#8B6B61] shadow-md'
+                }`}>
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="card"
                     checked={paymentMethod === "card"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-4 h-4 bg-[#1e1e1e] border-[#3C3C3C] text-[#A58077] focus:ring-[#A58077] focus:ring-2"
+                    className={`w-4 h-4 focus:ring-2 ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] text-[#A58077] focus:ring-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] text-[#8B6B61] focus:ring-[#8B6B61]'
+                    }`}
                   />
                   <div className="flex items-center space-x-3">
-                    <FaCreditCard className="text-[#A58077]" />
+                    <FaCreditCard className={`transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`} />
                     <div>
-                      <p className="font-semibold text-[#E5CBBE]">Credit/Debit Card</p>
-                      <p className="text-sm text-[#A58077]">Pay securely with your card</p>
+                      <p className={`font-semibold transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                      }`}>Credit/Debit Card</p>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>Pay securely with your card</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Credit Card Form */}
                 {paymentMethod === "card" && (
-                  <div className="mt-6 p-6 bg-[#1e1e1e] rounded-xl border border-[#3C3C3C]">
+                  <div className={`mt-6 p-6 rounded-xl border backdrop-blur-xl transition-all duration-500 ${
+                    isDarkMode
+                      ? 'bg-[#1e1e1e] border-[#3C3C3C]'
+                      : 'bg-white border-[#E5D3C7] shadow-lg'
+                  }`}>
                     {/* Credit Card Display */}
                     <CreditCard cardData={cardData} isFlipped={isCardFlipped} />
                     
                     {/* Card Input Fields */}
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label htmlFor="cardNumber" className="block text-sm font-medium mb-1">Card Number</label>
+                        <label htmlFor="cardNumber" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                          isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                        }`}>Card Number</label>
                         <input
                           id="cardNumber"
                           name="cardNumber"
                           type="text"
                           value={cardData.cardNumber}
                           onChange={handleCardChange}
-                          className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 font-mono ${
-                            cardErrors.cardNumber ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 font-mono transform focus:scale-[1.02] ${
+                            cardErrors.cardNumber 
+                              ? 'border-red-500 focus:ring-red-500/20' 
+                              : isDarkMode
+                                ? 'bg-[#2C2C2C] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                                : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                           }`}
                           placeholder="1234 5678 9012 3456"
                           maxLength="19"
@@ -721,15 +891,21 @@ const CheckoutPage = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="cardHolder" className="block text-sm font-medium mb-1">Card Holder Name</label>
+                        <label htmlFor="cardHolder" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                          isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                        }`}>Card Holder Name</label>
                         <input
                           id="cardHolder"
                           name="cardHolder"
                           type="text"
                           value={cardData.cardHolder}
                           onChange={handleCardChange}
-                          className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 ${
-                            cardErrors.cardHolder ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                            cardErrors.cardHolder 
+                              ? 'border-red-500 focus:ring-red-500/20' 
+                              : isDarkMode
+                                ? 'bg-[#2C2C2C] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                                : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                           }`}
                           placeholder="JOHN DOE"
                         />
@@ -738,15 +914,21 @@ const CheckoutPage = () => {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label htmlFor="expiry" className="block text-sm font-medium mb-1">Expiry Date</label>
+                          <label htmlFor="expiry" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                            isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                          }`}>Expiry Date</label>
                           <input
                             id="expiry"
                             name="expiry"
                             type="text"
                             value={cardData.expiry}
                             onChange={handleCardChange}
-                            className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 font-mono ${
-                              cardErrors.expiry ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                            className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 font-mono transform focus:scale-[1.02] ${
+                              cardErrors.expiry 
+                                ? 'border-red-500 focus:ring-red-500/20' 
+                                : isDarkMode
+                                  ? 'bg-[#2C2C2C] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                                  : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                             }`}
                             placeholder="MMYY"
                             maxLength="4"
@@ -755,7 +937,9 @@ const CheckoutPage = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <label htmlFor="cvv" className="block text-sm font-medium mb-1">CVV</label>
+                          <label htmlFor="cvv" className={`block text-sm font-medium mb-1 transition-colors duration-300 ${
+                            isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                          }`}>CVV</label>
                           <div className="relative">
                             <input
                               id="cvv"
@@ -765,8 +949,12 @@ const CheckoutPage = () => {
                               onChange={handleCardChange}
                               onFocus={() => setIsCardFlipped(true)}
                               onBlur={() => setIsCardFlipped(false)}
-                              className={`w-full px-4 py-3 bg-[#2C2C2C] border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 font-mono pr-12 ${
-                                cardErrors.cvv ? 'border-red-500' : 'border-[#3C3C3C] focus:border-[#A58077]'
+                              className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 font-mono pr-12 transform focus:scale-[1.02] ${
+                                cardErrors.cvv 
+                                  ? 'border-red-500 focus:ring-red-500/20' 
+                                  : isDarkMode
+                                    ? 'bg-[#2C2C2C] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE]'
+                                    : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] shadow-md'
                               }`}
                               placeholder="123"
                               maxLength="3"
@@ -774,7 +962,9 @@ const CheckoutPage = () => {
                             <button
                               type="button"
                               onClick={() => setShowCvv(!showCvv)}
-                              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200"
+                              className={`absolute inset-y-0 right-0 pr-3 flex items-center transition-all duration-200 hover:scale-110 ${
+                                isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                              }`}
                             >
                               {showCvv ? <FaEyeSlash /> : <FaEye />}
                             </button>
@@ -784,10 +974,12 @@ const CheckoutPage = () => {
                       </div>
 
                       {/* Security Info */}
-                      <div className="flex items-center justify-center mt-4 text-sm text-[#A58077]">
-                        <FaShieldAlt className="mr-2" />
+                      <div className={`flex items-center justify-center mt-4 text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>
+                        <FaShieldAlt className="mr-2 transform hover:scale-110 transition-transform duration-300" />
                         <span>Your payment information is secure and encrypted</span>
-                        <FaLock className="ml-2" />
+                        <FaLock className="ml-2 transform hover:scale-110 transition-transform duration-300" />
                       </div>
                     </div>
                   </div>
@@ -798,43 +990,63 @@ const CheckoutPage = () => {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-[#2C2C2C] rounded-2xl border border-[#3C3C3C] p-6 sticky top-24">
-              <h2 className="text-2xl font-bold text-[#E5CBBE] mb-6">Order Summary</h2>
+            <div className={`rounded-2xl border backdrop-blur-xl p-6 sticky top-24 transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+              isDarkMode
+                ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+                : 'bg-white/80 border-[#E5D3C7] shadow-lg'
+            }`}>
+              <h2 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${
+                isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+              }`}>Order Summary</h2>
 
               {/* Items */}
               <div className="space-y-4 mb-6">
                 {cart.map((item) => (
-                  <div key={item._id} className="flex items-center space-x-3">
+                  <div key={item._id} className="flex items-center space-x-3 transform hover:scale-105 transition-all duration-300">
                     <img
                       src={item.image || item.filePath}
                       alt={item.name}
-                      className="w-12 h-12 object-cover rounded-lg bg-[#1e1e1e]"
+                      className={`w-12 h-12 object-cover rounded-lg ${
+                        isDarkMode ? 'bg-[#1e1e1e]' : 'bg-white'
+                      }`}
                       onError={(e) => {
                         e.target.src = 'https://via.placeholder.com/48x48/2C2C2C/A58077?text=No+Image';
                       }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-[#E5CBBE] truncate">{item.name}</p>
-                      <p className="text-sm text-[#A58077]">Qty: {item.quantity}</p>
+                      <p className={`font-medium truncate transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                      }`}>{item.name}</p>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>Qty: {item.quantity}</p>
                     </div>
-                    <span className="font-semibold text-[#A58077]">${(item.price * item.quantity).toFixed(2)}</span>
+                    <span className={`font-semibold transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`}>${(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
 
-              <hr className="border-[#3C3C3C] my-6" />
+              <hr className={`my-6 transition-colors duration-300 ${
+                isDarkMode ? 'border-[#3C3C3C]' : 'border-[#E5D3C7]'
+              }`} />
 
               {/* Price Breakdown */}
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
-                  <span className="text-[#A58077]">Subtotal</span>
-                  <span className="text-[#E5CBBE]">${subtotal.toFixed(2)}</span>
+                  <span className={`transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>Subtotal</span>
+                  <span className={`transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>${subtotal.toFixed(2)}</span>
                 </div>
                 
                 {discount > 0 && (
                   <div className="flex justify-between text-green-400">
                     <span className="flex items-center">
-                      <FaGift className="mr-2" />
+                      <FaGift className="mr-2 transform hover:scale-110 transition-transform duration-300" />
                       Discount (10% off)
                     </span>
                     <span>-${discount.toFixed(2)}</span>
@@ -842,36 +1054,50 @@ const CheckoutPage = () => {
                 )}
                 
                 <div className="flex justify-between">
-                  <span className="flex items-center text-[#A58077]">
-                    <FaTruck className="mr-2" />
+                  <span className={`flex items-center transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
+                    <FaTruck className="mr-2 transform hover:scale-110 transition-transform duration-300" />
                     Shipping
                   </span>
-                  <span className={shippingCost === 0 ? 'text-green-400' : 'text-[#E5CBBE]'}>
+                  <span className={shippingCost === 0 ? 'text-green-400' : isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'}>
                     {shippingCost === 0 ? 'FREE' : `$${shippingCost.toFixed(2)}`}
                   </span>
                 </div>
               </div>
 
-              <hr className="border-[#3C3C3C] my-6" />
+              <hr className={`my-6 transition-colors duration-300 ${
+                isDarkMode ? 'border-[#3C3C3C]' : 'border-[#E5D3C7]'
+              }`} />
 
               {/* Total */}
               <div className="flex justify-between items-center mb-6">
-                <span className="text-xl font-bold text-[#E5CBBE]">Total</span>
-                <span className="text-2xl font-bold text-[#A58077]">${total.toFixed(2)}</span>
+                <span className={`text-xl font-bold transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>Total</span>
+                <span className={`text-2xl font-bold transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>${total.toFixed(2)}</span>
               </div>
 
               {/* Security Badge */}
-              <div className="flex items-center justify-center mb-6 text-sm text-[#A58077]">
-                <FaShieldAlt className="mr-2" />
+              <div className={`flex items-center justify-center mb-6 text-sm transition-colors duration-300 ${
+                isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+              }`}>
+                <FaShieldAlt className="mr-2 transform hover:scale-110 transition-transform duration-300" />
                 <span>Secure Checkout</span>
-                <FaLock className="ml-2" />
+                <FaLock className="ml-2 transform hover:scale-110 transition-transform duration-300" />
               </div>
 
               {/* Place Order Button */}
               <button
                 onClick={handleSubmit}
                 disabled={processing || invalidItems.length > 0}
-                className="w-full py-4 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                className={`w-full py-4 text-white rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                    : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+                }`}
               >
                 {processing ? (
                   <>
@@ -880,7 +1106,7 @@ const CheckoutPage = () => {
                   </>
                 ) : (
                   <>
-                    <FaCheck />
+                    <FaCheck className="group-hover:scale-110 transition-transform duration-300" />
                     <span>Place Order</span>
                   </>
                 )}
@@ -888,10 +1114,18 @@ const CheckoutPage = () => {
 
               {/* Free Shipping Info */}
               {shippingCost > 0 && (
-                <div className="mt-4 p-3 bg-[#1e1e1e] rounded-lg border border-[#3C3C3C]">
+                <div className={`mt-4 p-3 rounded-lg border transition-colors duration-300 ${
+                  isDarkMode
+                    ? 'bg-[#1e1e1e] border-[#3C3C3C]'
+                    : 'bg-white border-[#E5D3C7] shadow-md'
+                }`}>
                   <div className="flex items-center text-sm">
-                    <FaTruck className="text-[#A58077] mr-2" />
-                    <span className="text-[#A58077]">
+                    <FaTruck className={`mr-2 transform hover:scale-110 transition-transform duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`} />
+                    <span className={`transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`}>
                       Add ${(300 - subtotal).toFixed(2)} more for FREE shipping
                     </span>
                   </div>

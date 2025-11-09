@@ -8,7 +8,6 @@ import RedirectIfLoggedIn from "./components/RedirectIfLoggedIn";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import ErrorBoundary from "./components/ErrorBoundry";
-import BackendStatus from "./components/BackendStatus";
 import NotFoundPage from "./pages/error";
 import ThankYouPage from "./pages/ThankYou";
 import { Toaster } from "react-hot-toast";
@@ -59,7 +58,6 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-theme-background text-theme-text">
-      <BackendStatus />
       <ToastContainer
         position="top-right"
         autoClose={3000}

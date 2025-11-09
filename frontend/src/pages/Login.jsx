@@ -1,6 +1,7 @@
 import { useState, useContext } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   FaEye,
   FaEyeSlash,
@@ -20,6 +21,7 @@ import PropTypes from "prop-types";
 import { AuthContext } from "../contexts/AuthContext";
 
 const Login = () => {
+  const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({ email: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -110,21 +112,62 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen pt-24 pb-32 transition-colors duration-500 relative overflow-hidden ${
+      isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+    }`}>
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Gradient Orbs */}
+        <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+        }`}></div>
+        <div className={`absolute bottom-0 left-0 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#8B6B63]/10' : 'bg-[#A58077]/5'
+        }`} style={{ animationDelay: '1s' }}></div>
+        
+        {/* Grid Pattern */}
+        <div className={`absolute inset-0 bg-[size:50px_50px] transition-opacity duration-500 ${
+          isDarkMode 
+            ? 'bg-[linear-gradient(rgba(165,128,119,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(165,128,119,0.03)_1px,transparent_1px)]' 
+            : 'bg-[linear-gradient(rgba(139,107,97,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(139,107,97,0.05)_1px,transparent_1px)]'
+        }`}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
         <div className="text-center mb-12">
-          <nav className="flex items-center justify-center space-x-2 text-sm text-[#A58077] mb-4">
-            <span>Home</span>
-            <span>/</span>
-            <span className="text-[#E5CBBE]">Login</span>
+          <nav className={`flex items-center justify-center space-x-2 text-sm mb-6 transition-colors duration-500 ${
+            isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+          }`}>
+            <span className="hover:underline cursor-pointer">Home</span>
+            <span className="opacity-50">/</span>
+            <span className={`font-medium ${isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'}`}>Login</span>
           </nav>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+          
+          <div className="inline-block mb-4">
+            <span className={`text-sm font-semibold uppercase tracking-wider px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-300 ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-[#A58077]/20 to-[#8B6B63]/20 border-[#A58077]/30 text-[#E5CBBE]'
+                : 'bg-gradient-to-r from-[#8B6B61]/20 to-[#A58077]/20 border-[#8B6B61]/30 text-[#2C2C2C]'
+            }`}>
+              Welcome Back
+            </span>
+          </div>
+          
+          <h1 className={`text-5xl sm:text-6xl lg:text-7xl font-extrabold mb-4 transform hover:scale-105 transition-transform duration-300 ${
+            isDarkMode ? 'text-white' : 'text-[#2C2C2C]'
+          }`}>
             Welcome
-            <span className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] bg-clip-text text-transparent"> Back</span>
+            <span className={`block bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-[#A58077] via-[#E5CBBE] to-[#8B6B63]'
+                : 'bg-gradient-to-r from-[#8B6B61] via-[#A58077] to-[#8B6B61]'
+            }`}> Back</span>
           </h1>
-          <p className="text-[#A58077] text-lg max-w-md mx-auto">
+          <p className={`text-xl sm:text-2xl max-w-md mx-auto transition-colors duration-500 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             Sign in to your account to continue designing beautiful spaces
           </p>
         </div>
@@ -132,15 +175,27 @@ const Login = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
           
           {/* Left Side - Form */}
-          <div className="bg-[#2C2C2C] rounded-2xl p-8 lg:p-12 border border-[#3C3C3C] shadow-2xl">
+          <div className={`rounded-2xl p-8 lg:p-12 border backdrop-blur-xl shadow-2xl transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+            isDarkMode
+              ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+              : 'bg-white/80 border-[#E5D3C7]'
+          }`}>
             <div className="mb-8">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-xl flex items-center justify-center shadow-lg">
+                <div className={`w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+                  isDarkMode
+                    ? 'from-[#A58077] to-[#8B6B63]'
+                    : 'from-[#8B6B61] to-[#A58077]'
+                }`}>
                   <FaUser className="text-white text-xl" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-[#E5CBBE]">Sign In</h2>
-                  <p className="text-[#A58077] text-sm">Access your account</p>
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>Sign In</h2>
+                  <p className={`text-sm transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>Access your account</p>
                 </div>
               </div>
             </div>
@@ -149,12 +204,16 @@ const Login = () => {
               
               {/* Email Field */}
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-[#E5CBBE]">
+                <label htmlFor="email" className={`block text-sm font-medium transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Email Address
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FaEnvelope className="text-[#A58077]" />
+                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
+                    <FaEnvelope />
                   </div>
                   <input
                     id="email"
@@ -162,7 +221,11 @@ const Login = () => {
                     name="email"
                     autoFocus
                     placeholder="Enter your email address"
-                    className="w-full pl-12 pr-4 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                    className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                    }`}
                     value={formData.email}
                     onChange={handleInputChange}
                     required
@@ -172,26 +235,36 @@ const Login = () => {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-[#E5CBBE]">
+                <label htmlFor="password" className={`block text-sm font-medium transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FaLock className="text-[#A58077]" />
+                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
+                    <FaLock />
                   </div>
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     name="password"
                     placeholder="Enter your password"
-                    className="w-full pl-12 pr-12 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                    className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                    }`}
                     value={formData.password}
                     onChange={handleInputChange}
                     required
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200"
+                    className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-all duration-200 hover:scale-110 ${
+                      isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                    }`}
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label="Toggle Password Visibility"
                   >
@@ -208,16 +281,24 @@ const Login = () => {
                     type="checkbox"
                     checked={formData.rememberMe}
                     onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                    className="w-4 h-4 bg-[#1e1e1e] border-[#3C3C3C] rounded focus:ring-[#A58077] focus:ring-2 text-[#A58077]"
+                    className={`w-4 h-4 rounded focus:ring-2 transition-all duration-300 ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:ring-[#A58077] text-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] focus:ring-[#8B6B61] text-[#8B6B61]'
+                    }`}
                   />
-                  <label htmlFor="rememberMe" className="ml-2 text-sm text-[#A58077]">
+                  <label htmlFor="rememberMe" className={`ml-2 text-sm transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
                     Remember me
                   </label>
                 </div>
                 <button
                   type="button"
                   onClick={handleForgotPassword}
-                  className="text-sm text-[#A58077] hover:text-[#E5CBBE] underline transition-colors duration-200"
+                  className={`text-sm underline transition-all duration-200 hover:scale-105 ${
+                    isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                  }`}
                 >
                   Forgot your password?
                 </button>
@@ -227,7 +308,11 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                className={`w-full py-4 text-white rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                    : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+                }`}
               >
                 {loading ? (
                   <>
@@ -237,32 +322,42 @@ const Login = () => {
                 ) : (
                   <>
                     <span>Sign In</span>
-                    <FaArrowRight />
+                    <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
 
               {/* Divider */}
               <div className="flex items-center my-8">
-                <div className="flex-grow border-t border-[#3C3C3C]" />
-                <span className="mx-4 text-[#A58077] text-sm">or continue with</span>
-                <div className="flex-grow border-t border-[#3C3C3C]" />
+                <div className={`flex-grow border-t transition-colors duration-300 ${
+                  isDarkMode ? 'border-[#3C3C3C]' : 'border-[#E5D3C7]'
+                }`} />
+                <span className={`mx-4 text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>or continue with</span>
+                <div className={`flex-grow border-t transition-colors duration-300 ${
+                  isDarkMode ? 'border-[#3C3C3C]' : 'border-[#E5D3C7]'
+                }`} />
               </div>
 
               {/* Social Login Buttons */}
               <div className="grid grid-cols-3 gap-4">
-                <SocialButton Icon={FaGoogle} label="Google" />
-                <SocialButton Icon={FaApple} label="Apple" />
-                <SocialButton Icon={FaFacebookF} label="Facebook" />
+                <SocialButton Icon={FaGoogle} label="Google" isDarkMode={isDarkMode} />
+                <SocialButton Icon={FaApple} label="Apple" isDarkMode={isDarkMode} />
+                <SocialButton Icon={FaFacebookF} label="Facebook" isDarkMode={isDarkMode} />
               </div>
 
               {/* Register Link */}
               <div className="text-center pt-6">
-                <p className="text-[#A58077] text-sm">
+                <p className={`text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
                   Don&apos;t have an account?{" "}
                   <button
                     onClick={() => navigate("/register")}
-                    className="text-[#E5CBBE] font-semibold hover:text-[#A58077] transition-colors duration-200 underline"
+                    className={`font-semibold underline transition-all duration-200 hover:scale-105 ${
+                      isDarkMode ? 'text-[#E5CBBE] hover:text-[#A58077]' : 'text-[#2C2C2C] hover:text-[#8B6B61]'
+                    }`}
                   >
                     Create one now
                   </button>
@@ -277,62 +372,60 @@ const Login = () => {
               
               {/* Welcome Message */}
               <div className="space-y-4">
-                <div className="text-6xl mb-4">🎨</div>
-                <h3 className="text-3xl font-bold text-[#E5CBBE]">
+                <div className="text-6xl mb-4 transform hover:scale-110 transition-transform duration-300">🎨</div>
+                <h3 className={`text-3xl font-bold transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Transform Your Space with AI
                 </h3>
-                <p className="text-lg text-[#A58077] leading-relaxed">
+                <p className={`text-lg leading-relaxed transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
                   Join thousands of users who are already creating stunning interior designs with our AI-powered platform.
                 </p>
               </div>
 
               {/* Features */}
               <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-[#A58077]/20 rounded-lg flex items-center justify-center">
-                    <FaRocket className="text-[#A58077]" />
+                {[
+                  { icon: FaRocket, title: "AI-Powered Design", desc: "Generate stunning interiors in minutes" },
+                  { icon: FaShieldAlt, title: "Secure & Private", desc: "Your data is protected with enterprise security" },
+                  { icon: FaUser, title: "Personalized Experience", desc: "Get recommendations tailored to your style" }
+                ].map((feature, idx) => (
+                  <div key={idx} className="flex items-center space-x-3 group cursor-pointer transform hover:scale-105 transition-all duration-300">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 ${
+                      isDarkMode ? 'bg-[#A58077]/20' : 'bg-[#8B6B61]/20'
+                    }`}>
+                      <feature.icon className={isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'} />
+                    </div>
+                    <div>
+                      <h4 className={`font-semibold transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                      }`}>{feature.title}</h4>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>{feature.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-[#E5CBBE]">AI-Powered Design</h4>
-                    <p className="text-sm text-[#A58077]">Generate stunning interiors in minutes</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-[#A58077]/20 rounded-lg flex items-center justify-center">
-                    <FaShieldAlt className="text-[#A58077]" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-[#E5CBBE]">Secure & Private</h4>
-                    <p className="text-sm text-[#A58077]">Your data is protected with enterprise security</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-[#A58077]/20 rounded-lg flex items-center justify-center">
-                    <FaUser className="text-[#A58077]" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-[#E5CBBE]">Personalized Experience</h4>
-                    <p className="text-sm text-[#A58077]">Get recommendations tailored to your style</p>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4 pt-8">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#E5CBBE]">10K+</div>
-                  <div className="text-sm text-[#A58077]">Happy Users</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#E5CBBE]">50K+</div>
-                  <div className="text-sm text-[#A58077]">Designs Created</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#E5CBBE]">4.9★</div>
-                  <div className="text-sm text-[#A58077]">User Rating</div>
-                </div>
+                {[
+                  { value: "10K+", label: "Happy Users" },
+                  { value: "50K+", label: "Designs Created" },
+                  { value: "4.9★", label: "User Rating" }
+                ].map((stat, idx) => (
+                  <div key={idx} className="text-center group cursor-pointer transform hover:scale-105 transition-all duration-300">
+                    <div className={`text-2xl font-bold transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                    }`}>{stat.value}</div>
+                    <div className={`text-sm transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`}>{stat.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -342,10 +435,14 @@ const Login = () => {
   );
 };
 
-const SocialButton = ({ Icon, label }) => (
+const SocialButton = ({ Icon, label, isDarkMode }) => (
   <button
     type="button"
-    className="flex items-center justify-center space-x-2 py-3 px-4 bg-[#1e1e1e] text-[#E5CBBE] rounded-lg hover:bg-[#A58077] hover:text-white transition-all duration-300 border border-[#3C3C3C] hover:border-[#A58077]"
+    className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-all duration-300 border transform hover:scale-105 hover:rotate-1 ${
+      isDarkMode
+        ? 'bg-[#1e1e1e] text-[#E5CBBE] border-[#3C3C3C] hover:bg-gradient-to-r hover:from-[#A58077] hover:to-[#8B6B63] hover:text-white hover:border-[#A58077]'
+        : 'bg-white text-[#2C2C2C] border-[#E5D3C7] hover:bg-gradient-to-r hover:from-[#8B6B61] hover:to-[#A58077] hover:text-white hover:border-[#8B6B61] shadow-md'
+    }`}
   >
     <Icon size={16} />
     <span className="text-sm font-medium">{label}</span>
@@ -355,6 +452,7 @@ const SocialButton = ({ Icon, label }) => (
 SocialButton.propTypes = {
   Icon: PropTypes.elementType.isRequired,
   label: PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
 };
 
 export default Login;

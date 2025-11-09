@@ -1,6 +1,7 @@
 import { useState, useContext } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../contexts/ThemeContext";
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -22,6 +23,7 @@ import PropTypes from "prop-types";
 import { AuthContext } from "../contexts/AuthContext";
 
 const SignUp = () => {
+  const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -139,21 +141,62 @@ const SignUp = () => {
   const strength = passwordStrength(formData.password);
 
   return (
-    <div className="min-h-screen bg-[#181818] text-[#E5CBBE] pt-24 pb-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen pt-24 pb-32 transition-colors duration-500 relative overflow-hidden ${
+      isDarkMode ? 'bg-[#181818] text-[#E5CBBE]' : 'bg-gradient-to-b from-[#F5F1ED] via-[#FAF7F3] to-[#F0EBE6] text-[#2C2C2C]'
+    }`}>
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Gradient Orbs */}
+        <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#A58077]/10' : 'bg-[#8B6B61]/5'
+        }`}></div>
+        <div className={`absolute bottom-0 left-0 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
+          isDarkMode ? 'bg-[#8B6B63]/10' : 'bg-[#A58077]/5'
+        }`} style={{ animationDelay: '1s' }}></div>
+        
+        {/* Grid Pattern */}
+        <div className={`absolute inset-0 bg-[size:50px_50px] transition-opacity duration-500 ${
+          isDarkMode 
+            ? 'bg-[linear-gradient(rgba(165,128,119,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(165,128,119,0.03)_1px,transparent_1px)]' 
+            : 'bg-[linear-gradient(rgba(139,107,97,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(139,107,97,0.05)_1px,transparent_1px)]'
+        }`}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
         <div className="text-center mb-12">
-          <nav className="flex items-center justify-center space-x-2 text-sm text-[#A58077] mb-4">
-            <span>Home</span>
-            <span>/</span>
-            <span className="text-[#E5CBBE]">Register</span>
+          <nav className={`flex items-center justify-center space-x-2 text-sm mb-6 transition-colors duration-500 ${
+            isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+          }`}>
+            <span className="hover:underline cursor-pointer">Home</span>
+            <span className="opacity-50">/</span>
+            <span className={`font-medium ${isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'}`}>Register</span>
           </nav>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+          
+          <div className="inline-block mb-4">
+            <span className={`text-sm font-semibold uppercase tracking-wider px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-300 ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-[#A58077]/20 to-[#8B6B63]/20 border-[#A58077]/30 text-[#E5CBBE]'
+                : 'bg-gradient-to-r from-[#8B6B61]/20 to-[#A58077]/20 border-[#8B6B61]/30 text-[#2C2C2C]'
+            }`}>
+              Join Us
+            </span>
+          </div>
+          
+          <h1 className={`text-5xl sm:text-6xl lg:text-7xl font-extrabold mb-4 transform hover:scale-105 transition-transform duration-300 ${
+            isDarkMode ? 'text-white' : 'text-[#2C2C2C]'
+          }`}>
             Join Our
-            <span className="bg-gradient-to-r from-[#A58077] to-[#8B6B63] bg-clip-text text-transparent"> Community</span>
+            <span className={`block bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] ${
+              isDarkMode
+                ? 'bg-gradient-to-r from-[#A58077] via-[#E5CBBE] to-[#8B6B63]'
+                : 'bg-gradient-to-r from-[#8B6B61] via-[#A58077] to-[#8B6B61]'
+            }`}> Community</span>
           </h1>
-          <p className="text-[#A58077] text-lg max-w-md mx-auto">
+          <p className={`text-xl sm:text-2xl max-w-md mx-auto transition-colors duration-500 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             Create your account and start designing beautiful spaces with AI
           </p>
         </div>
@@ -161,15 +204,27 @@ const SignUp = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start max-w-6xl mx-auto">
           
           {/* Left Side - Form */}
-          <div className="bg-[#2C2C2C] rounded-2xl p-8 lg:p-12 border border-[#3C3C3C] shadow-2xl">
+          <div className={`rounded-2xl p-8 lg:p-12 border backdrop-blur-xl shadow-2xl transition-all duration-500 transform hover:scale-[1.01] perspective-1000 ${
+            isDarkMode
+              ? 'bg-[#2C2C2C]/80 border-[#3C3C3C]'
+              : 'bg-white/80 border-[#E5D3C7]'
+          }`}>
             <div className="mb-8">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#A58077] to-[#8B6B63] rounded-xl flex items-center justify-center shadow-lg">
+                <div className={`w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 hover:rotate-12 transition-all ${
+                  isDarkMode
+                    ? 'from-[#A58077] to-[#8B6B63]'
+                    : 'from-[#8B6B61] to-[#A58077]'
+                }`}>
                   <FaUser className="text-white text-xl" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-[#E5CBBE]">Create Account</h2>
-                  <p className="text-[#A58077] text-sm">Join thousands of designers</p>
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>Create Account</h2>
+                  <p className={`text-sm transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>Join thousands of designers</p>
                 </div>
               </div>
             </div>
@@ -179,19 +234,27 @@ const SignUp = () => {
               {/* Name Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="firstName" className="block text-sm font-medium text-[#E5CBBE]">
+                  <label htmlFor="firstName" className={`block text-sm font-medium transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>
                     First Name
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <FaUser className="text-[#A58077]" />
+                    <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`}>
+                      <FaUser />
                     </div>
                     <input
                       id="firstName"
                       type="text"
                       name="firstName"
                       placeholder="Enter your first name"
-                      className="w-full pl-12 pr-4 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                      className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                        isDarkMode
+                          ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                          : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                      }`}
                       value={formData.firstName}
                       onChange={handleInputChange}
                       required
@@ -200,19 +263,27 @@ const SignUp = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="lastName" className="block text-sm font-medium text-[#E5CBBE]">
+                  <label htmlFor="lastName" className={`block text-sm font-medium transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                  }`}>
                     Last Name
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <FaUser className="text-[#A58077]" />
+                    <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                      isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                    }`}>
+                      <FaUser />
                     </div>
                     <input
                       id="lastName"
                       type="text"
                       name="lastName"
                       placeholder="Enter your last name"
-                      className="w-full pl-12 pr-4 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                      className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                        isDarkMode
+                          ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                          : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                      }`}
                       value={formData.lastName}
                       onChange={handleInputChange}
                       required
@@ -223,19 +294,27 @@ const SignUp = () => {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-[#E5CBBE]">
+                <label htmlFor="email" className={`block text-sm font-medium transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Email Address
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FaEnvelope className="text-[#A58077]" />
+                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
+                    <FaEnvelope />
                   </div>
                   <input
                     id="email"
                     type="email"
                     name="email"
                     placeholder="Enter your email address"
-                    className="w-full pl-12 pr-4 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                    className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                    }`}
                     value={formData.email}
                     onChange={handleInputChange}
                     required
@@ -245,19 +324,27 @@ const SignUp = () => {
 
               {/* Phone Field */}
               <div className="space-y-2">
-                <label htmlFor="phone" className="block text-sm font-medium text-[#E5CBBE]">
+                <label htmlFor="phone" className={`block text-sm font-medium transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Phone Number
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FaPhone className="text-[#A58077]" />
+                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
+                    <FaPhone />
                   </div>
                   <input
                     id="phone"
                     type="tel"
                     name="phone"
                     placeholder="e.g., 01012345678"
-                    className="w-full pl-12 pr-4 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                    className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                    }`}
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
@@ -267,26 +354,36 @@ const SignUp = () => {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-[#E5CBBE]">
+                <label htmlFor="password" className={`block text-sm font-medium transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FaLock className="text-[#A58077]" />
+                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
+                    <FaLock />
                   </div>
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     name="password"
                     placeholder="Minimum 8 characters"
-                    className="w-full pl-12 pr-12 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                    className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                    }`}
                     value={formData.password}
                     onChange={handleInputChange}
                     required
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200"
+                    className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-all duration-200 hover:scale-110 ${
+                      isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                    }`}
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label="Toggle Password Visibility"
                   >
@@ -318,26 +415,36 @@ const SignUp = () => {
 
               {/* Confirm Password Field */}
               <div className="space-y-2">
-                <label htmlFor="passwordConfirm" className="block text-sm font-medium text-[#E5CBBE]">
+                <label htmlFor="passwordConfirm" className={`block text-sm font-medium transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Confirm Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FaLock className="text-[#A58077]" />
+                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${
+                    isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                  }`}>
+                    <FaLock />
                   </div>
                   <input
                     id="passwordConfirm"
                     type={showConfirmPassword ? "text" : "password"}
                     name="passwordConfirm"
                     placeholder="Confirm your password"
-                    className="w-full pl-12 pr-12 py-4 bg-[#1e1e1e] border border-[#3C3C3C] rounded-xl focus:outline-none focus:border-[#A58077] focus:ring-2 focus:ring-[#A58077]/20 text-[#E5CBBE] transition-all duration-300 placeholder-[#A58077]"
+                    className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 transform focus:scale-[1.02] ${
+                      isDarkMode
+                        ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:border-[#A58077] focus:ring-[#A58077]/20 text-[#E5CBBE] placeholder-[#A58077]'
+                        : 'bg-white border-[#E5D3C7] focus:border-[#8B6B61] focus:ring-[#8B6B61]/20 text-[#2C2C2C] placeholder-[#8B6B61] shadow-md'
+                    }`}
                     value={formData.passwordConfirm}
                     onChange={handleInputChange}
                     required
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#A58077] hover:text-[#E5CBBE] transition-colors duration-200"
+                    className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-all duration-200 hover:scale-110 ${
+                      isDarkMode ? 'text-[#A58077] hover:text-[#E5CBBE]' : 'text-[#8B6B61] hover:text-[#2C2C2C]'
+                    }`}
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     aria-label="Toggle Password Visibility"
                   >
@@ -370,16 +477,26 @@ const SignUp = () => {
                   id="terms"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 w-4 h-4 bg-[#1e1e1e] border-[#3C3C3C] rounded focus:ring-[#A58077] focus:ring-2"
+                  className={`mt-1 w-4 h-4 rounded focus:ring-2 transition-all duration-300 ${
+                    isDarkMode
+                      ? 'bg-[#1e1e1e] border-[#3C3C3C] focus:ring-[#A58077] text-[#A58077]'
+                      : 'bg-white border-[#E5D3C7] focus:ring-[#8B6B61] text-[#8B6B61]'
+                  }`}
                   required
                 />
-                <label htmlFor="terms" className="text-sm text-[#A58077]">
+                <label htmlFor="terms" className={`text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
                   I agree to the{" "}
-                  <a href="#" className="text-[#E5CBBE] hover:text-[#A58077] underline transition-colors duration-200">
+                  <a href="#" className={`underline transition-all duration-200 hover:scale-105 ${
+                    isDarkMode ? 'text-[#E5CBBE] hover:text-[#A58077]' : 'text-[#2C2C2C] hover:text-[#8B6B61]'
+                  }`}>
                     Terms of Service
                   </a>{" "}
                   and{" "}
-                  <a href="#" className="text-[#E5CBBE] hover:text-[#A58077] underline transition-colors duration-200">
+                  <a href="#" className={`underline transition-all duration-200 hover:scale-105 ${
+                    isDarkMode ? 'text-[#E5CBBE] hover:text-[#A58077]' : 'text-[#2C2C2C] hover:text-[#8B6B61]'
+                  }`}>
                     Privacy Policy
                   </a>
                 </label>
@@ -389,7 +506,11 @@ const SignUp = () => {
               <button
                 type="submit"
                 disabled={loading || !agreedToTerms}
-                className="w-full py-4 bg-gradient-to-r from-[#A58077] to-[#8B6B63] text-white rounded-xl hover:from-[#8B6B63] hover:to-[#A58077] transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                className={`w-full py-4 text-white rounded-xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 ${
+                  isDarkMode
+                    ? 'bg-gradient-to-r from-[#A58077] to-[#8B6B63] hover:from-[#8B6B63] hover:to-[#A58077]'
+                    : 'bg-gradient-to-r from-[#8B6B61] to-[#A58077] hover:from-[#A58077] hover:to-[#8B6B61]'
+                }`}
               >
                 {loading ? (
                   <>
@@ -399,32 +520,42 @@ const SignUp = () => {
                 ) : (
                   <>
                     <span>Create Account</span>
-                    <FaArrowRight />
+                    <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
 
               {/* Divider */}
               <div className="flex items-center my-8">
-                <div className="flex-grow border-t border-[#3C3C3C]" />
-                <span className="mx-4 text-[#A58077] text-sm">or continue with</span>
-                <div className="flex-grow border-t border-[#3C3C3C]" />
+                <div className={`flex-grow border-t transition-colors duration-300 ${
+                  isDarkMode ? 'border-[#3C3C3C]' : 'border-[#E5D3C7]'
+                }`} />
+                <span className={`mx-4 text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>or continue with</span>
+                <div className={`flex-grow border-t transition-colors duration-300 ${
+                  isDarkMode ? 'border-[#3C3C3C]' : 'border-[#E5D3C7]'
+                }`} />
               </div>
 
               {/* Social Login Buttons */}
               <div className="grid grid-cols-3 gap-4">
-                <SocialButton Icon={FaGoogle} label="Google" />
-                <SocialButton Icon={FaApple} label="Apple" />
-                <SocialButton Icon={FaFacebookF} label="Facebook" />
+                <SocialButton Icon={FaGoogle} label="Google" isDarkMode={isDarkMode} />
+                <SocialButton Icon={FaApple} label="Apple" isDarkMode={isDarkMode} />
+                <SocialButton Icon={FaFacebookF} label="Facebook" isDarkMode={isDarkMode} />
               </div>
 
               {/* Login Link */}
               <div className="text-center pt-6">
-                <p className="text-[#A58077] text-sm">
+                <p className={`text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
                   Already have an account?{" "}
                   <button
                     onClick={() => navigate("/login")}
-                    className="text-[#E5CBBE] font-semibold hover:text-[#A58077] transition-colors duration-200 underline"
+                    className={`font-semibold underline transition-all duration-200 hover:scale-105 ${
+                      isDarkMode ? 'text-[#E5CBBE] hover:text-[#A58077]' : 'text-[#2C2C2C] hover:text-[#8B6B61]'
+                    }`}
                   >
                     Sign in here
                   </button>
@@ -439,68 +570,67 @@ const SignUp = () => {
               
               {/* Welcome Message */}
               <div className="space-y-4">
-                <div className="text-6xl mb-4">🚀</div>
-                <h3 className="text-3xl font-bold text-[#E5CBBE]">
+                <div className="text-6xl mb-4 transform hover:scale-110 transition-transform duration-300">🚀</div>
+                <h3 className={`text-3xl font-bold transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>
                   Start Your Design Journey
                 </h3>
-                <p className="text-lg text-[#A58077] leading-relaxed">
+                <p className={`text-lg leading-relaxed transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                }`}>
                   Join our community of designers and homeowners who are transforming spaces with AI-powered interior design.
                 </p>
               </div>
 
               {/* Features */}
               <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-[#A58077]/20 rounded-lg flex items-center justify-center">
-                    <FaRocket className="text-[#A58077]" />
+                {[
+                  { icon: FaRocket, title: "Instant Design Generation", desc: "Create stunning interiors in seconds" },
+                  { icon: FaShieldAlt, title: "Secure & Private", desc: "Your designs are protected and private" },
+                  { icon: FaUser, title: "Personalized Experience", desc: "Get recommendations based on your style" }
+                ].map((feature, idx) => (
+                  <div key={idx} className="flex items-center space-x-3 group cursor-pointer transform hover:scale-105 transition-all duration-300">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 ${
+                      isDarkMode ? 'bg-[#A58077]/20' : 'bg-[#8B6B61]/20'
+                    }`}>
+                      <feature.icon className={isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'} />
+                    </div>
+                    <div>
+                      <h4 className={`font-semibold transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                      }`}>{feature.title}</h4>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>{feature.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-[#E5CBBE]">Instant Design Generation</h4>
-                    <p className="text-sm text-[#A58077]">Create stunning interiors in seconds</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-[#A58077]/20 rounded-lg flex items-center justify-center">
-                    <FaShieldAlt className="text-[#A58077]" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-[#E5CBBE]">Secure & Private</h4>
-                    <p className="text-sm text-[#A58077]">Your designs are protected and private</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-[#A58077]/20 rounded-lg flex items-center justify-center">
-                    <FaUser className="text-[#A58077]" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-[#E5CBBE]">Personalized Experience</h4>
-                    <p className="text-sm text-[#A58077]">Get recommendations based on your style</p>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Benefits */}
-              <div className="bg-[#2C2C2C] rounded-xl p-6 border border-[#3C3C3C]">
-                <h4 className="font-semibold text-[#E5CBBE] mb-4">What you&apos;ll get:</h4>
-                <ul className="space-y-2 text-sm text-[#A58077]">
-                  <li className="flex items-center space-x-2">
-                    <FaCheck className="text-green-400" />
-                    <span>Unlimited AI design generations</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <FaCheck className="text-green-400" />
-                    <span>Access to premium furniture catalog</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <FaCheck className="text-green-400" />
-                    <span>Expert design consultation</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <FaCheck className="text-green-400" />
-                    <span>Priority customer support</span>
-                  </li>
+              <div className={`rounded-xl p-6 border transition-all duration-500 transform hover:scale-[1.02] ${
+                isDarkMode
+                  ? 'bg-[#2C2C2C] border-[#3C3C3C]'
+                  : 'bg-white border-[#E5D3C7] shadow-lg'
+              }`}>
+                <h4 className={`font-semibold mb-4 transition-colors duration-300 ${
+                  isDarkMode ? 'text-[#E5CBBE]' : 'text-[#2C2C2C]'
+                }`}>What you&apos;ll get:</h4>
+                <ul className="space-y-2 text-sm">
+                  {[
+                    "Unlimited AI design generations",
+                    "Access to premium furniture catalog",
+                    "Expert design consultation",
+                    "Priority customer support"
+                  ].map((benefit, idx) => (
+                    <li key={idx} className="flex items-center space-x-2">
+                      <FaCheck className="text-green-400" />
+                      <span className={`transition-colors duration-300 ${
+                        isDarkMode ? 'text-[#A58077]' : 'text-[#8B6B61]'
+                      }`}>{benefit}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -511,10 +641,14 @@ const SignUp = () => {
   );
 };
 
-const SocialButton = ({ Icon, label }) => (
+const SocialButton = ({ Icon, label, isDarkMode }) => (
   <button
     type="button"
-    className="flex items-center justify-center space-x-2 py-3 px-4 bg-[#1e1e1e] text-[#E5CBBE] rounded-lg hover:bg-[#A58077] hover:text-white transition-all duration-300 border border-[#3C3C3C] hover:border-[#A58077]"
+    className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-all duration-300 border transform hover:scale-105 hover:rotate-1 ${
+      isDarkMode
+        ? 'bg-[#1e1e1e] text-[#E5CBBE] border-[#3C3C3C] hover:bg-gradient-to-r hover:from-[#A58077] hover:to-[#8B6B63] hover:text-white hover:border-[#A58077]'
+        : 'bg-white text-[#2C2C2C] border-[#E5D3C7] hover:bg-gradient-to-r hover:from-[#8B6B61] hover:to-[#A58077] hover:text-white hover:border-[#8B6B61] shadow-md'
+    }`}
   >
     <Icon size={16} />
     <span className="text-sm font-medium">{label}</span>
@@ -524,6 +658,7 @@ const SocialButton = ({ Icon, label }) => (
 SocialButton.propTypes = {
   Icon: PropTypes.elementType.isRequired,
   label: PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
 };
 
 export default SignUp;
